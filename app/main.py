@@ -1,12 +1,13 @@
 from fastapi import FastAPI
-from api import intake, session, results
+from app.api import intake
+# , session, results
 
 app = FastAPI(title="ADHD Eye-Tracking Backend")
 
 # Include API routers
 app.include_router(intake.router, prefix="/intake")
-app.include_router(session.router, prefix="/session")
-app.include_router(results.router, prefix="/results")
+# app.include_router(session.router, prefix="/session")
+# app.include_router(results.router, prefix="/results")
 
 
 @app.get("/")
