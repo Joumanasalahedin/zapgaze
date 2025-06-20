@@ -7,12 +7,11 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String)
-    birthdate = Column(Date)
-    answers_json = Column(String)
-    asrs_part_a_score = Column(Integer)
-    asrs_part_b_score = Column(Integer)
-    symptom_group = Column(String)
+    name = Column(String, nullable=False)
+    birthdate = Column(Date, nullable=False)
+    answers_json = Column(String, nullable=False)
+    total_score = Column(Integer, nullable=False)
+    symptom_group = Column(String, nullable=False)
 
     sessions = relationship("Session", back_populates="user")
 
@@ -43,6 +42,8 @@ class Session(Base):
     user = relationship("User", back_populates="sessions")
     results = relationship("Results", back_populates="session")
     events = relationship("TaskEvent", back_populates="session")
+    features = relationship(
+        "SessionFeatures", back_populates="session", uselist=False)
 
 
 class Results(Base):
@@ -53,3 +54,36 @@ class Results(Base):
     data = Column(String)
 
     session = relationship("Session", back_populates="results")
+
+
+class SessionFeatures(Base):
+    __tablename__ = "session_features"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(Integer, ForeignKey("sessions.id"), unique=True)
+    user_id = Column(Integer, nullable=False)
+
+    # Gaze / Fixation Metrics
+    mean_fixation_duration = Column(Float, nullable=True)
+    fixation_count = Column(Integer, nullable=True)
+    gaze_dispersion = Column(Float, nullable=True)
+
+    # Saccade Metrics
+    saccade_count = Column(Integer, nullable=True)
+    saccade_rate = Column(Float, nullable=True)
+
+    # Blink Metrics
+    total_blinks = Column(Integer, nullable=True)
+    blink_rate = Column(Float, nullable=True)
+
+    # Task Performance
+    go_reaction_time_mean = Column(Float, nullable=True)
+    go_reaction_time_sd = Column(Float, nullable=True)
+    omission_errors = Column(Integer, nullable=True)
+    commission_errors = Column(Integer, nullable=True)
+
+    # Session timestamps copy
+    started_at = Column(DateTime, nullable=True)
+    stopped_at = Column(DateTime, nullable=True)
+
+    session = relationship("Session", back_populates="features")

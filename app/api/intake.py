@@ -1,14 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+from pydantic import BaseModel, Field
+from typing import List
 import uuid
 import json
+import datetime
 
-from app.models.intake_models import IntakeRequest
 from app.db import models, database
 
 router = APIRouter()
-
-# Dependency
 
 
 def get_db():
@@ -19,44 +19,41 @@ def get_db():
         db.close()
 
 
-@router.post("/")
-def intake_user(data: IntakeRequest, db: Session = Depends(get_db)):
+class IntakeData(BaseModel):
+    name: str
+    birthdate: datetime.date
+    # ASRS-5 has 6 items (0=Never to 4=Very Often)
+    answers: List[int] = Field(..., min_items=6, max_items=6)
 
-    # Validate correct number of answers
-    if len(data.answers) != 18:
-        raise HTTPException(
-            status_code=400, detail="Exactly 18 answers are required.")
 
-    # Calculate Part A and Part B scores
-    part_a_score = sum(data.answers[:6])
-    part_b_score = sum(data.answers[6:])
+@router.post("/", summary="Create user intake and compute ASRS-5 total score")
+def intake(data: IntakeData, db: Session = Depends(get_db)):
+    # Compute total ASRS-5 score (0-24)
+    total_score = sum(data.answers)
 
-    # Classify symptom group
-    symptom_group = "High" if part_a_score >= 4 else "Low"
+    # Classify symptom group: >=14 = High, else Low
+    symptom_group = "High" if total_score >= 14 else "Low"
 
-    # Create User entry
+    # Persist new User (store total_score)
     user = models.User(
         name=data.name,
         birthdate=data.birthdate,
         answers_json=json.dumps(data.answers),
-        asrs_part_a_score=part_a_score,
-        asrs_part_b_score=part_b_score,
+        total_score=total_score,
         symptom_group=symptom_group
     )
     db.add(user)
     db.commit()
     db.refresh(user)
 
-    # Create Session entry
+    # Create initial session for user
     session_uid = str(uuid.uuid4())
-    session = models.Session(user_id=user.id, session_uid=session_uid)
-    db.add(session)
+    session_entry = models.Session(user_id=user.id, session_uid=session_uid)
+    db.add(session_entry)
     db.commit()
-    db.refresh(session)
 
     return {
-        "session_uid": session.session_uid,
-        "part_a_score": part_a_score,
-        "part_b_score": part_b_score,
+        "session_uid": session_uid,
+        "total_score": total_score,
         "symptom_group": symptom_group
     }
