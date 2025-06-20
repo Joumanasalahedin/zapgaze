@@ -1,15 +1,19 @@
 from fastapi import FastAPI
-from app.api import intake
-# , session, results
+from app.api import intake, acquisition, session, session_events, results
 
-app = FastAPI(title="ADHD Eye-Tracking Backend")
+app = FastAPI(title="ZapGaze Backend")
 
-# Include API routers
-app.include_router(intake.router, prefix="/intake")
-# app.include_router(session.router, prefix="/session")
-# app.include_router(results.router, prefix="/results")
+# Intake and session control
+app.include_router(intake.router, prefix="/intake", tags=["intake"])
+app.include_router(session.router, prefix="/session", tags=["session"])
+app.include_router(session_events.router, prefix="/session", tags=["session-events"])
 
+# Acquisition data endpoints
+app.include_router(acquisition.router, prefix="/acquisition", tags=["acquisition"])
+
+# Results & reporting
+app.include_router(results.router, prefix="/results", tags=["results"])
 
 @app.get("/")
 def read_root():
-    return {"message": "ADHD Eye-Tracking API is running."}
+    return {"message": "ZapGaze API is running."}
