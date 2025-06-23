@@ -1,0 +1,96 @@
+.greeting {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.greetingTitle {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 0.5rem;
+}
+
+.greetingSubtitle {
+  font-size: 1.2rem;
+  color: #555;
+}
+
+.factCard {
+  background: #fff;
+  border-radius: 1rem;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+  padding: 2rem;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.factTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-color);;
+  margin-bottom: 1rem;
+}
+
+.factText {
+  font-size: 1.1rem;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.factSource {
+  font-size: 0.95rem;
+  color: #888;
+  font-style: italic;
+}
+
+.factDots {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  transition: background 0.2s;
+}
+
+.dotActive {
+  background: var(--primary-color);
+}
+
+.action {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.actionLink {
+  transition: transform 0.2s ease-in-out;
+}
+
+.actionLink:hover {
+  transform: scale(1.1);
+}
+
+.overviewCard {
+  background: #fff;
+  border-radius: 1rem;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+  padding: 2rem;
+  text-align: center;
+}
+
+.overviewTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-color);;
+  margin-bottom: 1rem;
+}
+
+.overviewText {
+  color: #333;
+  margin-bottom: 1.5rem;
+}
