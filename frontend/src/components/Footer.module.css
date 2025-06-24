@@ -1,0 +1,40 @@
+.footer {
+  background: var(--gray-color);;
+  border-top: 1px solid #e5e7eb;
+  padding: 2rem 0;
+}
+
+.footerInner {
+  margin: 0 auto;
+  padding: 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@media (min-width: 600px) {
+  .footerInner {
+    flex-direction: row;
+  }
+}
+
+.left {
+  color: #555;
+  font-size: 1rem;
+}
+
+.right {
+  color: #555;
+  font-size: 1rem;
+  font-style: italic;
+}
+
+.bold500 {
+  font-weight: 500;
+}
+
+.bold600 {
+  font-weight: 600;
+}
