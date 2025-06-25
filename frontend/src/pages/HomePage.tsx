@@ -32,7 +32,7 @@ const HomePage: React.FC = () => {
         {
             fact: "Early diagnosis and treatment of ADHD can significantly improve academic performance, social relationships, and overall quality of life for both children and adults.",
             source: "Centers for Disease Control and Prevention (CDC)",
-            image: "../public/images/pupil-as-window-of-the-eye.jpg"
+            image: "../public/images/lab-eye-openness.png"
         }
     ];
 
