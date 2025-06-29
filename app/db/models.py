@@ -16,19 +16,6 @@ class User(Base):
     sessions = relationship("Session", back_populates="user")
 
 
-class TaskEvent(Base):
-    __tablename__ = "task_events"
-
-    id = Column(Integer, primary_key=True, index=True)
-    session_id = Column(Integer, ForeignKey("sessions.id"))
-    timestamp = Column(Float, nullable=False)
-    event_type = Column(String, nullable=False)
-    stimulus = Column(String, nullable=True)
-    response = Column(Boolean, nullable=True)
-
-    session = relationship("Session", back_populates="events")
-
-
 class Session(Base):
     __tablename__ = "sessions"
 
@@ -42,8 +29,34 @@ class Session(Base):
     user = relationship("User", back_populates="sessions")
     results = relationship("Results", back_populates="session")
     events = relationship("TaskEvent", back_populates="session")
+    calibrations = relationship("CalibrationPoint", back_populates="session")
     features = relationship(
         "SessionFeatures", back_populates="session", uselist=False)
+
+
+class CalibrationPoint(Base):
+    __tablename__ = "calibration_points"
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(Integer, ForeignKey("sessions.id"), nullable=False)
+    screen_x = Column(Float, nullable=False)
+    screen_y = Column(Float, nullable=False)
+    measured_x = Column(Float, nullable=False)
+    measured_y = Column(Float, nullable=False)
+    timestamp = Column(DateTime, nullable=False, server_default=func.now())
+    session = relationship("Session", back_populates="calibrations")
+
+
+class TaskEvent(Base):
+    __tablename__ = "task_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(Integer, ForeignKey("sessions.id"))
+    timestamp = Column(Float, nullable=False)
+    event_type = Column(String, nullable=False)
+    stimulus = Column(String, nullable=True)
+    response = Column(Boolean, nullable=True)
+
+    session = relationship("Session", back_populates="events")
 
 
 class Results(Base):

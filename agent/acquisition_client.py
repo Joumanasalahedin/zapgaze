@@ -70,7 +70,8 @@ def main():
                 "left_eye": {"x": le[0][0], "y": le[0][1]} if len(le) > 0 else {"x": None, "y": None},
                 "right_eye": {"x": le[1][0], "y": le[1][1]} if len(le) > 1 else {"x": None, "y": None},
                 "ear": result.get("ear"),
-                "blink": result.get("blink")
+                "blink": result.get("blink"),
+                "pupil_size": result.get("pupil_size")
             }
             buffer.append(record)
 

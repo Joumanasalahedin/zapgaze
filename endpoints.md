@@ -1,6 +1,6 @@
-**ZapGaze API Endpoints**
+**ZapGaze API & Local Agent Endpoints (Process Order)**
 
-This document summarizes all available API endpoints, the purpose of each, required inputs, and example `curl` commands.
+A step-by-step guide to all endpoints, organized by the typical user flow: from health check, intake, calibration, session lifecycle, acquisition, event logging, through feature computation and cleanup.
 
 ---
 
@@ -8,7 +8,7 @@ This document summarizes all available API endpoints, the purpose of each, requi
 
 **Endpoint:** `GET /`
 
-**Description:** Simple test to verify the API server is running.
+**Description:** Verify the backend API is up and running.
 
 **Example:**
 ```bash
@@ -21,17 +21,18 @@ curl http://localhost:8000/
 
 **Endpoint:** `POST /intake/`
 
-**Description:**
-- Creates a new **User** with ASRS-5 intake data (6 questions).
-- Computes the **total_score** (0–24) and classifies **symptom_group** (`High`/`Low`).
-- Automatically generates an initial **Session** and returns its `session_uid`.
+**Purpose:**
+1. Create a new **User** with demographic and ASRS-5 answers.
+2. Compute **total_score** (0–24).
+3. Classify **symptom_group** (`High` if ≥14, else `Low`).
+4. Automatically generate an initial **Session** and return its `session_uid`.
 
 **Request JSON:**
 ```json
 {
   "name": "Jane Doe",
   "birthdate": "1990-01-01",
-  "answers": [0,2,3,1,4,2]
+  "answers": [0, 2, 3, 1, 4, 2]
 }
 ```
 
@@ -53,20 +54,94 @@ curl -X POST http://localhost:8000/intake/ \
 
 ---
 
-## 3. Session Management
+## 3. Calibration (Local Acquisition Agent)
 
-### a) Start Session
+Before starting the Go/No-Go task, calibrate the eye-tracker. Run the local agent on the participant’s machine:
 
-**Endpoint:** `POST /session/start`
+Host: `http://localhost:9000`
 
-**Description:**
-- Begins a new or reuses an existing session for a user.
-- If you provide `session_uid`, it validates and returns it; otherwise generates a new one.
+### 3.1 Start Calibration
+
+**Endpoint:** `POST /calibrate/start`
+
+**Purpose:** Initialize the camera and adapter, clear previous calibration data.
+
+**Response JSON:**
+```json
+{ "status": "calibration_started" }
+```
+
+**Example:**
+```bash
+curl -X POST http://localhost:9000/calibrate/start
+```
+
+### 3.2 Record Calibration Point
+
+**Endpoint:** `POST /calibrate/point`
+
+**Purpose:** Capture multiple eye samples while the user fixates on a known screen coordinate.
 
 **Request JSON:**
 ```json
 {
-  "user_id": <integer>,
+  "x": <screen_x>,        # horizontal pixel coordinate
+  "y": <screen_y>,        # vertical pixel coordinate
+  "duration": 1.0,        # seconds to sample
+  "samples": 30           # number of frames to record
+}
+```
+
+**Response JSON:**
+```json
+{
+  "screen_x": <screen_x>,
+  "screen_y": <screen_y>,
+  "measured_x": <avg_eye_x>,
+  "measured_y": <avg_eye_y>
+}
+```
+
+**Example:**
+```bash
+curl -X POST http://localhost:9000/calibrate/point \
+  -H "Content-Type: application/json" \
+  -d '{"x":640,"y":360,"duration":1.0,"samples":30}'
+```
+
+### 3.3 Finish Calibration
+
+**Endpoint:** `POST /calibrate/finish`
+
+**Purpose:** Compute and store the affine transform (raw eye → screen coords) in `calibration.json`.
+
+**Response JSON:**
+```json
+{
+  "A": [[a11, a12], [a21, a22]],
+  "b": [b1, b2]
+}
+```
+
+**Example:**
+```bash
+curl -X POST http://localhost:9000/calibrate/finish
+```
+
+---
+
+## 4. Session Management (Backend API)
+
+### 4.1 Start Session
+
+**Endpoint:** `POST /session/start`
+
+**Purpose:** Begin a new or validate an existing CPT session.
+
+**Request JSON:**
+```json
+{
+  "user_id": 1,
   "session_uid": "<optional-existing-uuid>"
 }
 ```
@@ -80,19 +155,18 @@ curl -X POST http://localhost:8000/intake/ \
 ```bash
 curl -X POST http://localhost:8000/session/start \
   -H "Content-Type: application/json" \
-  -d '{"user_id":1,"session_uid":"140d5631-7710-4adc-8575-0befddbae087"}'
+  -d '{"user_id":1}'
 ```
 
-### b) Stop Session
+### 4.2 Stop Session
 
 **Endpoint:** `POST /session/stop`
 
-**Description:**
-- Marks the most recent active session for a user as stopped, setting its `stopped_at` timestamp and `status`.
+**Purpose:** Mark the most recent active session as stopped and record `stopped_at`.
 
 **Request JSON:**
 ```json
-{ "user_id": <integer> }
+{ "user_id": 1 }
 ```
 
 **Response JSON:**
@@ -113,23 +187,21 @@ curl -X POST http://localhost:8000/session/stop \
 
 ---
 
-## 4. Local Acquisition Agent
+## 5. Acquisition Data (Backend API)
 
-This lightweight microservice runs on the user’s machine (outside Docker) and controls the `acquisition_client.py` process.
+### 5.1 Start Acquisition (Local Agent)
 
-Host: `http://localhost:9000`
+**Endpoint:** `POST /start` on Local Agent
 
-### a) Start Acquisition
+**Host:** `http://localhost:9000`
 
-**Endpoint:** `POST /start`
-
-**Description:** Launches the acquisition client with the provided session and user context.
+**Purpose:** Launch `acquisition_client.py` with session context.
 
 **Request JSON:**
 ```json
 {
   "session_uid": "<uuid>",
-  "user_id": <integer>,
+  "user_id": 1,
   "api_url": "http://localhost:8000/acquisition/batch",
   "fps": 20.0
 }
@@ -144,14 +216,73 @@ Host: `http://localhost:9000`
 ```bash
 curl -X POST http://localhost:9000/start \
   -H "Content-Type: application/json" \
-  -d '{"session_uid":"140d5631-7710-4adc-8575-0befddbae087","user_id":1,"api_url":"http://localhost:8000/acquisition/batch","fps":20}'
+  -d '{"session_uid":"<uuid>","user_id":1,"api_url":"http://localhost:8000/acquisition/batch","fps":20}'
 ```
 
-### b) Stop Acquisition
+### 5.2 Single‐Frame Ingestion
 
-**Endpoint:** `POST /stop`
+**Endpoint:** `POST /acquisition/data`
 
-**Description:** Terminates the running acquisition client process.
+**Purpose:** Upload one eye-tracking sample.
+
+**Request JSON:**
+```json
+{
+  "user_id": 1,
+  "session_uid": "<uuid>",
+  "timestamp": 1620000000.123,
+  "left_eye": { "x": 100, "y": 100 },
+  "right_eye": { "x": 105, "y": 100 },
+  "ear": 0.30,
+  "blink": false
+}
+```
+
+**Response JSON:**
+```json
+{ "status": "success" }
+```
+
+**Example:**
+```bash
+curl -X POST http://localhost:8000/acquisition/data \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":1,"session_uid":"<uuid>","timestamp":1620000000.123,"left_eye":{"x":100,"y":100},"right_eye":{"x":105,"y":100},"ear":0.30,"blink":false}'
+```
+
+### 5.3 Batched Ingestion
+
+**Endpoint:** `POST /acquisition/batch`
+
+**Purpose:** Upload multiple samples in one request for efficiency.
+
+**Request JSON:**
+```json
+[
+  { /* sample 1 */ },
+  { /* sample 2 */ }
+]
+```
+
+**Response JSON:**
+```json
+{ "status": "success", "count": 2 }
+```
+
+**Example:**
+```bash
+curl -X POST http://localhost:8000/acquisition/batch \
+  -H "Content-Type: application/json" \
+  -d '[{"user_id":1,…},{…}]'
+```
+
+### 5.4 Stop Acquisition (Local Agent)
+
+**Endpoint:** `POST /stop` on Local Agent
+
+**Host:** `http://localhost:9000`
+
+**Purpose:** Terminate the running acquisition client process.
 
 **Response JSON:**
 ```json
@@ -163,15 +294,21 @@ curl -X POST http://localhost:9000/start \
 curl -X POST http://localhost:9000/stop
 ```
 
-### c) Status
+### 5.5 Acquisition Status (Local Agent)
 
 **Endpoint:** `GET /status`
 
-**Description:** Checks whether the acquisition client is currently running.
+**Host:** `http://localhost:9000`
+
+**Purpose:** Check if the acquisition client is active.
 
 **Response JSON:**
 ```json
-{ "status": "running", "pid": <process_id> }  // or { "status": "stopped" }
+{ "status": "running", "pid": <process_id> }
+```
+or
+```json
+{ "status": "stopped" }
 ```
 
 **Example:**
@@ -181,21 +318,21 @@ curl http://localhost:9000/status
 
 ---
 
-## 5. Task Event Logging
+## 6. Task Event Logging (Backend API)
 
 **Endpoint:** `POST /session/event`
 
-**Description:** Record each CPT stimulus onset and user response.
+**Purpose:** Log each stimulus onset and user response (Go/No-Go).
 
 **Request JSON:**
 ```json
 {
-  "user_id": <integer>,
+  "user_id": 1,
   "session_uid": "<uuid>",
-  "timestamp": <float_unix_time>,
+  "timestamp": 1620000001.500,
   "event_type": "stimulus_onset" | "response",
   "stimulus": "O" | "X",
-  "response": true | false     # only for event_type=="response"
+  "response": true | false
 }
 ```
 
@@ -209,91 +346,31 @@ curl http://localhost:9000/status
 # Stimulus onset
 curl -X POST http://localhost:8000/session/event \
   -H "Content-Type: application/json" \
-  -d '{"user_id":1,"session_uid":"<uuid>","timestamp":1719020001.000,"event_type":"stimulus_onset","stimulus":"O"}'
+  -d '{"user_id":1,…,"event_type":"stimulus_onset","stimulus":"O"}'
 
-# User response
+# Response
 curl -X POST http://localhost:8000/session/event \
   -H "Content-Type: application/json" \
-  -d '{"user_id":1,"session_uid":"<uuid>","timestamp":1719020001.350,"event_type":"response","stimulus":"O","response":true}'
+  -d '{"user_id":1,…,"event_type":"response","stimulus":"O","response":true}'
 ```
 
 ---
 
-## 6. Acquisition Data
+## 7. Raw Results Retrieval & Cleanup (Backend API)
 
-### a) Single‐Frame Ingestion
-
-**Endpoint:** `POST /acquisition/data`
-
-**Description:** Receives one frame’s eye-tracking & blink data.
-
-**Request JSON:**
-```json
-{
-  "user_id": <integer>,
-  "session_uid": "<uuid>",
-  "timestamp": <float_unix_time>,
-  "left_eye": { "x": <float>, "y": <float> },
-  "right_eye": { "x": <float>, "y": <float> },
-  "ear": <float>,
-  "blink": true | false
-}
-```
-
-**Response JSON:**
-```json
-{ "status": "success" }
-```
-
-**Example:**
-```bash
-curl -X POST http://localhost:8000/acquisition/data \
-  -H "Content-Type: application/json" \
-  -d '{"user_id":1,"session_uid":"<uuid>","timestamp":1000,"left_eye":{"x":100,"y":100},"right_eye":{"x":105,"y":100},"ear":0.3,"blink":false}'
-```
-
-### b) Batched Ingestion
-
-**Endpoint:** `POST /acquisition/batch`
-
-**Description:** Receives an array of multiple frame‐data objects in one request for efficiency.
-
-**Request JSON:**
-```json
-[
-  { /* record1 */ },
-  { /* record2 */ },
-  ...
-]
-```
-
-**Response JSON:**
-```json
-{ "status": "success", "count": <number_inserted> }
-```
-
-**Example:**
-```bash
-curl -X POST http://localhost:8000/acquisition/batch \
-  -H "Content-Type: application/json" \
-  -d '[{...}, {...}]'
-```
-
----
-
-## 7. Raw Results Retrieval
+### 7.1 Get Raw Results
 
 **Endpoint:** `GET /results/{session_uid}`
 
-**Description:** Fetch all raw acquisition records for a session (eyes, EAR, blinks).
+**Purpose:** Retrieve all raw eye-tracking samples for a session.
 
 **Response JSON:**
 ```json
 {
   "session_uid": "<uuid>",
   "user_id": 1,
-  "count": 2,
-  "records": [ { /* record1 */ }, { /* record2 */ } ]
+  "count": 10,
+  "records": [ { /* sample1 */ }, … ]
 }
 ```
 
@@ -302,15 +379,31 @@ curl -X POST http://localhost:8000/acquisition/batch \
 curl http://localhost:8000/results/<session_uid>
 ```
 
+### 7.2 Delete Raw Results
+
+**Endpoint:** `DELETE /results/{session_uid}`
+
+**Purpose:** Remove all raw samples (for resetting or cleanup).
+
+**Response JSON:**
+```json
+{ "deleted": 10 }
+```
+
+**Example:**
+```bash
+curl -X DELETE http://localhost:8000/results/<session_uid>
+```
+
 ---
 
-## 8. Feature Computation & Retrieval
+## 8. Feature Computation & Retrieval (Backend API)
 
-### a) Compute Session Features
+### 8.1 Compute Session Features
 
 **Endpoint:** `POST /features/compute/{session_uid}`
 
-**Description:** Runs the feature-extraction pipeline on raw data and stores a summary row in `session_features`.
+**Purpose:** Run the feature-extraction pipeline on stored raw data and events, then save summary metrics.
 
 **Response JSON:**
 ```json
@@ -322,11 +415,11 @@ curl http://localhost:8000/results/<session_uid>
 curl -X POST http://localhost:8000/features/compute/<session_uid>
 ```
 
-### b) Get Session Features
+### 8.2 Get Session Features
 
 **Endpoint:** `GET /features/sessions/{session_uid}`
 
-**Description:** Returns the aggregated metrics for a session (fixations, saccades, blinks, RT, errors).
+**Purpose:** Retrieve summary metrics (fixation, saccade, blink, RT, errors) for a session.
 
 **Response JSON:**
 ```json
@@ -338,12 +431,12 @@ curl -X POST http://localhost:8000/features/compute/<session_uid>
   "gaze_dispersion": null,
   "saccade_count": null,
   "saccade_rate": null,
-  "total_blinks": 1,
-  "blink_rate": 0.2,
+  "total_blinks": 2,
+  "blink_rate": 0.5,
   "go_reaction_time_mean": 0.35,
   "go_reaction_time_sd": 0.05,
-  "omission_errors": 0,
-  "commission_errors": 1,
+  "omission_errors": 1,
+  "commission_errors": 0,
   "started_at": "2025-06-20T15:00:00",
   "stopped_at": "2025-06-20T15:05:00"
 }
@@ -356,24 +449,4 @@ curl http://localhost:8000/features/sessions/<session_uid>
 
 ---
 
-## 9. Cleanup (Optional)
-
-### Delete Raw Results
-
-**Endpoint:** `DELETE /results/{session_uid}`
-
-**Description:** Deletes all raw `results` rows for a session (useful for resetting data).
-
-**Response JSON:**
-```json
-{ "deleted": <number_of_rows_deleted> }
-```
-
-**Example:**
-```bash
-curl -X DELETE http://localhost:8000/results/<session_uid>
-```
-
----
-
-*All date/times and `<uuid>` placeholders should be replaced with actual values from your workflow.*
+*Replace `<uuid>`, timestamps, and other placeholders with real values when testing.*

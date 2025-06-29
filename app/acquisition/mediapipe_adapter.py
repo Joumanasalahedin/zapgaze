@@ -17,6 +17,8 @@ class MediaPipeAdapter(EyeTrackerAdapter):
                                                     refine_landmarks=True,
                                                     min_detection_confidence=0.5,
                                                     min_tracking_confidence=0.5)
+        self.drawing_spec = mp.solutions.drawing_utils.DrawingSpec(
+            color=(0, 255, 0), thickness=1)
 
         # Eye landmark indices
         self.LEFT_EYE = [33, 160, 158, 133, 153, 144]
@@ -40,35 +42,6 @@ class MediaPipeAdapter(EyeTrackerAdapter):
         self.frame_counter = 0
         self.blink_count = 0
         self.frames_since_blink = refractory_frames  # to allow first blink immediately
-
-        # MediaPipe Face Mesh setup
-        self.mp_face_mesh = mp.solutions.face_mesh
-        self.face_mesh = self.mp_face_mesh.FaceMesh(static_image_mode=False,
-                                                    max_num_faces=1,
-                                                    refine_landmarks=True,
-                                                    min_detection_confidence=0.5,
-                                                    min_tracking_confidence=0.5)
-
-        # Eye landmark indices
-        self.LEFT_EYE = [33, 160, 158, 133, 153, 144]
-        self.RIGHT_EYE = [362, 385, 387, 263, 373, 380]
-
-        # Blink detection params
-        self.consec_frames = consecutive_frames
-        self.refractory_frames = refractory_frames
-
-        # Calibration parameters
-        self.calibration_frames = calibration_frames
-        self.ear_history_calib = []
-        self.calibrated = False
-        self.baseline_ear = None
-        self.ear_threshold_ratio = ear_threshold_ratio
-        self.ear_threshold = None
-
-        # Blink state
-        self.frame_counter = 0
-        self.blink_count = 0
-        self.frames_since_blink = refractory_frames
 
     def initialize(self):
         pass
@@ -95,6 +68,7 @@ class MediaPipeAdapter(EyeTrackerAdapter):
         # Run face mesh detection
         img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         results = self.face_mesh.process(img_rgb)
+        pupil_size = None
 
         blink = False
         eye_centers = []
@@ -114,6 +88,21 @@ class MediaPipeAdapter(EyeTrackerAdapter):
             # Use the smaller EAR to catch eye closure even if one eye is misdetected
             ear_val = float(min(left_ear, right_ear))
             eye_centers = [left_center, right_center]
+            
+        # PUPIL SIZE: average diameter of the left-iris landmarks
+        # MediaPipe iris indices: left eye uses landmarks 468…473
+        LEFT_IRIS_IDX = [468, 469, 470, 471, 472, 473]
+        pts = []
+        for idx in LEFT_IRIS_IDX:
+            lm = landmarks[idx]
+            pts.append((lm.x * w, lm.y * h))
+        # centroid of those points
+        cx = sum(x for x,y in pts) / len(pts)
+        cy = sum(y for x,y in pts) / len(pts)
+        # average distance from centroid = radius, diameter = 2×radius
+        import math
+        radius = sum(math.hypot(x-cx, y-cy) for x,y in pts) / len(pts)
+        pupil_size = float(radius * 2)
 
         # Calibration phase: collect baseline EAR
         if not self.calibrated:
@@ -142,6 +131,7 @@ class MediaPipeAdapter(EyeTrackerAdapter):
             "eye_centers": eye_centers,
             "blink": blink,
             "ear": round(ear_val, 3),
+            "pupil_size": round(pupil_size, 1) if num_faces else None,
             "baseline_ear": round(self.baseline_ear, 3) if self.calibrated else None,
             "ear_threshold": round(self.ear_threshold, 3) if self.calibrated else None,
             "total_blinks": self.blink_count

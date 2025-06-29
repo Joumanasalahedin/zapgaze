@@ -1,5 +1,7 @@
 from fastapi import FastAPI
-from app.api import intake, acquisition, session, session_events, results, features
+from app.api import intake, acquisition, session, session_events, results, features, calibration
+from app.db import models, database
+from app.db.database import engine
 
 app = FastAPI(title="ZapGaze Backend")
 
@@ -9,7 +11,8 @@ app.include_router(session.router, prefix="/session", tags=["session"])
 app.include_router(session_events.router, prefix="/session",
                    tags=["session-events"])
 
-# Acquisition data endpoints
+# Calibration & Acquisition data endpoints
+app.include_router(calibration.router)
 app.include_router(acquisition.router,
                    prefix="/acquisition", tags=["acquisition"])
 
@@ -21,3 +24,6 @@ app.include_router(features.router, prefix="/features", tags=["features"])
 @app.get("/")
 def read_root():
     return {"message": "ZapGaze API is running."}
+
+
+models.Base.metadata.create_all(bind=engine)
