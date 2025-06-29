@@ -3,15 +3,18 @@ import { Outlet } from 'react-router-dom';
 import Header from './Header';
 import Footer from './Footer';
 import styles from './Layout.module.css';
+import { useLayoutFlags } from '../App';
 
 const Layout: React.FC = () => {
+    const { flags } = useLayoutFlags();
+
     return (
         <div>
-            <Header />
+            {flags.showHeader && <Header />}
             <main className={styles.main}>
                 <Outlet />
             </main>
-            <Footer />
+            {flags.showFooter && <Footer />}
         </div>
     );
 };
