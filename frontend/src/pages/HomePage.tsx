@@ -12,27 +12,27 @@ const HomePage: React.FC = () => {
         {
             fact: "ADHD affects approximately 5-7% of children and 2-5% of adults worldwide, making it one of the most common neurodevelopmental disorders.",
             source: "World Health Organization (WHO)",
-            image: "../public/images/doctor-testing-patient-eyesight.jpg"
+            image: "/images/doctor-testing-patient-eyesight.jpg"
         },
         {
             fact: "Research shows that people with ADHD often have differences in brain structure and function, particularly in areas responsible for attention, impulse control, and executive function.",
             source: "National Institute of Mental Health (NIMH)",
-            image: "../public/images/eye-tracking-webcam.jpg"
+            image: "/images/eye-tracking-webcam.jpg"
         },
         {
             fact: "Contrary to popular belief, ADHD is not caused by poor parenting, too much sugar, or watching too much TV. It's a complex neurobiological condition with strong genetic components.",
             source: "American Academy of Pediatrics",
-            image: "../public/images/front-view-girl-getting-her-eyes-checked.jpg"
+            image: "/images/front-view-girl-getting-her-eyes-checked.jpg"
         },
         {
             fact: "Many successful people have ADHD, including entrepreneurs, artists, and athletes. The condition can bring creativity, hyperfocus, and unique problem-solving abilities.",
             source: "CHADD (Children and Adults with Attention-Deficit/Hyperactivity Disorder)",
-            image: "../public/images/ophthalmologist-doctor-consulting-patient.jpg"
+            image: "/images/ophthalmologist-doctor-consulting-patient.jpg"
         },
         {
             fact: "Early diagnosis and treatment of ADHD can significantly improve academic performance, social relationships, and overall quality of life for both children and adults.",
             source: "Centers for Disease Control and Prevention (CDC)",
-            image: "../public/images/lab-eye-openness.png"
+            image: "/images/lab-eye-openness.png"
         }
     ];
 
