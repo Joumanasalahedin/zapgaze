@@ -138,12 +138,14 @@
   margin-bottom: 2rem;
 }
 
-.actionLink {
+.takeTestActionButton {
   transition: transform 0.2s ease-in-out;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
-.actionLink:hover {
+.takeTestActionButton:hover {
   transform: scale(1.1);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 .overviewCard {

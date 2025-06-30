@@ -119,7 +119,7 @@ const HomePage: React.FC = () => {
             </div>
 
             <div className={styles.action}>
-                <Link to="/test" className={`${styles.actionLink} btn-primary`}>
+                <Link to="/test" className={`${styles.takeTestActionButton} btn-primary`}>
                     Take the Test
                 </Link>
             </div>
