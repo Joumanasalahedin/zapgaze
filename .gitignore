@@ -1,2 +1,4 @@
 *_pycache*
 venv_mp/
+venv/
+.DS_Store
