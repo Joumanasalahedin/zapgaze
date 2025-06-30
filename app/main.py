@@ -1,9 +1,27 @@
 from fastapi import FastAPI
-from app.api import intake, acquisition, session, session_events, results, features, calibration
+from fastapi.middleware.cors import CORSMiddleware
+from app.api import (
+    intake,
+    acquisition,
+    session,
+    session_events,
+    results,
+    features,
+    calibration,
+)
 from app.db import models, database
 from app.db.database import engine
 
 app = FastAPI(title="ZapGaze Backend")
+
+# Allow CORS for frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Intake and session control
 app.include_router(intake.router, prefix="/intake", tags=["intake"])
