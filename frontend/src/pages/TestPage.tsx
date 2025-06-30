@@ -39,7 +39,6 @@ const TestPage: React.FC = () => {
     const [escapePressed, setEscapePressed] = useState(false);
     const [showEscapeConfirmation, setShowEscapeConfirmation] = useState(false);
     const [escapeCountdown, setEscapeCountdown] = useState(CONFIG.ESCAPE_CONFIRMATION_TIME / 1000);
-    const [currentTrialId, setCurrentTrialId] = useState<number | null>(null);
 
     // Calibration dots positions (corners of screen) - clockwise order starting from top-left
     const calibrationDots = [
@@ -193,14 +192,12 @@ const TestPage: React.FC = () => {
                             setShowFeedback(false);
                             setKeyPressed(false);
                             setCurrentTrial(null);
-                            setCurrentTrialId(null);
                             nextTrial();
                         }, CONFIG.FEEDBACK_DISPLAY_TIME);
                     } else {
                         setTimeout(() => {
                             setKeyPressed(false);
                             setCurrentTrial(null);
-                            setCurrentTrialId(null);
                             nextTrial();
                         }, 500);
                     }
@@ -216,7 +213,6 @@ const TestPage: React.FC = () => {
         if (trialIndex < trials.length) {
             const trial = trials[trialIndex];
             setCurrentTrial(trial);
-            setCurrentTrialId(trial.id);
             setTrialStartTime(Date.now());
             setKeyPressed(false);
         }
@@ -289,12 +285,10 @@ const TestPage: React.FC = () => {
                     setTimeout(() => {
                         setShowFeedback(false);
                         setCurrentTrial(null);
-                        setCurrentTrialId(null);
                         nextTrialCb();
                     }, CONFIG.FEEDBACK_DISPLAY_TIME);
                 } else {
                     setCurrentTrial(null);
-                    setCurrentTrialId(null);
                     nextTrialCb();
                 }
             }, CONFIG.NO_GO_DISPLAY_TIME);
