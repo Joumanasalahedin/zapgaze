@@ -32,6 +32,7 @@ const AboutPage = lazy(() => import('./pages/AboutPage'));
 const TestPage = lazy(() => import('./pages/TestPage'));
 const ResultsPage = lazy(() => import('./pages/ResultsPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
+const IntakeQuestionnairePage = lazy(() => import('./pages/IntakeQuestionnairePage'));
 
 const RouteWrapper: FC<{
     component: React.ComponentType;
@@ -61,8 +62,33 @@ const App: FC = () => {
             <Suspense fallback={<LoadingSpinner />}>
                 <Routes>
                     <Route path="/" element={<Layout />}>
-                        <Route index element={<HomePage />} />
-                        <Route path="about" element={<AboutPage />} />
+                        <Route
+                            index
+                            element={
+                                <RouteWrapper
+                                    component={HomePage}
+                                    layoutFlags={{ showHeader: true, showFooter: true }}
+                                />
+                            }
+                        />
+                        <Route
+                            path="about"
+                            element={
+                                <RouteWrapper
+                                    component={AboutPage}
+                                    layoutFlags={{ showHeader: true, showFooter: true }}
+                                />
+                            }
+                        />
+                        <Route
+                            path="intake"
+                            element={
+                                <RouteWrapper
+                                    component={IntakeQuestionnairePage}
+                                    layoutFlags={{ showHeader: true, showFooter: true }}
+                                />
+                            }
+                        />
                         <Route
                             path="test"
                             element={
@@ -72,7 +98,15 @@ const App: FC = () => {
                                 />
                             }
                         />
-                        <Route path="results" element={<ResultsPage />} />
+                        <Route
+                            path="results"
+                            element={
+                                <RouteWrapper
+                                    component={ResultsPage}
+                                    layoutFlags={{ showHeader: true, showFooter: true }}
+                                />
+                            }
+                        />
                         <Route
                             path="*"
                             element={
