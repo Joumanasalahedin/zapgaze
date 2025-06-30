@@ -302,6 +302,7 @@ const TestPage: FC = () => {
                         </ul>
                         <p>There will be 100 trials, lasting about 2 minutes. You can practice 10 before beginning the test.</p>
                         <p className={styles.readyText}>Press <strong>[Enter]</strong> when you're ready to start the practice.</p>
+                        <p className={styles.escapeTip}>Press <strong>[Escape]</strong> at any time to stop the process.</p>
                     </div>
                 </div>
                 <EscapeConfirmationModal
@@ -331,12 +332,12 @@ const TestPage: FC = () => {
                 {calibrationStep === 0 && (
                     <div className={styles.calibrationInstructions}>
                         <h2>Calibration</h2>
-                        <p>Look at each dot as it appears and press <b>[Space]</b> or <b>[Enter]</b> to continue to the next dot.</p>
-                        <p>Press <b>[Space]</b> or <b>[Enter]</b> to start.</p>
+                        <p>Look at each dot as it appears and press <strong>[Space]</strong> or <strong>[Enter]</strong> to continue to the next dot.</p>
+                        <p>Press <strong>[Space]</strong> or <strong>[Enter]</strong> to start.</p>
 
                         <p>Tips: <ul>
-                            <li>For best results, wait for the dot to pulse at least once before pressing <b>[Space]</b> or <b>[Enter]</b> to continue to the next dot.</li>
-                            <li>Press <b>[Escape]</b> at any time to stop the process.</li>
+                            <li>For best results, wait for the dot to pulse at least once before pressing <strong>[Space]</strong> or <strong>[Enter]</strong> to continue to the next dot.</li>
+                            <li>Press <strong>[Escape]</strong> at any time to stop the process.</li>
                         </ul></p>
                     </div>
                 )}
@@ -358,7 +359,7 @@ const TestPage: FC = () => {
                 {calibrationStep > 0 && calibrationStep < 8 && (
                     <div className={styles.calibrationProgress}>
                         <p>Dot {calibrationStep} of 8</p>
-                        <p>Press <b>[Space]</b> or <b>[Enter]</b> to continue</p>
+                        <p>Press <strong>[Space]</strong> or <strong>[Enter]</strong> to continue</p>
                     </div>
                 )}
 

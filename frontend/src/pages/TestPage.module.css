@@ -347,6 +347,16 @@
     color: #2d3748;
 }
 
+.escapeTip {
+    text-align: center;
+    margin-top: 18px;
+    font-size: 1rem;
+    color: #718096;
+    font-style: italic;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    background: none;
+}
 
 @media (max-width: 768px) {
     .modal {
