@@ -14,8 +14,6 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Acquisition Client: capture eye-tracking data and send to backend in batches"
     )
-    parser.add_argument("--user-id", type=int, required=True,
-                        help="User ID from intake step")
     parser.add_argument(
         "--session-uid", type=str, required=True,
         help="Session UID returned by /intake endpoint"
@@ -64,7 +62,6 @@ def main():
             # Build single record
             le = result.get("eye_centers", [])
             record = {
-                "user_id": args.user_id,
                 "session_uid": args.session_uid,
                 "timestamp": time.time(),
                 "left_eye": {"x": le[0][0], "y": le[0][1]} if len(le) > 0 else {"x": None, "y": None},

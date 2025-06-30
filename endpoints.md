@@ -56,7 +56,7 @@ curl -X POST http://localhost:8000/intake/ \
 
 ## 3. Calibration (Local Acquisition Agent)
 
-Before starting the Go/No-Go task, calibrate the eye-tracker. Run the local agent on the participant’s machine:
+Before starting the Go/No-Go task, calibrate the eye-tracker. Run the local agent on the participant's machine:
 
 Host: `http://localhost:9000`
 
@@ -85,6 +85,7 @@ curl -X POST http://localhost:9000/calibrate/start
 **Request JSON:**
 ```json
 {
+  "session_uid": "<uuid>",
   "x": <screen_x>,        # horizontal pixel coordinate
   "y": <screen_y>,        # vertical pixel coordinate
   "duration": 1.0,        # seconds to sample
@@ -106,7 +107,7 @@ curl -X POST http://localhost:9000/calibrate/start
 ```bash
 curl -X POST http://localhost:9000/calibrate/point \
   -H "Content-Type: application/json" \
-  -d '{"x":640,"y":360,"duration":1.0,"samples":30}'
+  -d '{"session_uid":"<uuid>","x":640,"y":360,"duration":1.0,"samples":30}'
 ```
 
 ### 3.3 Finish Calibration
@@ -141,7 +142,6 @@ curl -X POST http://localhost:9000/calibrate/finish
 **Request JSON:**
 ```json
 {
-  "user_id": 1,
   "session_uid": "<optional-existing-uuid>"
 }
 ```
@@ -155,7 +155,7 @@ curl -X POST http://localhost:9000/calibrate/finish
 ```bash
 curl -X POST http://localhost:8000/session/start \
   -H "Content-Type: application/json" \
-  -d '{"user_id":1}'
+  -d '{}'
 ```
 
 ### 4.2 Stop Session
@@ -166,7 +166,7 @@ curl -X POST http://localhost:8000/session/start \
 
 **Request JSON:**
 ```json
-{ "user_id": 1 }
+{ "session_uid": "<uuid>" }
 ```
 
 **Response JSON:**
@@ -182,7 +182,7 @@ curl -X POST http://localhost:8000/session/start \
 ```bash
 curl -X POST http://localhost:8000/session/stop \
   -H "Content-Type: application/json" \
-  -d '{"user_id":1}'
+  -d '{"session_uid":"<uuid>"}'
 ```
 
 ---
@@ -201,7 +201,6 @@ curl -X POST http://localhost:8000/session/stop \
 ```json
 {
   "session_uid": "<uuid>",
-  "user_id": 1,
   "api_url": "http://localhost:8000/acquisition/batch",
   "fps": 20.0
 }
@@ -216,7 +215,7 @@ curl -X POST http://localhost:8000/session/stop \
 ```bash
 curl -X POST http://localhost:9000/start \
   -H "Content-Type: application/json" \
-  -d '{"session_uid":"<uuid>","user_id":1,"api_url":"http://localhost:8000/acquisition/batch","fps":20}'
+  -d '{"session_uid":"<uuid>","api_url":"http://localhost:8000/acquisition/batch","fps":20}'
 ```
 
 ### 5.2 Single‐Frame Ingestion
@@ -228,7 +227,6 @@ curl -X POST http://localhost:9000/start \
 **Request JSON:**
 ```json
 {
-  "user_id": 1,
   "session_uid": "<uuid>",
   "timestamp": 1620000000.123,
   "left_eye": { "x": 100, "y": 100 },
@@ -247,7 +245,7 @@ curl -X POST http://localhost:9000/start \
 ```bash
 curl -X POST http://localhost:8000/acquisition/data \
   -H "Content-Type: application/json" \
-  -d '{"user_id":1,"session_uid":"<uuid>","timestamp":1620000000.123,"left_eye":{"x":100,"y":100},"right_eye":{"x":105,"y":100},"ear":0.30,"blink":false}'
+  -d '{"session_uid":"<uuid>","timestamp":1620000000.123,"left_eye":{"x":100,"y":100},"right_eye":{"x":105,"y":100},"ear":0.30,"blink":false}'
 ```
 
 ### 5.3 Batched Ingestion
@@ -273,7 +271,7 @@ curl -X POST http://localhost:8000/acquisition/data \
 ```bash
 curl -X POST http://localhost:8000/acquisition/batch \
   -H "Content-Type: application/json" \
-  -d '[{"user_id":1,…},{…}]'
+  -d '[{"session_uid":"<uuid>",…},{…}]'
 ```
 
 ### 5.4 Stop Acquisition (Local Agent)
@@ -327,7 +325,6 @@ curl http://localhost:9000/status
 **Request JSON:**
 ```json
 {
-  "user_id": 1,
   "session_uid": "<uuid>",
   "timestamp": 1620000001.500,
   "event_type": "stimulus_onset" | "response",
@@ -346,12 +343,12 @@ curl http://localhost:9000/status
 # Stimulus onset
 curl -X POST http://localhost:8000/session/event \
   -H "Content-Type: application/json" \
-  -d '{"user_id":1,…,"event_type":"stimulus_onset","stimulus":"O"}'
+  -d '{"session_uid":"<uuid>",…,"event_type":"stimulus_onset","stimulus":"O"}'
 
 # Response
 curl -X POST http://localhost:8000/session/event \
   -H "Content-Type: application/json" \
-  -d '{"user_id":1,…,"event_type":"response","stimulus":"O","response":true}'
+  -d '{"session_uid":"<uuid>",…,"event_type":"response","stimulus":"O","response":true}'
 ```
 
 ---

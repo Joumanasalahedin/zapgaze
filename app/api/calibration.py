@@ -17,7 +17,6 @@ def get_db():
 
 
 class CalibrationPointIn(BaseModel):
-    session_uid: str
     screen_x: float
     screen_y: float
     measured_x: float

@@ -19,15 +19,15 @@ def get_db():
 
 @router.post("/data")
 def receive_acquisition(data: AcquisitionData, db: Session = Depends(get_db)):
-    # Verify session exists and matches user
+    # Verify session exists using only session_uid
     session_entry = (
         db.query(models.Session)
-          .filter_by(session_uid=data.session_uid, user_id=data.user_id)
+          .filter_by(session_uid=data.session_uid)
           .first()
     )
     if not session_entry:
         raise HTTPException(
-            status_code=404, detail="Session not found for this user.")
+            status_code=404, detail="Session not found.")
     # Persist single record
     record = models.Results(
         session_id=session_entry.id,
@@ -47,13 +47,13 @@ def receive_acquisition_batch(
     for item in records:
         session_entry = (
             db.query(models.Session)
-              .filter_by(session_uid=item.session_uid, user_id=item.user_id)
+              .filter_by(session_uid=item.session_uid)
               .first()
         )
         if not session_entry:
             raise HTTPException(
                 status_code=404,
-                detail=f"Session not found for user {item.user_id} and uid {item.session_uid}"
+                detail=f"Session not found for uid {item.session_uid}"
             )
         entries.append(
             models.Results(

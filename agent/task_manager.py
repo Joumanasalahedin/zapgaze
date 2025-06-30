@@ -10,7 +10,6 @@ logging.basicConfig(level=logging.INFO,
 
 def parse_args():
     p = argparse.ArgumentParser("Go/No-Go Task Manager")
-    p.add_argument("--user-id",    type=int,   required=True)
     p.add_argument("--session-uid", type=str,   required=True)
     p.add_argument("--api-base",   type=str,   default="http://localhost:8000")
     p.add_argument("--trials",     type=int,   default=100)
@@ -30,7 +29,7 @@ def main():
     event_url = f"{base}/session/event"
     stop_url = f"{base}/session/stop"
 
-    resp = requests.post(start_url, json={"user_id": args.user_id})
+    resp = requests.post(start_url, json={"session_uid": args.session_uid})
     resp.raise_for_status()
     logging.info(f"Session started: {resp.json()}")
 
@@ -43,7 +42,6 @@ def main():
 
     for trial_idx, (stimulus, onset_time) in enumerate(task.run()):
         requests.post(event_url, json={
-            "user_id": args.user_id,
             "session_uid": args.session_uid,
             "timestamp": onset_time,
             "event_type": "stimulus_onset",
@@ -52,7 +50,6 @@ def main():
 
         response, rt = task.wait_for_response()
         requests.post(event_url, json={
-            "user_id": args.user_id,
             "session_uid": args.session_uid,
             "timestamp": time.time(),
             "event_type": "response",
@@ -60,7 +57,7 @@ def main():
             "response": response
         })
 
-    resp = requests.post(stop_url, json={"user_id": args.user_id})
+    resp = requests.post(stop_url, json={"session_uid": args.session_uid})
     resp.raise_for_status()
     logging.info(f"Session stopped: {resp.json()}")
 

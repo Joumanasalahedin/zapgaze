@@ -12,7 +12,7 @@ app.include_router(session_events.router, prefix="/session",
                    tags=["session-events"])
 
 # Calibration & Acquisition data endpoints
-app.include_router(calibration.router)
+app.include_router(calibration.router, tags=["calibration"])
 app.include_router(acquisition.router,
                    prefix="/acquisition", tags=["acquisition"])
 

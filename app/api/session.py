@@ -18,33 +18,29 @@ def get_db():
 
 
 class SessionStartRequest(BaseModel):
-    user_id: int
     session_uid: Optional[str] = None
 
 
 class SessionStopRequest(BaseModel):
-    user_id: int
+    session_uid: str
 
 
 @router.post("/start")
 def session_start(req: SessionStartRequest, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.id == req.user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found.")
-
     if req.session_uid:
         sess = (
             db.query(models.Session)
-              .filter_by(user_id=req.user_id, session_uid=req.session_uid)
+              .filter_by(session_uid=req.session_uid)
               .first()
         )
         if not sess:
             raise HTTPException(
-                status_code=404, detail="Session UID not found for this user.")
+                status_code=404, detail="Session UID not found.")
         return {"session_uid": sess.session_uid}
 
+    # Create new session without user_id (will be set during intake)
     new_uid = str(uuid.uuid4())
-    sess = models.Session(user_id=req.user_id, session_uid=new_uid)
+    sess = models.Session(session_uid=new_uid, user_id=None)
     db.add(sess)
     db.commit()
     db.refresh(sess)
@@ -55,13 +51,12 @@ def session_start(req: SessionStartRequest, db: Session = Depends(get_db)):
 def session_stop(req: SessionStopRequest, db: Session = Depends(get_db)):
     sess = (
         db.query(models.Session)
-          .filter_by(user_id=req.user_id, status="active")
-          .order_by(models.Session.started_at.desc())
+          .filter_by(session_uid=req.session_uid, status="active")
           .first()
     )
     if not sess:
         raise HTTPException(
-            status_code=404, detail="No active session found for this user.")
+            status_code=404, detail="No active session found with this session_uid.")
 
     sess.stopped_at = datetime.utcnow()
     sess.status = "stopped"

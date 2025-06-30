@@ -19,7 +19,6 @@ app.state.cal_adapter = None
 
 class StartRequest(BaseModel):
     session_uid: str
-    user_id: int
     api_url: str = "http://localhost:8000/acquisition/batch"
     fps: float = 20.0
 
@@ -42,7 +41,6 @@ def start_acquisition(req: StartRequest):
     # Build the command line
     cmd = [
         "python", os.path.join(os.getcwd(), "agent", "acquisition_client.py"),
-        "--user-id", str(req.user_id),
         "--session-uid", req.session_uid,
         "--api-url", req.api_url,
         "--fps", str(req.fps)
@@ -117,7 +115,7 @@ def calibrate_point(req: CalPointRequest):
     try:
         requests.post(
             f"http://localhost:8000/session/{req.session_uid}/calibration/point",
-            json={**result, "session_uid": req.session_uid},
+            json=result,
             timeout=1
         )
     except requests.RequestException:

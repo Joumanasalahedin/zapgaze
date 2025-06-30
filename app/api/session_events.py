@@ -16,7 +16,6 @@ def get_db():
 
 
 class TaskEventRequest(BaseModel):
-    user_id: int
     session_uid: str
     timestamp: float
     event_type: str             # e.g. "stimulus_onset", "response", "error"
@@ -26,10 +25,10 @@ class TaskEventRequest(BaseModel):
 
 @router.post("/event")
 def log_event(req: TaskEventRequest, db: Session = Depends(get_db)):
-    # Verify session exists
+    # Verify session exists using only session_uid
     sess = (
         db.query(models.Session)
-          .filter_by(user_id=req.user_id, session_uid=req.session_uid)
+          .filter_by(session_uid=req.session_uid)
           .first()
     )
     if not sess:

@@ -74,7 +74,7 @@ class SessionFeatures(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     session_id = Column(Integer, ForeignKey("sessions.id"), unique=True)
-    user_id = Column(Integer, nullable=False)
+    user_id = Column(Integer, nullable=True)
 
     # Gaze / Fixation Metrics
     mean_fixation_duration = Column(Float, nullable=True)

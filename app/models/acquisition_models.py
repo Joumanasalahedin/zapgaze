@@ -9,7 +9,6 @@ class EyeData(BaseModel):
 
 
 class AcquisitionData(BaseModel):
-    user_id: int
     session_uid: str
     timestamp: float
     left_eye: EyeData
