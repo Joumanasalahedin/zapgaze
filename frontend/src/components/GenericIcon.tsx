@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { FC, useState } from 'react';
 
 interface GenericIconProps {
     icon: string;
@@ -9,7 +9,7 @@ interface GenericIconProps {
     height?: number | string;
 }
 
-const GenericIcon: React.FC<GenericIconProps> = ({
+const GenericIcon: FC<GenericIconProps> = ({
     icon,
     onClick,
     onHoverStyle,

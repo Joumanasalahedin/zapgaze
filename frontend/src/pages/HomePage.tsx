@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { FC, useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import styles from './HomePage.module.css';
 
-const HomePage: React.FC = () => {
+const HomePage: FC = () => {
     const [currentFactIndex, setCurrentFactIndex] = useState(0);
     const [greeting, setGreeting] = useState('');
     const [isManualControl, setIsManualControl] = useState(false);
@@ -12,27 +12,27 @@ const HomePage: React.FC = () => {
         {
             fact: "ADHD affects approximately 5-7% of children and 2-5% of adults worldwide, making it one of the most common neurodevelopmental disorders.",
             source: "World Health Organization (WHO)",
-            image: "../public/images/doctor-testing-patient-eyesight.jpg"
+            image: "/images/doctor-testing-patient-eyesight.jpg"
         },
         {
             fact: "Research shows that people with ADHD often have differences in brain structure and function, particularly in areas responsible for attention, impulse control, and executive function.",
             source: "National Institute of Mental Health (NIMH)",
-            image: "../public/images/eye-tracking-webcam.jpg"
+            image: "/images/eye-tracking-webcam.jpg"
         },
         {
             fact: "Contrary to popular belief, ADHD is not caused by poor parenting, too much sugar, or watching too much TV. It's a complex neurobiological condition with strong genetic components.",
             source: "American Academy of Pediatrics",
-            image: "../public/images/front-view-girl-getting-her-eyes-checked.jpg"
+            image: "/images/front-view-girl-getting-her-eyes-checked.jpg"
         },
         {
             fact: "Many successful people have ADHD, including entrepreneurs, artists, and athletes. The condition can bring creativity, hyperfocus, and unique problem-solving abilities.",
             source: "CHADD (Children and Adults with Attention-Deficit/Hyperactivity Disorder)",
-            image: "../public/images/ophthalmologist-doctor-consulting-patient.jpg"
+            image: "/images/ophthalmologist-doctor-consulting-patient.jpg"
         },
         {
             fact: "Early diagnosis and treatment of ADHD can significantly improve academic performance, social relationships, and overall quality of life for both children and adults.",
             source: "Centers for Disease Control and Prevention (CDC)",
-            image: "../public/images/lab-eye-openness.png"
+            image: "/images/lab-eye-openness.png"
         }
     ];
 
@@ -91,6 +91,11 @@ const HomePage: React.FC = () => {
         );
     };
 
+    const goToFact = (index: number) => {
+        setIsManualControl(true);
+        setCurrentFactIndex(index);
+    };
+
     const handleNavigationMouseEnter = () => {
         clearAutoResumeTimeout();
     };
@@ -108,28 +113,35 @@ const HomePage: React.FC = () => {
     }, []);
 
     return (
-        <div className="container">
-            <div className={styles.greeting}>
-                <h1 className={styles.greetingTitle}>
-                    {greeting}!
-                </h1>
-                <p className={styles.greetingSubtitle}>
-                    Welcome to zapgaze&trade; &mdash; A revolutionary ADHD detection tool through advanced pupillometry technology
-                </p>
+        <div className={styles.homeContainer}>
+            <div className={styles.heroSection}>
+                <div className={styles.heroContent}>
+                    <h1 className={styles.heroTitle}>
+                        {greeting}!
+                    </h1>
+                    <p className={styles.heroSubtitle}>
+                        Welcome to zapgaze™ — A revolutionary ADHD detection tool through advanced pupillometry technology
+                    </p>
+                    <div className={styles.heroAction}>
+                        <Link to="/test" className={styles.primaryButton}>
+                            Take the Test
+                        </Link>
+                    </div>
+                </div>
             </div>
 
-            <div className={styles.action}>
-                <Link to="/test" className={`${styles.actionLink} btn-primary`}>
-                    Take the Test
-                </Link>
-            </div>
+            <div className={styles.factsSection}>
+                <div className={styles.factsCard}>
+                    <div className={styles.factsHeader}>
+                        <h2 className={styles.sectionTitle}>Did You Know?</h2>
+                        <p className={styles.sectionSubtitle}>
+                            Discover fascinating facts about ADHD and its impact on daily life
+                        </p>
+                    </div>
 
-            <div className={styles.factCard}>
-                <div className={styles.factContainer}>
-                    <div className={styles.factTextContainer}>
-                        <div className={styles.factTitle}>Did You Know?</div>
-                        <div className={styles.factContent}>
-                            <div className={styles.factTextSection}>
+                    <div className={styles.factContent}>
+                        <div className={styles.factTextSection}>
+                            <div className={styles.factQuote}>
                                 <p className={styles.factText}>
                                     "{adhdFacts[currentFactIndex].fact}"
                                 </p>
@@ -138,52 +150,71 @@ const HomePage: React.FC = () => {
                                 </p>
                             </div>
                         </div>
-                    </div>
-                    <div className={styles.factImageSection}>
-                        <img
-                            src={adhdFacts[currentFactIndex].image}
-                            alt="ADHD Fact Illustration"
-                            className={styles.factImage}
-                        />
-                    </div>
-                </div>
-
-                <div
-                    className={styles.navigationControls}
-                    onMouseEnter={handleNavigationMouseEnter}
-                    onMouseLeave={handleNavigationMouseLeave}
-                >
-                    <button onClick={goToPrevious} className={styles.navButton}>
-                        &lt; Previous
-                    </button>
-                    <div className={styles.factDots}>
-                        {adhdFacts.map((_, index) => (
-                            <div
-                                key={index}
-                                className={index === currentFactIndex ? `${styles.dot} ${styles.dotActive}` : styles.dot}
+                        <div className={styles.factImageSection}>
+                            <img
+                                src={adhdFacts[currentFactIndex].image}
+                                alt="ADHD Fact Illustration"
+                                className={styles.factImage}
                             />
-                        ))}
+                        </div>
                     </div>
-                    <button onClick={goToNext} className={styles.navButton}>
-                        Next &gt;
-                    </button>
+
+                    <div
+                        className={styles.navigationControls}
+                        onMouseEnter={handleNavigationMouseEnter}
+                        onMouseLeave={handleNavigationMouseLeave}
+                    >
+                        <button onClick={goToPrevious} className={styles.navButton}>
+                            &lt; Previous
+                        </button>
+                        <div className={styles.factDots}>
+                            {adhdFacts.map((_, index) => (
+                                <div
+                                    key={index}
+                                    className={index === currentFactIndex ? `${styles.dot} ${styles.dotActive}` : styles.dot}
+                                    onClick={() => goToFact(index)}
+                                />
+                            ))}
+                        </div>
+                        <button onClick={goToNext} className={styles.navButton}>
+                            Next &gt;
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <div className={styles.overviewCard}>
-                <div className={styles.overviewTitle}>About zapgaze&trade;</div>
-                <p className={styles.overviewText}>
-                    zapgaze&trade; uses cutting-edge pupillometry technology to detect potential ADHD indicators
-                    through precise eye movement and pupil response analysis. Our non-invasive,
-                    scientifically-backed approach provides quick and accurate assessments that can help
-                    identify attention-related challenges early.
-                </p>
-                <Link to="/about" className="btn-secondary">
-                    Learn More
-                </Link>
+            <div className={styles.aboutSection}>
+                <div className={styles.aboutCard}>
+                    <div className={styles.aboutContent}>
+                        <h2 className={styles.sectionTitle}>About zapgaze™</h2>
+                        <p className={styles.sectionText}>
+                            zapgaze™ uses cutting-edge pupillometry technology to detect potential ADHD indicators
+                            through precise eye movement and pupil response analysis. Our non-invasive,
+                            scientifically-backed approach provides quick and accurate assessments that can help
+                            identify attention-related challenges early.
+                        </p>
+                        <div className={styles.aboutFeatures}>
+                            <div className={styles.featureItem}>
+                                <span className={styles.featureIcon}>🔬</span>
+                                <span className={styles.featureText}>Scientifically Validated</span>
+                            </div>
+                            <div className={styles.featureItem}>
+                                <span className={styles.featureIcon}>⚡</span>
+                                <span className={styles.featureText}>Quick & Non-Invasive</span>
+                            </div>
+                            <div className={styles.featureItem}>
+                                <span className={styles.featureIcon}>🎯</span>
+                                <span className={styles.featureText}>High Accuracy</span>
+                            </div>
+                        </div>
+                        <Link to="/about" className={styles.secondaryButton}>
+                            Learn More
+                        </Link>
+                    </div>
+                </div>
             </div>
         </div>
     );
 };
 
-export default HomePage; 
+export default HomePage;

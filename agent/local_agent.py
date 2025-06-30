@@ -7,8 +7,17 @@ import numpy as np
 import requests
 import json
 import time
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="Local Acquisition Agent")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
 
 task_proc = None
 
@@ -35,8 +44,7 @@ class CalPointRequest(BaseModel):
 def start_acquisition(req: StartRequest):
     global task_proc
     if task_proc and task_proc.poll() is None:
-        raise HTTPException(
-            status_code=400, detail="Acquisition already running.")
+        raise HTTPException(status_code=400, detail="Acquisition already running.")
 
     # Build the command line
     cmd = [
@@ -54,8 +62,7 @@ def start_acquisition(req: StartRequest):
 def stop_acquisition():
     global task_proc
     if not task_proc or task_proc.poll() is not None:
-        raise HTTPException(
-            status_code=400, detail="No acquisition in progress.")
+        raise HTTPException(status_code=400, detail="No acquisition in progress.")
     # Terminate the process\    task_proc.terminate()
     try:
         task_proc.wait(timeout=5)
@@ -77,6 +84,7 @@ def status():
 def calibrate_start():
     from app.acquisition.camera_manager import CameraManager
     from app.acquisition.mediapipe_adapter import MediaPipeAdapter
+
     # Initialize calibration state
     app.state.cal_data = []
     # Start camera for calibration
@@ -103,15 +111,19 @@ def calibrate_point(req: CalPointRequest):
         if centers:
             xs = [c[0] for c in centers]
             ys = [c[1] for c in centers]
-            pts.append((sum(xs)/len(xs), sum(ys)/len(ys)))
+            pts.append((sum(xs) / len(xs), sum(ys) / len(ys)))
         time.sleep(req.duration / req.samples)
     if not pts:
         raise HTTPException(status_code=500, detail="No eye data captured.")
     mean_x = sum([p[0] for p in pts]) / len(pts)
     mean_y = sum([p[1] for p in pts]) / len(pts)
     app.state.cal_data.append((req.x, req.y, mean_x, mean_y))
-    result = {"screen_x": req.x, "screen_y": req.y,
-              "measured_x": mean_x, "measured_y": mean_y}
+    result = {
+        "screen_x": req.x,
+        "screen_y": req.y,
+        "measured_x": mean_x,
+        "measured_y": mean_y,
+    }
     try:
         requests.post(
             f"http://localhost:8000/session/{req.session_uid}/calibration/point",
@@ -132,7 +144,8 @@ def calibrate_finish():
         cam.release_camera()
     if not data or len(data) < 3:
         raise HTTPException(
-            status_code=400, detail="At least 3 calibration points required.")
+            status_code=400, detail="At least 3 calibration points required."
+        )
     raw = np.array([[d[2], d[3]] for d in data])  # measured
     scr = np.array([[d[0], d[1]] for d in data])  # screen
     ones = np.ones((raw.shape[0], 1))

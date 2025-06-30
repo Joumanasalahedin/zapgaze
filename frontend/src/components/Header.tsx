@@ -1,9 +1,9 @@
-import React from 'react';
+import { FC } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import styles from './Header.module.css';
 import GenericIcon from './GenericIcon';
 
-const Header: React.FC = () => {
+const Header: FC = () => {
     const location = useLocation();
 
     const isActive = (path: string) => {
