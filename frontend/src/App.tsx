@@ -61,7 +61,15 @@ const App: React.FC = () => {
                     <Route path="/" element={<Layout />}>
                         <Route index element={<HomePage />} />
                         <Route path="about" element={<AboutPage />} />
-                        <Route path="test" element={<TestPage />} />
+                        <Route
+                            path="test"
+                            element={
+                                <RouteWrapper
+                                    component={TestPage}
+                                    layoutFlags={{ showHeader: false, showFooter: false }}
+                                />
+                            }
+                        />
                         <Route path="results" element={<ResultsPage />} />
                         <Route
                             path="*"
