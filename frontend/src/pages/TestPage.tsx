@@ -38,7 +38,6 @@ const TestPage: React.FC = () => {
     const [keyPressed, setKeyPressed] = useState(false);
     const [escapePressed, setEscapePressed] = useState(false);
     const [showEscapeConfirmation, setShowEscapeConfirmation] = useState(false);
-    const [escapeCountdown, setEscapeCountdown] = useState(CONFIG.ESCAPE_CONFIRMATION_TIME / 1000);
 
     // Calibration dots positions (corners of screen) - clockwise order starting from top-left
     const calibrationDots = [
@@ -106,26 +105,24 @@ const TestPage: React.FC = () => {
         return letters[Math.floor(Math.random() * letters.length)];
     };
 
+    const handleEscapeCancel = useCallback(() => {
+        setShowEscapeConfirmation(false);
+        setEscapePressed(false);
+        window.location.href = '/';
+    }, []);
+
+    const handleEscapeContinue = useCallback(() => {
+        setShowEscapeConfirmation(false);
+        setEscapePressed(false);
+    }, []);
+
     useEffect(() => {
         const handleKeyPress = (event: KeyboardEvent) => {
             if (event.key === 'Escape') {
                 if (!escapePressed) {
                     setEscapePressed(true);
                     setShowEscapeConfirmation(true);
-                    setEscapeCountdown(CONFIG.ESCAPE_CONFIRMATION_TIME / 1000);
-
-                    const countdownInterval = setInterval(() => {
-                        setEscapeCountdown(prev => {
-                            if (prev <= 1) {
-                                clearInterval(countdownInterval);
-                                setShowEscapeConfirmation(false);
-                                setEscapePressed(false);
-                                return CONFIG.ESCAPE_CONFIRMATION_TIME / 1000;
-                            }
-                            return prev - 1;
-                        });
-                    }, 1000);
-                } else {
+                } else if (showEscapeConfirmation) {
                     window.location.href = '/';
                 }
                 return;
@@ -134,7 +131,6 @@ const TestPage: React.FC = () => {
             if (event.key === 'Enter' && showEscapeConfirmation) {
                 setShowEscapeConfirmation(false);
                 setEscapePressed(false);
-                setEscapeCountdown(CONFIG.ESCAPE_CONFIRMATION_TIME / 1000);
                 return;
             }
 
@@ -142,12 +138,9 @@ const TestPage: React.FC = () => {
                 return; // Block all other keys when escape confirmation is shown
             }
 
-            // Only allow specific keys for navigation
-            if (phase === 'instructions') {
-                if (event.key === 'Enter') {
-                    setPhase('calibration');
-                    setCalibrationStep(0);
-                }
+            if (event.key === 'Enter' && phase === 'instructions') {
+                setPhase('calibration');
+                setCalibrationStep(0);
             } else if (phase === 'calibration') {
                 if (event.key === 'Enter' || event.key === ' ') {
                     if (calibrationStep < 8) {
@@ -296,7 +289,6 @@ const TestPage: React.FC = () => {
         }
     }, [currentTrial, isPractice, phase, nextTrialCb]);
 
-
     if (phase === 'instructions') {
         return (
             <div className={styles.container}>
@@ -312,7 +304,11 @@ const TestPage: React.FC = () => {
                         <p className={styles.readyText}>Press <strong>[Enter]</strong> when you're ready to start the practice.</p>
                     </div>
                 </div>
-                <EscapeConfirmationModal show={showEscapeConfirmation} countdown={escapeCountdown} />
+                <EscapeConfirmationModal
+                    show={showEscapeConfirmation}
+                    onCancel={handleEscapeCancel}
+                    onContinue={handleEscapeContinue}
+                />
             </div>
         );
     }
@@ -372,7 +368,11 @@ const TestPage: React.FC = () => {
                     </div>
                 )}
 
-                <EscapeConfirmationModal show={showEscapeConfirmation} countdown={escapeCountdown} />
+                <EscapeConfirmationModal
+                    show={showEscapeConfirmation}
+                    onCancel={handleEscapeCancel}
+                    onContinue={handleEscapeContinue}
+                />
             </div>
         );
     }
@@ -392,7 +392,11 @@ const TestPage: React.FC = () => {
                     </div>
                 )}
 
-                <EscapeConfirmationModal show={showEscapeConfirmation} countdown={escapeCountdown} />
+                <EscapeConfirmationModal
+                    show={showEscapeConfirmation}
+                    onCancel={handleEscapeCancel}
+                    onContinue={handleEscapeContinue}
+                />
             </div>
         );
     }
@@ -416,7 +420,11 @@ const TestPage: React.FC = () => {
                         View Detailed Results
                     </button>
                 </div>
-                <EscapeConfirmationModal show={showEscapeConfirmation} countdown={escapeCountdown} />
+                <EscapeConfirmationModal
+                    show={showEscapeConfirmation}
+                    onCancel={handleEscapeCancel}
+                    onContinue={handleEscapeContinue}
+                />
             </div>
         );
     }
@@ -431,7 +439,11 @@ const TestPage: React.FC = () => {
                         <p className={styles.readyText}>Press <strong>[Enter]</strong> to begin the real task.</p>
                     </div>
                 </div>
-                <EscapeConfirmationModal show={showEscapeConfirmation} countdown={escapeCountdown} />
+                <EscapeConfirmationModal
+                    show={showEscapeConfirmation}
+                    onCancel={handleEscapeCancel}
+                    onContinue={handleEscapeContinue}
+                />
             </div>
         );
     }
