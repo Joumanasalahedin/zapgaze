@@ -1,11 +1,9 @@
-/* Main Container */
 .aboutContainer {
-  max-width: 1200px;
+  max-width: 80%;
   margin: 0 auto;
   padding: 2rem 1rem;
 }
 
-/* Hero Section */
 .heroSection {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 2rem;
@@ -52,14 +50,12 @@
   line-height: 1.6;
 }
 
-/* Content Section */
 .contentSection {
   display: flex;
   flex-direction: column;
   gap: 3rem;
 }
 
-/* Mission Card */
 .missionCard {
   background: #fff;
   border-radius: 1.5rem;
@@ -100,7 +96,6 @@
   margin: 0;
 }
 
-/* Features Grid */
 .featuresGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -144,7 +139,6 @@
   margin: 0;
 }
 
-/* Technology Section */
 .technologySection {
   background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
   border-radius: 1.5rem;
@@ -186,7 +180,6 @@
   margin: 0;
 }
 
-/* Applications Section */
 .applicationsSection {
   background: #fff;
   border-radius: 1.5rem;
@@ -230,7 +223,6 @@
   margin: 0;
 }
 
-/* Contact Section */
 .contactSection {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 1.5rem;
@@ -316,7 +308,7 @@
   transform: translateY(-2px);
 }
 
-/* Responsive Design */
+
 @media (max-width: 768px) {
   .heroTitle {
     font-size: 2.5rem;
@@ -398,7 +390,6 @@
   }
 }
 
-/* Animation Classes */
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -422,7 +413,6 @@
 .featureCard:nth-child(3) { animation-delay: 0.3s; }
 .featureCard:nth-child(4) { animation-delay: 0.4s; }
 
-/* Smooth scrolling */
 html {
   scroll-behavior: smooth;
 }
