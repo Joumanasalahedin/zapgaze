@@ -91,6 +91,11 @@ const HomePage: FC = () => {
         );
     };
 
+    const goToFact = (index: number) => {
+        setIsManualControl(true);
+        setCurrentFactIndex(index);
+    };
+
     const handleNavigationMouseEnter = () => {
         clearAutoResumeTimeout();
     };
@@ -108,28 +113,35 @@ const HomePage: FC = () => {
     }, []);
 
     return (
-        <div className="container">
-            <div className={styles.greeting}>
-                <h1 className={styles.greetingTitle}>
-                    {greeting}!
-                </h1>
-                <p className={styles.greetingSubtitle}>
-                    Welcome to zapgaze&trade; &mdash; A revolutionary ADHD detection tool through advanced pupillometry technology
-                </p>
+        <div className={styles.homeContainer}>
+            <div className={styles.heroSection}>
+                <div className={styles.heroContent}>
+                    <h1 className={styles.heroTitle}>
+                        {greeting}!
+                    </h1>
+                    <p className={styles.heroSubtitle}>
+                        Welcome to zapgaze™ — A revolutionary ADHD detection tool through advanced pupillometry technology
+                    </p>
+                    <div className={styles.heroAction}>
+                        <Link to="/test" className={styles.primaryButton}>
+                            Take the Test
+                        </Link>
+                    </div>
+                </div>
             </div>
 
-            <div className={styles.action}>
-                <Link to="/test" className={`${styles.takeTestActionButton} btn-primary`}>
-                    Take the Test
-                </Link>
-            </div>
+            <div className={styles.factsSection}>
+                <div className={styles.factsCard}>
+                    <div className={styles.factsHeader}>
+                        <h2 className={styles.sectionTitle}>Did You Know?</h2>
+                        <p className={styles.sectionSubtitle}>
+                            Discover fascinating facts about ADHD and its impact on daily life
+                        </p>
+                    </div>
 
-            <div className={styles.factCard}>
-                <div className={styles.factContainer}>
-                    <div className={styles.factTextContainer}>
-                        <div className={styles.factTitle}>Did You Know?</div>
-                        <div className={styles.factContent}>
-                            <div className={styles.factTextSection}>
+                    <div className={styles.factContent}>
+                        <div className={styles.factTextSection}>
+                            <div className={styles.factQuote}>
                                 <p className={styles.factText}>
                                     "{adhdFacts[currentFactIndex].fact}"
                                 </p>
@@ -138,52 +150,71 @@ const HomePage: FC = () => {
                                 </p>
                             </div>
                         </div>
-                    </div>
-                    <div className={styles.factImageSection}>
-                        <img
-                            src={adhdFacts[currentFactIndex].image}
-                            alt="ADHD Fact Illustration"
-                            className={styles.factImage}
-                        />
-                    </div>
-                </div>
-
-                <div
-                    className={styles.navigationControls}
-                    onMouseEnter={handleNavigationMouseEnter}
-                    onMouseLeave={handleNavigationMouseLeave}
-                >
-                    <button onClick={goToPrevious} className={styles.navButton}>
-                        &lt; Previous
-                    </button>
-                    <div className={styles.factDots}>
-                        {adhdFacts.map((_, index) => (
-                            <div
-                                key={index}
-                                className={index === currentFactIndex ? `${styles.dot} ${styles.dotActive}` : styles.dot}
+                        <div className={styles.factImageSection}>
+                            <img
+                                src={adhdFacts[currentFactIndex].image}
+                                alt="ADHD Fact Illustration"
+                                className={styles.factImage}
                             />
-                        ))}
+                        </div>
                     </div>
-                    <button onClick={goToNext} className={styles.navButton}>
-                        Next &gt;
-                    </button>
+
+                    <div
+                        className={styles.navigationControls}
+                        onMouseEnter={handleNavigationMouseEnter}
+                        onMouseLeave={handleNavigationMouseLeave}
+                    >
+                        <button onClick={goToPrevious} className={styles.navButton}>
+                            &lt; Previous
+                        </button>
+                        <div className={styles.factDots}>
+                            {adhdFacts.map((_, index) => (
+                                <div
+                                    key={index}
+                                    className={index === currentFactIndex ? `${styles.dot} ${styles.dotActive}` : styles.dot}
+                                    onClick={() => goToFact(index)}
+                                />
+                            ))}
+                        </div>
+                        <button onClick={goToNext} className={styles.navButton}>
+                            Next &gt;
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <div className={styles.overviewCard}>
-                <div className={styles.overviewTitle}>About zapgaze&trade;</div>
-                <p className={styles.overviewText}>
-                    zapgaze&trade; uses cutting-edge pupillometry technology to detect potential ADHD indicators
-                    through precise eye movement and pupil response analysis. Our non-invasive,
-                    scientifically-backed approach provides quick and accurate assessments that can help
-                    identify attention-related challenges early.
-                </p>
-                <Link to="/about" className="btn-secondary">
-                    Learn More
-                </Link>
+            <div className={styles.aboutSection}>
+                <div className={styles.aboutCard}>
+                    <div className={styles.aboutContent}>
+                        <h2 className={styles.sectionTitle}>About zapgaze™</h2>
+                        <p className={styles.sectionText}>
+                            zapgaze™ uses cutting-edge pupillometry technology to detect potential ADHD indicators
+                            through precise eye movement and pupil response analysis. Our non-invasive,
+                            scientifically-backed approach provides quick and accurate assessments that can help
+                            identify attention-related challenges early.
+                        </p>
+                        <div className={styles.aboutFeatures}>
+                            <div className={styles.featureItem}>
+                                <span className={styles.featureIcon}>🔬</span>
+                                <span className={styles.featureText}>Scientifically Validated</span>
+                            </div>
+                            <div className={styles.featureItem}>
+                                <span className={styles.featureIcon}>⚡</span>
+                                <span className={styles.featureText}>Quick & Non-Invasive</span>
+                            </div>
+                            <div className={styles.featureItem}>
+                                <span className={styles.featureIcon}>🎯</span>
+                                <span className={styles.featureText}>High Accuracy</span>
+                            </div>
+                        </div>
+                        <Link to="/about" className={styles.secondaryButton}>
+                            Learn More
+                        </Link>
+                    </div>
+                </div>
             </div>
         </div>
     );
 };
 
-export default HomePage; 
+export default HomePage;
