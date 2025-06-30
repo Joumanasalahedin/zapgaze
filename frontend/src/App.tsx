@@ -1,4 +1,6 @@
-import React, {
+import {
+    FC,
+    useEffect,
     Suspense,
     lazy,
     createContext,
@@ -31,20 +33,20 @@ const TestPage = lazy(() => import('./pages/TestPage'));
 const ResultsPage = lazy(() => import('./pages/ResultsPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
-const RouteWrapper: React.FC<{
+const RouteWrapper: FC<{
     component: React.ComponentType;
     layoutFlags: LayoutFlags;
 }> = ({ component: Component, layoutFlags }) => {
     const { setFlags } = useLayoutFlags();
 
-    React.useEffect(() => {
+    useEffect(() => {
         setFlags(layoutFlags);
     }, [setFlags, layoutFlags.showHeader, layoutFlags.showFooter]);
 
     return <Component />;
 };
 
-const App: React.FC = () => {
+const App: FC = () => {
     const [layoutFlags, setLayoutFlags] = useState<LayoutFlags>({
         showHeader: true,
         showFooter: true

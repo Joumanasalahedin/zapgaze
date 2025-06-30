@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { FC, useState, useEffect, useCallback } from 'react';
 import styles from './TestPage.module.css';
 import EscapeConfirmationModal from '../components/modals/EscapeConfirmationModal';
 
@@ -25,7 +25,7 @@ interface Trial {
     responseTime?: number;
 }
 
-const TestPage: React.FC = () => {
+const TestPage: FC = () => {
     const [phase, setPhase] = useState<TestPhase>('instructions');
     const [calibrationStep, setCalibrationStep] = useState<CalibrationStep>(0);
     const [currentTrial, setCurrentTrial] = useState<Trial | null>(null);

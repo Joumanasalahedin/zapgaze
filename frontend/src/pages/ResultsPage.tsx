@@ -1,6 +1,6 @@
 import React from 'react';
 
-const ResultsPage: React.FC = () => {
+const ResultsPage: FC = () => {
     return (
         <div>
             <div>

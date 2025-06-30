@@ -1,4 +1,4 @@
-import React from 'react';
+import { FC } from 'react';
 import styles from './EscapeConfirmationModal.module.css';
 
 interface EscapeConfirmationModalProps {
@@ -7,7 +7,7 @@ interface EscapeConfirmationModalProps {
     onContinue: () => void;
 }
 
-const EscapeConfirmationModal: React.FC<EscapeConfirmationModalProps> = ({
+const EscapeConfirmationModal: FC<EscapeConfirmationModalProps> = ({
     show,
     onCancel,
     onContinue

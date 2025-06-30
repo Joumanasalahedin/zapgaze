@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { FC, useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import styles from './HomePage.module.css';
 
-const HomePage: React.FC = () => {
+const HomePage: FC = () => {
     const [currentFactIndex, setCurrentFactIndex] = useState(0);
     const [greeting, setGreeting] = useState('');
     const [isManualControl, setIsManualControl] = useState(false);

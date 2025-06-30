@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { FC, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import styles from './NotFoundPage.module.css';
 import Lottie from 'lottie-react';
 
-const NotFoundPage: React.FC = () => {
+const NotFoundPage: FC = () => {
     const [animationData, setAnimationData] = useState(null);
 
     useEffect(() => {
