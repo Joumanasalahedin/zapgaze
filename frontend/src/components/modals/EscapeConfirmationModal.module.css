@@ -1,0 +1,33 @@
+.escapeOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.escapeModal {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    text-align: center;
+    max-width: 400px;
+}
+
+.escapeModal h3 {
+    color: #e53e3e;
+    margin-bottom: 15px;
+    font-size: 1.5rem;
+}
+
+.escapeModal p {
+    color: #4a5568;
+    font-size: 1.1rem;
+    margin: 0;
+} 
