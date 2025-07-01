@@ -17,8 +17,15 @@ const CONFIG = {
     AGENT_BASE_URL: 'http://localhost:9000',
 } as const;
 
-type TestPhase = 'instructions' | 'calibration' | 'practice' | 'main-test' | 'complete' | 'practice-complete';
-type CalibrationStep = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9; // 0 = instructions, 1-8 = individual dots, 9 = completion
+type TestPhase =
+    'instructions' |
+    'calibration' |
+    'practice' |
+    'main-test' |
+    'complete' |
+    'practice-complete';
+// 0 = instructions, 1-8 = individual dots, 9 = completion
+type CalibrationStep = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 type TrialType = 'go' | 'nogo';
 type TrialResult = 'correct' | 'too-slow' | 'false-alarm' | 'pending';
 
@@ -83,7 +90,9 @@ const TestPage: FC = () => {
             });
 
             if (!response.ok) {
-                throw new Error(`API call failed: ${response.status} ${response.statusText}`);
+                throw new Error(`
+                    API call failed: ${response.status} ${response.statusText}
+                `);
             }
 
             return await response.json();
@@ -103,7 +112,9 @@ const TestPage: FC = () => {
             console.log('Calibration started successfully');
         } catch (error) {
             console.error('Failed to start calibration:', error);
-            setCalibrationError('Failed to start calibration. Please check if the backend and local agent are running.');
+            setCalibrationError(
+                'Failed to start calibration. Please check if the backend and local agent are running.'
+            );
         } finally {
             setIsCalibrating(false);
         }
@@ -454,10 +465,16 @@ const TestPage: FC = () => {
                 const currentPoint = calibrationDots[calibrationStep - 1];
                 await recordCalibrationPoint(currentPoint);
                 if (calibrationStep < 8) {
-                    setTimeout(() => setCalibrationStep((calibrationStep + 1) as CalibrationStep), CONFIG.CALIBRATION_POINT_DURATION);
+                    setTimeout(() =>
+                        setCalibrationStep((calibrationStep + 1) as CalibrationStep),
+                        CONFIG.CALIBRATION_POINT_DURATION
+                    );
                 } else {
                     await finishCalibration();
-                    setTimeout(() => setCalibrationStep(9 as CalibrationStep), CONFIG.CALIBRATION_POINT_DURATION);
+                    setTimeout(() =>
+                        setCalibrationStep(9 as CalibrationStep),
+                        CONFIG.CALIBRATION_POINT_DURATION
+                    );
                 }
             } catch (error) {
                 setCalibrationError('Calibration failed. Please try again.');
@@ -600,18 +617,7 @@ const TestPage: FC = () => {
             <div className={styles.container}>
                 <div className={styles.modal}>
                     <h1>Go/No-Go Test Instructions</h1>
-                    <div className={styles.instructions}>
-                        <p><strong>You will see letters one at a time.</strong></p>
-                        <ul>
-                            <li>If you see any letter, symbol or number that is <strong>not X</strong> (Go), press the <strong>[spacebar]</strong> as quickly as you can.</li>
-                            <li>If you see <strong>X</strong> (No-Go), withhold your response.</li>
-                        </ul>
-                        <p>There will be 100 trials, lasting about 2 minutes. You can practice 10 before beginning the test.</p>
-                        <p className={styles.readyText}>Press the button below to answer a few questions before starting the test.</p>
-                        <div className={styles.takeQuestionnaireButtonContainer}>
-                            <Link to="/intake" className={styles.button}>Take Questionnaire</Link>
-                        </div>
-                    </div>
+                    <TestInstructions showQuestionnaireButton={true} />
                 </div>
             </div>
         );
@@ -628,27 +634,17 @@ const TestPage: FC = () => {
             <div className={styles.container}>
                 <div className={styles.modal}>
                     <h1>Go/No-Go Test Instructions</h1>
-                    <div className={styles.instructions}>
-                        <p><strong>You will see letters one at a time.</strong></p>
-                        <ul>
-                            <li>If you see any letter, symbol or number that is <strong>not X</strong> (Go), press the <strong>[spacebar]</strong> as quickly as you can.</li>
-                            <li>If you see <strong>X</strong> (No-Go), withhold your response.</li>
-                        </ul>
-                        <p>There will be 100 trials, lasting about 2 minutes. You can practice 10 before beginning the test.</p>
-                        <p className={styles.readyText}>It seems you have already answered the ASRS questionnaire.</p>
-                        <div style={{ display: 'flex', gap: 16, marginTop: 24 }}>
-                            <button className={`${styles.button} ${styles.secondaryButton}`} onClick={() => setShowIntakeModal(true)}>
-                                View Previous Results
-                            </button>
-                            <button className={`${styles.button} ${styles.secondaryButton}`} onClick={handleRetake}>
-                                Answer Again
-                            </button>
-                            <button className={styles.button} onClick={async () => { await startCalibration(); setPhase('calibration') }}>
-                                Proceed to Calibration
-                            </button>
-                        </div>
-                    </div>
+                    <TestInstructions
+                        showActionButtons={true}
+                        onViewResults={() => setShowIntakeModal(true)}
+                        onRetake={handleRetake}
+                        onProceed={async () => {
+                            await startCalibration();
+                            setPhase('calibration');
+                        }}
+                    />
                 </div>
+
                 {showIntakeModal && (
                     <div className={styles.intakeModalOverlay}>
                         <div className={styles.intakeModal}>
@@ -667,8 +663,12 @@ const TestPage: FC = () => {
                             <div className={styles.intakeResultsScrollable}>
                                 {ASRS_QUESTIONS.map((q, idx) => (
                                     <div key={q.id} className={styles.intakeResultQA}>
-                                        <div className={styles.intakeResultQuestion}><strong>Q{idx + 1}:</strong> {q.text}</div>
-                                        <div className={styles.intakeResultAnswer}><em>{ASRS_OPTIONS[intakeData.answers[idx]]}</em></div>
+                                        <div className={styles.intakeResultQuestion}>
+                                            <strong>Q{idx + 1}:</strong> {q.text}
+                                        </div>
+                                        <div className={styles.intakeResultAnswer}>
+                                            <em>{ASRS_OPTIONS[intakeData.answers[idx]]}</em>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -710,8 +710,13 @@ const TestPage: FC = () => {
                         )}
 
                         <p>Tips: <ul>
-                            <li>Please make sure the monitor with the webcam is in the center of your field of view, and is the same as the one you are looking at.</li>
-                            <li>Press <strong>[Escape]</strong> at any time to stop the process.</li>
+                            <li>
+                                Please make sure the monitor with the webcam is in the center of your field of view,{'\u00A0'}
+                                and is the same as the one you are looking at.
+                            </li>
+                            <li>
+                                Press <strong>[Escape]</strong> at any time to stop the process.
+                            </li>
                         </ul></p>
                     </div>
                 )}
@@ -750,13 +755,17 @@ const TestPage: FC = () => {
             <div className={styles.container}>
                 {currentTrial && !showFeedback && (
                     <div className={styles.stimulus}>
-                        <span className={styles.letter}>{currentTrial.stimulus}</span>
+                        <span className={styles.letter}>
+                            {currentTrial.stimulus}
+                        </span>
                     </div>
                 )}
 
                 {showFeedback && (
                     <div className={styles.feedback}>
-                        <span className={styles.feedbackMessage}>{feedbackMessage}</span>
+                        <span className={styles.feedbackMessage}>
+                            {feedbackMessage}
+                        </span>
                     </div>
                 )}
 
@@ -804,7 +813,9 @@ const TestPage: FC = () => {
                     <h1>End of Practice</h1>
                     <div className={styles.instructions}>
                         <p>You have completed the practice trials.</p>
-                        <p className={styles.readyText}>Press <strong>[Enter]</strong> to begin the real task.</p>
+                        <p className={styles.readyText}>
+                            Press <strong>[Enter]</strong> to begin the main test.
+                        </p>
                     </div>
                 </div>
                 <EscapeConfirmationModal
@@ -820,3 +831,67 @@ const TestPage: FC = () => {
 };
 
 export default TestPage;
+
+
+// ================================
+// UTILITY COMPONENTS FOR TEST PAGE
+// ================================
+
+const TestInstructions: FC<{
+    showQuestionnaireButton?: boolean;
+    showActionButtons?: boolean;
+    onViewResults?: () => void;
+    onRetake?: () => void;
+    onProceed?: () => void;
+}> = ({
+    showQuestionnaireButton = false,
+    showActionButtons = false,
+    onViewResults,
+    onRetake,
+    onProceed
+}) => (
+        <div className={styles.instructions}>
+            <p><strong>You will see letters one at a time.</strong></p>
+            <ul>
+                <li>
+                    If you see any letter, symbol or number that is <strong>not X</strong> (Go),{'\u00A0'}
+                    press the <strong>[spacebar]</strong> as quickly as you can.
+                </li>
+                <li>
+                    If you see <strong>X</strong> (No-Go), withhold your response.
+                </li>
+            </ul>
+            <p>
+                There will be 100 trials, lasting about 2 minutes. You can practice 10 before beginning the test.
+            </p>
+
+            {showQuestionnaireButton && (
+                <>
+                    <p className={styles.readyText}>
+                        Press the button below to answer a few questions before starting the test.
+                    </p>
+                    <div className={styles.takeQuestionnaireButtonContainer}>
+                        <Link to="/intake" className={styles.button}>Take Questionnaire</Link>
+                    </div>
+                </>
+            )}
+
+            {showActionButtons && (
+                <>
+                    <p className={styles.readyText}>It seems you have already answered the ASRS questionnaire.</p>
+                    <div style={{ display: 'flex', gap: 16, marginTop: 24 }}>
+                        <button className={`${styles.button} ${styles.secondaryButton}`} onClick={onViewResults}>
+                            View Previous Results
+                        </button>
+                        <button className={`${styles.button} ${styles.secondaryButton}`} onClick={onRetake}>
+                            Answer Again
+                        </button>
+                        <button className={styles.button} onClick={onProceed}>
+                            Proceed to Calibration
+                        </button>
+                    </div>
+                </>
+            )}
+        </div>
+    );
+
