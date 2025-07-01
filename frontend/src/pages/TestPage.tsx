@@ -170,8 +170,8 @@ const TestPage: FC = () => {
         try {
             const response = await apiCall(`${CONFIG.API_BASE_URL}/session/start`, {
                 method: 'POST',
+                body: JSON.stringify({ session_uid: sessionUid }),
             });
-
             console.log('Session started:', response);
             return response;
         } catch (error) {
@@ -190,7 +190,6 @@ const TestPage: FC = () => {
                     fps: 20.0,
                 }),
             });
-
             console.log('Acquisition started:', response);
             setAcquisitionStarted(true);
             return response;
@@ -409,20 +408,26 @@ const TestPage: FC = () => {
                             if (isPractice) {
                                 setFeedbackMessage('✅ Correct');
                             }
-                            await logResponse(currentTrial.stimulus, true);
+                            if (!isPractice) {
+                                await logResponse(currentTrial.stimulus, true);
+                            }
                         } else {
                             currentTrial.result = 'too-slow';
                             if (isPractice) {
                                 setFeedbackMessage('❌ Too Slow');
                             }
-                            await logResponse(currentTrial.stimulus, true);
+                            if (!isPractice) {
+                                await logResponse(currentTrial.stimulus, true);
+                            }
                         }
                     } else {
                         currentTrial.result = 'false-alarm';
                         if (isPractice) {
                             setFeedbackMessage('❌ False Alarm');
                         }
-                        await logResponse(currentTrial.stimulus, true);
+                        if (!isPractice) {
+                            await logResponse(currentTrial.stimulus, true);
+                        }
                     }
 
                     currentTrial.responseTime = responseTime;
@@ -439,7 +444,14 @@ const TestPage: FC = () => {
                         setTimeout(() => {
                             setKeyPressed(false);
                             setCurrentTrial(null);
-                            nextTrial();
+                            setTrialIndex(prev => {
+                                const nextIndex = prev + 1;
+                                if (nextIndex >= trials.length) {
+                                    setPhase(isPractice ? 'practice-complete' : 'complete');
+                                    return prev;
+                                }
+                                return nextIndex;
+                            });
                         }, 500);
                     }
                 }
@@ -448,7 +460,7 @@ const TestPage: FC = () => {
 
         window.addEventListener('keydown', handleKeyPress);
         return () => window.removeEventListener('keydown', handleKeyPress);
-    }, [phase, calibrationStep, currentTrial, keyPressed, trialStartTime, escapePressed, showEscapeConfirmation, sessionUid]);
+    }, [phase, calibrationStep, currentTrial, keyPressed, trialStartTime, escapePressed, showEscapeConfirmation, sessionUid, isPractice]);
 
     useEffect(() => {
         if (phase !== 'calibration') return;
@@ -478,9 +490,11 @@ const TestPage: FC = () => {
             setTrialStartTime(Date.now());
             setKeyPressed(false);
 
-            await logStimulusOnset(trial.stimulus);
+            if (!isPractice) {
+                await logStimulusOnset(trial.stimulus);
+            }
         }
-    }, [trialIndex, trials, sessionUid]);
+    }, [trialIndex, trials, sessionUid, isPractice]);
 
     const nextTrial = () => {
         setTrialIndex(prev => {
@@ -498,25 +512,16 @@ const TestPage: FC = () => {
     };
 
     const startPractice = async () => {
-        try {
-            await startSession();
-            await startAcquisition();
-
-            setIsPractice(true);
-            setTrials(generateTrials(CONFIG.PRACTICE_TRIALS, true));
-            setTrialIndex(0);
-            setPhase('practice');
-        } catch (error) {
-            console.error('Failed to start practice:', error);
-            setCalibrationError('Failed to start practice. Please try again.');
-        }
+        setIsPractice(true);
+        setTrials(generateTrials(CONFIG.PRACTICE_TRIALS, true));
+        setTrialIndex(0);
+        setPhase('practice');
     };
 
     const startMainTest = async () => {
         try {
             await startSession();
             await startAcquisition();
-
             setIsPractice(false);
             setTrials(generateTrials(CONFIG.MAIN_TEST_TRIALS));
             setTrialIndex(0);
@@ -559,7 +564,9 @@ const TestPage: FC = () => {
                     )
                 );
 
-                await logResponse(currentTrial.stimulus, false);
+                if (!isPractice) {
+                    await logResponse(currentTrial.stimulus, false);
+                }
 
                 if (isPractice) {
                     setFeedbackMessage('✅ Correct');
@@ -615,7 +622,9 @@ const TestPage: FC = () => {
                         </ul>
                         <p>There will be 100 trials, lasting about 2 minutes. You can practice 10 before beginning the test.</p>
                         <p className={styles.readyText}>Press the button below to answer a few questions before starting the test.</p>
-                        <Link to="/intake" className={styles.button}>Take Questionnaire</Link>
+                        <div className={styles.takeQuestionnaireButtonContainer}>
+                            <Link to="/intake" className={styles.button}>Take Questionnaire</Link>
+                        </div>
                     </div>
                 </div>
             </div>

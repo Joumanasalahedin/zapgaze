@@ -241,6 +241,14 @@
     background: #2d3748;
 }
 
+.takeQuestionnaireButtonContainer {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 1rem;
+}
+
 .testHeader {
     position: absolute;
     top: 20px;
