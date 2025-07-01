@@ -93,35 +93,13 @@ const TestPage: FC = () => {
         }
     };
 
-    // Start session and get session_uid from backend
-    const ensureSession = async () => {
-        if (sessionUid) return sessionUid;
-        try {
-            const response = await apiCall(`${CONFIG.API_BASE_URL}/session/start`, {
-                method: 'POST',
-            });
-            if (response.session_uid) {
-                setSessionUid(response.session_uid);
-                return response.session_uid;
-            } else {
-                throw new Error('No session_uid returned from backend');
-            }
-        } catch (error) {
-            setCalibrationError('Failed to create session. Please try again.');
-            throw error;
-        }
-    };
-
-    // Start calibration with the local agent (ensure session first)
     const startCalibration = async () => {
         try {
             setIsCalibrating(true);
             setCalibrationError(null);
-            const newSessionUid = await ensureSession();
             await apiCall(`${CONFIG.AGENT_BASE_URL}/calibrate/start`, {
                 method: 'POST',
             });
-            setSessionUid(newSessionUid);
             console.log('Calibration started successfully');
         } catch (error) {
             console.error('Failed to start calibration:', error);
@@ -180,12 +158,12 @@ const TestPage: FC = () => {
         }
     };
 
-    const startAcquisition = async () => {
+    const startAcquisition = async (acqSessionUid?: string) => {
         try {
             const response = await apiCall(`${CONFIG.AGENT_BASE_URL}/start`, {
                 method: 'POST',
                 body: JSON.stringify({
-                    session_uid: sessionUid,
+                    session_uid: acqSessionUid || sessionUid,
                     api_url: `${CONFIG.API_BASE_URL}/acquisition/batch`,
                     fps: 20.0,
                 }),
@@ -252,7 +230,7 @@ const TestPage: FC = () => {
                 method: 'POST',
                 body: JSON.stringify({
                     session_uid: sessionUid,
-                    timestamp: Date.now() / 1000, // Convert to seconds
+                    timestamp: Date.now() / 1000,
                     event_type: 'stimulus_onset',
                     stimulus: stimulus,
                 }),
@@ -270,7 +248,7 @@ const TestPage: FC = () => {
                 method: 'POST',
                 body: JSON.stringify({
                     session_uid: sessionUid,
-                    timestamp: Date.now() / 1000, // Convert to seconds
+                    timestamp: Date.now() / 1000,
                     event_type: 'response',
                     stimulus: stimulus,
                     response: response,
@@ -282,15 +260,11 @@ const TestPage: FC = () => {
     };
 
     useEffect(() => {
-        if (!sessionUid) {
-            setSessionUid(crypto.randomUUID());
-        }
-    }, [sessionUid]);
-
-    useEffect(() => {
         const intake = localStorage.getItem('asrs5-intake');
         if (intake) {
-            setIntakeData(JSON.parse(intake));
+            const parsed = JSON.parse(intake);
+            setIntakeData(parsed);
+            setSessionUid(parsed.session_uid);
         }
     }, []);
 
@@ -460,7 +434,17 @@ const TestPage: FC = () => {
 
         window.addEventListener('keydown', handleKeyPress);
         return () => window.removeEventListener('keydown', handleKeyPress);
-    }, [phase, calibrationStep, currentTrial, keyPressed, trialStartTime, escapePressed, showEscapeConfirmation, sessionUid, isPractice]);
+    }, [
+        phase,
+        calibrationStep,
+        currentTrial,
+        keyPressed,
+        trialStartTime,
+        escapePressed,
+        showEscapeConfirmation,
+        sessionUid,
+        isPractice
+    ]);
 
     useEffect(() => {
         if (phase !== 'calibration') return;
@@ -520,8 +504,10 @@ const TestPage: FC = () => {
 
     const startMainTest = async () => {
         try {
-            await startSession();
-            await startAcquisition();
+            const sessionResponse = await startSession();
+            const newSessionUid = sessionResponse.session_uid;
+            setSessionUid(newSessionUid);
+            await startAcquisition(newSessionUid);
             setIsPractice(false);
             setTrials(generateTrials(CONFIG.MAIN_TEST_TRIALS));
             setTrialIndex(0);
