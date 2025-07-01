@@ -1,9 +1,15 @@
+from app.acquisition.mediapipe_adapter import MediaPipeAdapter
+from app.acquisition.camera_manager import CameraManager
 import time
 import argparse
 import requests
 import logging
-from app.acquisition.camera_manager import CameraManager
-from app.acquisition.mediapipe_adapter import MediaPipeAdapter
+import sys
+import os
+
+# Add parent directory to Python path to find app module
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 
 # Configure logging
 template = "%(asctime)s [%(levelname)s] %(message)s"

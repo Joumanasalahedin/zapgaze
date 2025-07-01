@@ -90,21 +90,21 @@ class MediaPipeAdapter(EyeTrackerAdapter):
             # Use the smaller EAR to catch eye closure even if one eye is misdetected
             ear_val = float(min(left_ear, right_ear))
             eye_centers = [left_center, right_center]
-
+            
         # PUPIL SIZE: average diameter of the left-iris landmarks
         # MediaPipe iris indices: left eye uses landmarks 468…473
         if landmarks is not None:
-            LEFT_IRIS_IDX = [468, 469, 470, 471, 472, 473]
-            pts = []
-            for idx in LEFT_IRIS_IDX:
-                lm = landmarks[idx]
-                pts.append((lm.x * w, lm.y * h))
-            # centroid of those points
+        LEFT_IRIS_IDX = [468, 469, 470, 471, 472, 473]
+        pts = []
+        for idx in LEFT_IRIS_IDX:
+            lm = landmarks[idx]
+            pts.append((lm.x * w, lm.y * h))
+        # centroid of those points
             cx = sum(x for x, y in pts) / len(pts)
             cy = sum(y for x, y in pts) / len(pts)
-            # average distance from centroid = radius, diameter = 2×radius
+        # average distance from centroid = radius, diameter = 2×radius
             radius = sum(math.hypot(x-cx, y-cy) for x, y in pts) / len(pts)
-            pupil_size = float(radius * 2)
+        pupil_size = float(radius * 2)
 
         # Calibration phase: collect baseline EAR
         if not self.calibrated:
