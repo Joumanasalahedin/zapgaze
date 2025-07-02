@@ -5,3 +5,4 @@ sqlalchemy
 opencv-python
 requests
 mediapipe
+numpy
