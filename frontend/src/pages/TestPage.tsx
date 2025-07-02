@@ -5,11 +5,11 @@ import EscapeConfirmationModal from '../components/modals/EscapeConfirmationModa
 import { ASRS_QUESTIONS, ASRS_OPTIONS } from './IntakeQuestionnairePage';
 
 const CONFIG = {
-    RESPONSE_TIME_LIMIT: 5000,
-    NO_GO_DISPLAY_TIME: 5000,
+    RESPONSE_TIME_LIMIT: 2000,
+    STIMULUS_DISPLAY_TIME: 2000,
     FEEDBACK_DISPLAY_TIME: 1000,
     PRACTICE_TRIALS: 10,
-    MAIN_TEST_TRIALS: 100,
+    MAIN_TEST_TRIALS: 20, // NOTE: change to 100
     GO_TRIAL_PERCENTAGE: 0.8,
     ESCAPE_CONFIRMATION_TIME: 5000,
     CALIBRATION_POINT_DURATION: 1000,
@@ -61,6 +61,7 @@ const TestPage: FC = () => {
     const [isCalibrating, setIsCalibrating] = useState(false);
     const [calibrationError, setCalibrationError] = useState<string | null>(null);
     const [acquisitionStarted, setAcquisitionStarted] = useState(false);
+    const [isStartingTest, setIsStartingTest] = useState(false);
 
     const navigate = useNavigate();
     const [showIntakeModal, setShowIntakeModal] = useState(false);
@@ -312,15 +313,34 @@ const TestPage: FC = () => {
                 [newTrials[i], newTrials[j]] = [newTrials[j], newTrials[i]];
             }
         } else {
-            // For main test, use random distribution
-            for (let i = 0; i < count; i++) {
-                const isGo = Math.random() < CONFIG.GO_TRIAL_PERCENTAGE;
+            // For main test, use same deterministic approach as practice
+            const goTrials = Math.floor(count * CONFIG.GO_TRIAL_PERCENTAGE);
+            const nogoTrials = count - goTrials;
+
+            // Generate Go trials
+            for (let i = 0; i < goTrials; i++) {
                 newTrials.push({
                     id: i,
-                    type: isGo ? 'go' : 'nogo',
-                    stimulus: isGo ? getRandomLetter() : 'X',
+                    type: 'go',
+                    stimulus: getRandomLetter(),
                     result: 'pending'
                 });
+            }
+
+            // Generate No-go trials (X)
+            for (let i = 0; i < nogoTrials; i++) {
+                newTrials.push({
+                    id: goTrials + i,
+                    type: 'nogo',
+                    stimulus: 'X',
+                    result: 'pending'
+                });
+            }
+
+            // Shuffle the trials
+            for (let i = newTrials.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newTrials[i], newTrials[j]] = [newTrials[j], newTrials[i]];
             }
         }
 
@@ -402,7 +422,7 @@ const TestPage: FC = () => {
                                 setFeedbackMessage('❌ Too Slow');
                             }
                             if (!isPractice) {
-                                await logResponse(currentTrial.stimulus, true);
+                                await logResponse(currentTrial.stimulus, false);
                             }
                         }
                     } else {
@@ -411,7 +431,7 @@ const TestPage: FC = () => {
                             setFeedbackMessage('❌ False Alarm');
                         }
                         if (!isPractice) {
-                            await logResponse(currentTrial.stimulus, true);
+                            await logResponse(currentTrial.stimulus, false);
                         }
                     }
 
@@ -484,6 +504,14 @@ const TestPage: FC = () => {
         return undefined;
     }, [phase, calibrationStep]);
 
+    // NOTE: Only for development purposes
+    // useEffect(() => {
+    //     if (phase === 'calibration' && calibrationStep === 0) {
+    //         setCalibrationStep(9);
+    //         finishCalibration();
+    //     }
+    // }, [phase, calibrationStep]);
+
     const startTrial = useCallback(async () => {
         if (trialIndex < trials.length) {
             const trial = trials[trialIndex];
@@ -521,25 +549,40 @@ const TestPage: FC = () => {
 
     const startMainTest = async () => {
         try {
+            setIsStartingTest(true);
+            setCalibrationError(null);
+
+            // Step 1: Start session
+            console.log('Starting session...');
             const sessionResponse = await startSession();
             const newSessionUid = sessionResponse.session_uid;
             setSessionUid(newSessionUid);
-            await startAcquisition(newSessionUid);
+
+            // Step 2: Pause and verify camera is ready
+            console.log('Verifying camera initialization...');
+            await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second pause
+
+            // Step 3: Start acquisition with verification
+            console.log('Starting acquisition...');
+            const acquisitionResponse = await startAcquisition(newSessionUid);
+
+            // Step 4: Additional pause to ensure acquisition is stable
+            console.log('Stabilizing acquisition...');
+            await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second pause
+
+            // Step 5: Start the test
             setIsPractice(false);
             setTrials(generateTrials(CONFIG.MAIN_TEST_TRIALS));
             setTrialIndex(0);
             setPhase('main-test');
+
         } catch (error) {
             console.error('Failed to start main test:', error);
-            setCalibrationError('Failed to start main test. Please try again.');
+            setCalibrationError('Failed to start main test. Please check if the camera is properly connected and try again.');
+        } finally {
+            setIsStartingTest(false);
         }
     };
-
-    useEffect(() => {
-        if ((phase === 'practice' || phase === 'main-test') && trials.length > 0) {
-            startTrial();
-        }
-    }, [phase, trials, startTrial]);
 
     useEffect(() => {
         if (trialIndex < trials.length && (phase === 'practice' || phase === 'main-test')) {
@@ -559,20 +602,33 @@ const TestPage: FC = () => {
     }, [isPractice, trials.length]);
 
     useEffect(() => {
-        if ((phase === 'practice' || phase === 'main-test') && currentTrial?.type === 'nogo') {
+        if ((phase === 'practice' || phase === 'main-test') && currentTrial) {
             const timer = setTimeout(async () => {
-                setTrials(ts =>
-                    ts.map(t =>
-                        t.id === currentTrial.id ? { ...t, result: 'correct' } : t
-                    )
-                );
-
-                if (!isPractice) {
-                    await logResponse(currentTrial.stimulus, false);
+                if (currentTrial.type === 'nogo') {
+                    // No-Go: user did NOT press spacebar (correct)
+                    setTrials(ts =>
+                        ts.map(t =>
+                            t.id === currentTrial.id ? { ...t, result: 'correct' } : t
+                        )
+                    );
+                    if (!isPractice) {
+                        await logResponse(currentTrial.stimulus, true); // did not press = true
+                    }
+                } else {
+                    // Go: user did NOT press spacebar (too slow)
+                    setTrials(ts =>
+                        ts.map(t =>
+                            t.id === currentTrial.id ? { ...t, result: 'too-slow' } : t
+                        )
+                    );
+                    if (!isPractice) {
+                        await logResponse(currentTrial.stimulus, false); // did not press = false
+                    }
                 }
 
                 if (isPractice) {
-                    setFeedbackMessage('✅ Correct');
+                    const message = currentTrial.type === 'nogo' ? '✅ Correct' : '❌ Too Slow';
+                    setFeedbackMessage(message);
                     setShowFeedback(true);
                     setTimeout(() => {
                         setShowFeedback(false);
@@ -583,34 +639,38 @@ const TestPage: FC = () => {
                     setCurrentTrial(null);
                     nextTrialCb();
                 }
-            }, CONFIG.NO_GO_DISPLAY_TIME);
+            }, CONFIG.STIMULUS_DISPLAY_TIME);
             return () => clearTimeout(timer);
         }
     }, [currentTrial, isPractice, phase, nextTrialCb]);
 
     const cleanupTest = useCallback(async () => {
+        let stopSessionError = null;
         try {
             if (acquisitionStarted) {
                 await stopAcquisition();
             }
-            await stopSession();
+            try {
+                await stopSession();
+            } catch (error) {
+                stopSessionError = error;
+                console.error('Failed to stop session:', error);
+            }
             await computeSessionFeatures();
         } catch (error) {
             console.error('Failed to cleanup test:', error);
+            // Still try to compute features if not already attempted
+            if (!stopSessionError) {
+                await computeSessionFeatures();
+            }
         }
     }, [acquisitionStarted, sessionUid]);
 
     useEffect(() => {
-        if (phase === 'complete') {
+        if ((phase === 'complete') && (trials.length > 0) && !isPractice) {
             cleanupTest();
         }
-
-        return () => {
-            if (acquisitionStarted) {
-                cleanupTest();
-            }
-        };
-    }, [phase, cleanupTest, acquisitionStarted]);
+    }, [phase, cleanupTest, trials.length, isPractice]);
 
     if (!intakeData) {
         return (
@@ -724,14 +784,26 @@ const TestPage: FC = () => {
                 {calibrationStep === 9 && (
                     <div className={styles.calibrationComplete}>
                         <h2>Calibration Complete</h2>
-                        <div className={styles.calibrationButtons}>
-                            <button onClick={startPractice} className={styles.button}>
-                                Do a practice
-                            </button>
-                            <button onClick={startMainTest} className={styles.button}>
-                                Proceed to main exam
-                            </button>
-                        </div>
+                        {isStartingTest ? (
+                            <div className={styles.loadingMessage}>
+                                <p>Initializing camera and starting test...</p>
+                                <p>Please wait while we verify the camera connection.</p>
+                                {calibrationError && (
+                                    <div className={styles.errorMessage}>
+                                        {calibrationError}
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className={styles.calibrationButtons}>
+                                <button onClick={startPractice} className={styles.button}>
+                                    Do a practice
+                                </button>
+                                <button onClick={startMainTest} className={styles.button}>
+                                    Proceed to main exam
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -782,6 +854,11 @@ const TestPage: FC = () => {
         const correctTrials = trials.filter(t => t.result === 'correct').length;
         const accuracy = (correctTrials / trials.length) * 100;
 
+        if (sessionUid) {
+            navigate(`/results/${sessionUid}`);
+            return null;
+        }
+
         return (
             <div className={styles.container}>
                 <div className={styles.modal}>
@@ -791,7 +868,7 @@ const TestPage: FC = () => {
                         <p>Correct responses: {correctTrials} / {trials.length}</p>
                     </div>
                     <button
-                        onClick={() => window.location.href = '/results'}
+                        onClick={() => navigate(`/results/${sessionUid}`)}
                         className={styles.button}
                     >
                         View Detailed Results

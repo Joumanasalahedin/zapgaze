@@ -6,20 +6,25 @@ from .eye_tracker_adapter import EyeTrackerAdapter
 
 
 class MediaPipeAdapter(EyeTrackerAdapter):
-    def __init__(self,
-                 ear_threshold_ratio: float = 0.7,
-                 consecutive_frames: int = 2,
-                 calibration_frames: int = 50,
-                 refractory_frames: int = 10):
+    def __init__(
+        self,
+        ear_threshold_ratio: float = 0.7,
+        consecutive_frames: int = 2,
+        calibration_frames: int = 50,
+        refractory_frames: int = 10,
+    ):
         # MediaPipe Face Mesh setup
         self.mp_face_mesh = mp.solutions.face_mesh
-        self.face_mesh = self.mp_face_mesh.FaceMesh(static_image_mode=False,
-                                                    max_num_faces=1,
-                                                    refine_landmarks=True,
-                                                    min_detection_confidence=0.5,
-                                                    min_tracking_confidence=0.5)
+        self.face_mesh = self.mp_face_mesh.FaceMesh(
+            static_image_mode=False,
+            max_num_faces=1,
+            refine_landmarks=True,
+            min_detection_confidence=0.5,
+            min_tracking_confidence=0.5,
+        )
         self.drawing_spec = mp.solutions.drawing_utils.DrawingSpec(
-            color=(0, 255, 0), thickness=1)
+            color=(0, 255, 0), thickness=1
+        )
 
         # Eye landmark indices
         self.LEFT_EYE = [33, 160, 158, 133, 153, 144]
@@ -52,8 +57,10 @@ class MediaPipeAdapter(EyeTrackerAdapter):
 
     def _eye_aspect_ratio_and_center(self, landmarks, eye_indices, width, height):
         # Extract landmark coordinates for the eye
-        coords = [(int(landmarks[idx].x * width), int(landmarks[idx].y * height))
-                  for idx in eye_indices]
+        coords = [
+            (int(landmarks[idx].x * width), int(landmarks[idx].y * height))
+            for idx in eye_indices
+        ]
         # Vertical distances
         A = np.linalg.norm(np.array(coords[1]) - np.array(coords[5]))
         B = np.linalg.norm(np.array(coords[2]) - np.array(coords[4]))
@@ -84,27 +91,29 @@ class MediaPipeAdapter(EyeTrackerAdapter):
 
             # Compute EAR and center for each eye
             left_ear, left_center = self._eye_aspect_ratio_and_center(
-                landmarks, self.LEFT_EYE, w, h)
+                landmarks, self.LEFT_EYE, w, h
+            )
             right_ear, right_center = self._eye_aspect_ratio_and_center(
-                landmarks, self.RIGHT_EYE, w, h)
+                landmarks, self.RIGHT_EYE, w, h
+            )
             # Use the smaller EAR to catch eye closure even if one eye is misdetected
             ear_val = float(min(left_ear, right_ear))
             eye_centers = [left_center, right_center]
-            
+
         # PUPIL SIZE: average diameter of the left-iris landmarks
         # MediaPipe iris indices: left eye uses landmarks 468…473
         if landmarks is not None:
-        LEFT_IRIS_IDX = [468, 469, 470, 471, 472, 473]
-        pts = []
-        for idx in LEFT_IRIS_IDX:
-            lm = landmarks[idx]
-            pts.append((lm.x * w, lm.y * h))
-        # centroid of those points
-            cx = sum(x for x, y in pts) / len(pts)
-            cy = sum(y for x, y in pts) / len(pts)
-        # average distance from centroid = radius, diameter = 2×radius
-            radius = sum(math.hypot(x-cx, y-cy) for x, y in pts) / len(pts)
-        pupil_size = float(radius * 2)
+            LEFT_IRIS_IDX = [468, 469, 470, 471, 472, 473]
+            pts = []
+            for idx in LEFT_IRIS_IDX:
+                lm = landmarks[idx]
+                pts.append((lm.x * w, lm.y * h))
+                # centroid of those points
+                cx = sum(x for x, y in pts) / len(pts)
+                cy = sum(y for x, y in pts) / len(pts)
+                # average distance from centroid = radius, diameter = 2×radius
+                radius = sum(math.hypot(x - cx, y - cy) for x, y in pts) / len(pts)
+            pupil_size = float(radius * 2)
 
         # Calibration phase: collect baseline EAR
         if not self.calibrated:
@@ -120,8 +129,10 @@ class MediaPipeAdapter(EyeTrackerAdapter):
             if ear_val < self.ear_threshold:
                 self.frame_counter += 1
             else:
-                if (self.frame_counter >= self.consec_frames and
-                        self.frames_since_blink >= self.refractory_frames):
+                if (
+                    self.frame_counter >= self.consec_frames
+                    and self.frames_since_blink >= self.refractory_frames
+                ):
                     blink = True
                     self.blink_count += 1
                     self.frames_since_blink = 0
@@ -136,5 +147,5 @@ class MediaPipeAdapter(EyeTrackerAdapter):
             "pupil_size": round(pupil_size, 1) if pupil_size is not None else None,
             "baseline_ear": round(self.baseline_ear, 3) if self.calibrated else None,
             "ear_threshold": round(self.ear_threshold, 3) if self.calibrated else None,
-            "total_blinks": self.blink_count
+            "total_blinks": self.blink_count,
         }
