@@ -854,11 +854,6 @@ const TestPage: FC = () => {
         const correctTrials = trials.filter(t => t.result === 'correct').length;
         const accuracy = (correctTrials / trials.length) * 100;
 
-        if (sessionUid) {
-            navigate(`/results/${sessionUid}`);
-            return null;
-        }
-
         return (
             <div className={styles.container}>
                 <div className={styles.modal}>
