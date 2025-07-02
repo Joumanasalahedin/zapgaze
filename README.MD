@@ -59,8 +59,11 @@ pip install -r requirements_local.txt
 # Make the script executable (macOS/Linux)
 chmod +x start_app.sh
 
-# Run the application
+# Run the application (uses existing Docker images)
 ./start_app.sh
+
+# Or run with --build flag to rebuild Docker images
+./start_app.sh --build
 ```
 
 ### Option 2: Manual Startup

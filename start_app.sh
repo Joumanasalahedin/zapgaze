@@ -33,6 +33,11 @@ cleanup() {
 
 trap cleanup SIGINT SIGTERM
 
+# Create database file if it doesn't exist
+echo "[0/3] Ensuring database file exists..."
+touch zapgaze.db
+echo "✅ Database file ready"
+
 if [ "$BUILD_FLAG" = true ]; then
     echo "[1/3] Starting backend and frontend services with Docker Compose (building images)..."
     docker-compose up -d --build
