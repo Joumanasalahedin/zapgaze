@@ -33,6 +33,7 @@ const TestPage = lazy(() => import('./pages/TestPage'));
 const ResultsPage = lazy(() => import('./pages/ResultsPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const IntakeQuestionnairePage = lazy(() => import('./pages/IntakeQuestionnairePage'));
+const SingleResultPage = lazy(() => import('./pages/SingleResultPage'));
 
 const RouteWrapper: FC<{
     component: React.ComponentType;
@@ -103,6 +104,15 @@ const App: FC = () => {
                             element={
                                 <RouteWrapper
                                     component={ResultsPage}
+                                    layoutFlags={{ showHeader: true, showFooter: true }}
+                                />
+                            }
+                        />
+                        <Route
+                            path="results/:sessionUid"
+                            element={
+                                <RouteWrapper
+                                    component={SingleResultPage}
                                     layoutFlags={{ showHeader: true, showFooter: true }}
                                 />
                             }
