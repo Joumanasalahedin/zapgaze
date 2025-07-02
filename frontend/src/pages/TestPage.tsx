@@ -9,7 +9,7 @@ const CONFIG = {
     STIMULUS_DISPLAY_TIME: 2000,
     FEEDBACK_DISPLAY_TIME: 1000,
     PRACTICE_TRIALS: 10,
-    MAIN_TEST_TRIALS: 10, // TODO: change to 100
+    MAIN_TEST_TRIALS: 20, // NOTE: change to 100
     GO_TRIAL_PERCENTAGE: 0.8,
     ESCAPE_CONFIRMATION_TIME: 5000,
     CALIBRATION_POINT_DURATION: 1000,
@@ -505,12 +505,12 @@ const TestPage: FC = () => {
     }, [phase, calibrationStep]);
 
     // NOTE: Only for development purposes
-    useEffect(() => {
-        if (phase === 'calibration' && calibrationStep === 0) {
-            setCalibrationStep(9);
-            finishCalibration();
-        }
-    }, [phase, calibrationStep]);
+    // useEffect(() => {
+    //     if (phase === 'calibration' && calibrationStep === 0) {
+    //         setCalibrationStep(9);
+    //         finishCalibration();
+    //     }
+    // }, [phase, calibrationStep]);
 
     const startTrial = useCallback(async () => {
         if (trialIndex < trials.length) {
@@ -645,22 +645,32 @@ const TestPage: FC = () => {
     }, [currentTrial, isPractice, phase, nextTrialCb]);
 
     const cleanupTest = useCallback(async () => {
+        let stopSessionError = null;
         try {
             if (acquisitionStarted) {
                 await stopAcquisition();
             }
-            await stopSession();
+            try {
+                await stopSession();
+            } catch (error) {
+                stopSessionError = error;
+                console.error('Failed to stop session:', error);
+            }
             await computeSessionFeatures();
         } catch (error) {
             console.error('Failed to cleanup test:', error);
+            // Still try to compute features if not already attempted
+            if (!stopSessionError) {
+                await computeSessionFeatures();
+            }
         }
     }, [acquisitionStarted, sessionUid]);
 
     useEffect(() => {
-        if ((phase === 'complete') && (trials.length > 0)) {
+        if ((phase === 'complete') && (trials.length > 0) && !isPractice) {
             cleanupTest();
         }
-    }, [phase, cleanupTest, trials.length]);
+    }, [phase, cleanupTest, trials.length, isPractice]);
 
     if (!intakeData) {
         return (
@@ -844,6 +854,11 @@ const TestPage: FC = () => {
         const correctTrials = trials.filter(t => t.result === 'correct').length;
         const accuracy = (correctTrials / trials.length) * 100;
 
+        if (sessionUid) {
+            navigate(`/results/${sessionUid}`);
+            return null;
+        }
+
         return (
             <div className={styles.container}>
                 <div className={styles.modal}>
@@ -853,7 +868,7 @@ const TestPage: FC = () => {
                         <p>Correct responses: {correctTrials} / {trials.length}</p>
                     </div>
                     <button
-                        onClick={() => window.location.href = '/results'}
+                        onClick={() => navigate(`/results/${sessionUid}`)}
                         className={styles.button}
                     >
                         View Detailed Results
