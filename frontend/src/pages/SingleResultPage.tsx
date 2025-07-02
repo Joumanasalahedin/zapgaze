@@ -30,6 +30,8 @@ interface SessionFeatureData {
     nogo_trial_count?: number;
     started_at?: string;
     stopped_at?: string | null;
+    name?: string;
+    birthdate?: string;
 }
 
 const METRICS = [
@@ -152,9 +154,8 @@ const SingleResultPage = () => {
             {/* TODO: replace patient name, date of birth, and user id placeholders */}
             <div className={styles.headerInfo}>
                 <div className={styles.headerInfoRow}>
-                    <div><strong>Name:</strong> John Doe</div>
-                    <div><strong>Date of Birth:</strong> 1990-01-01</div>
-                    <div><strong>Age:</strong> 30</div>
+                    <div><strong>Name:</strong> {data?.name || '—'}</div>
+                    <div><strong>Date of Birth:</strong> {data?.birthdate ? new Date(data.birthdate).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'}</div>
                     <div><strong>User ID:</strong> {data?.user_id || '—'}</div>
                     <div>
                         <strong>Time of Session:</strong>{' '}
