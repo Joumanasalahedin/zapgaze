@@ -312,15 +312,34 @@ const TestPage: FC = () => {
                 [newTrials[i], newTrials[j]] = [newTrials[j], newTrials[i]];
             }
         } else {
-            // For main test, use random distribution
-            for (let i = 0; i < count; i++) {
-                const isGo = Math.random() < CONFIG.GO_TRIAL_PERCENTAGE;
+            // For main test, use same deterministic approach as practice
+            const goTrials = Math.floor(count * CONFIG.GO_TRIAL_PERCENTAGE);
+            const nogoTrials = count - goTrials;
+
+            // Generate Go trials
+            for (let i = 0; i < goTrials; i++) {
                 newTrials.push({
                     id: i,
-                    type: isGo ? 'go' : 'nogo',
-                    stimulus: isGo ? getRandomLetter() : 'X',
+                    type: 'go',
+                    stimulus: getRandomLetter(),
                     result: 'pending'
                 });
+            }
+
+            // Generate No-go trials (X)
+            for (let i = 0; i < nogoTrials; i++) {
+                newTrials.push({
+                    id: goTrials + i,
+                    type: 'nogo',
+                    stimulus: 'X',
+                    result: 'pending'
+                });
+            }
+
+            // Shuffle the trials
+            for (let i = newTrials.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newTrials[i], newTrials[j]] = [newTrials[j], newTrials[i]];
             }
         }
 
