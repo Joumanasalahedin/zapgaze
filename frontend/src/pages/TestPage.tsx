@@ -5,7 +5,7 @@ import EscapeConfirmationModal from '../components/modals/EscapeConfirmationModa
 import { ASRS_QUESTIONS, ASRS_OPTIONS } from './IntakeQuestionnairePage';
 
 const CONFIG = {
-    RESPONSE_TIME_LIMIT: 1000,
+    RESPONSE_TIME_LIMIT: 2000,
     STIMULUS_DISPLAY_TIME: 1000,
     FEEDBACK_DISPLAY_TIME: 1000,
     PRACTICE_TRIALS: 10,
