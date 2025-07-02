@@ -9,7 +9,7 @@ const CONFIG = {
     NO_GO_DISPLAY_TIME: 5000,
     FEEDBACK_DISPLAY_TIME: 1000,
     PRACTICE_TRIALS: 10,
-    MAIN_TEST_TRIALS: 100,
+    MAIN_TEST_TRIALS: 10, // TODO: change to 100
     GO_TRIAL_PERCENTAGE: 0.8,
     ESCAPE_CONFIRMATION_TIME: 5000,
     CALIBRATION_POINT_DURATION: 1000,
@@ -534,12 +534,6 @@ const TestPage: FC = () => {
             setCalibrationError('Failed to start main test. Please try again.');
         }
     };
-
-    useEffect(() => {
-        if ((phase === 'practice' || phase === 'main-test') && trials.length > 0) {
-            startTrial();
-        }
-    }, [phase, trials, startTrial]);
 
     useEffect(() => {
         if (trialIndex < trials.length && (phase === 'practice' || phase === 'main-test')) {
