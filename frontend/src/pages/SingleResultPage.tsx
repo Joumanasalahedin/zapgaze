@@ -149,13 +149,25 @@ const SingleResultPage = () => {
             });
     }, [sessionUid]);
 
+    const getAge = (dobString: string) => {
+        const [year, month, day] = dobString.split('-').map(Number);
+        const dobDate = new Date(Date.UTC(year, month - 1, day));
+        const today = new Date();
+        let age = today.getUTCFullYear() - dobDate.getUTCFullYear();
+        const m = today.getUTCMonth() - dobDate.getUTCMonth();
+        if (m < 0 || (m === 0 && today.getUTCDate() < dobDate.getUTCDate())) {
+            age--;
+        }
+        return age;
+    };
+
     return (
         <div className={styles.root}>
-            {/* TODO: replace patient name, date of birth, and user id placeholders */}
             <div className={styles.headerInfo}>
                 <div className={styles.headerInfoRow}>
                     <div><strong>Name:</strong> {data?.name || '—'}</div>
                     <div><strong>Date of Birth:</strong> {data?.birthdate ? new Date(data.birthdate).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'}</div>
+                    <div><strong>Age:</strong> {data?.birthdate ? getAge(data.birthdate) : '—'}</div>
                     <div><strong>User ID:</strong> {data?.user_id || '—'}</div>
                     <div>
                         <strong>Time of Session:</strong>{' '}

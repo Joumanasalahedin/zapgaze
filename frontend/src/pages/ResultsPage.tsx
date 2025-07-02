@@ -2,7 +2,7 @@ import { FC } from 'react';
 
 const ResultsPage: FC = () => {
     return (
-        <div>
+        <div style={{ margin: '3.2rem auto', padding: '32px 24px 24px 24px' }}>
             <div>
                 <div>
                     <h1>Results Page</h1>
