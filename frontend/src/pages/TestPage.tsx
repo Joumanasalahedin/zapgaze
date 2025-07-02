@@ -422,7 +422,7 @@ const TestPage: FC = () => {
                                 setFeedbackMessage('❌ Too Slow');
                             }
                             if (!isPractice) {
-                                await logResponse(currentTrial.stimulus, true);
+                                await logResponse(currentTrial.stimulus, false);
                             }
                         }
                     } else {
@@ -431,7 +431,7 @@ const TestPage: FC = () => {
                             setFeedbackMessage('❌ False Alarm');
                         }
                         if (!isPractice) {
-                            await logResponse(currentTrial.stimulus, true);
+                            await logResponse(currentTrial.stimulus, false);
                         }
                     }
 
@@ -502,6 +502,14 @@ const TestPage: FC = () => {
         };
         doStep();
         return undefined;
+    }, [phase, calibrationStep]);
+
+    // NOTE: Only for development purposes
+    useEffect(() => {
+        if (phase === 'calibration' && calibrationStep === 0) {
+            setCalibrationStep(9);
+            finishCalibration();
+        }
     }, [phase, calibrationStep]);
 
     const startTrial = useCallback(async () => {
@@ -597,26 +605,24 @@ const TestPage: FC = () => {
         if ((phase === 'practice' || phase === 'main-test') && currentTrial) {
             const timer = setTimeout(async () => {
                 if (currentTrial.type === 'nogo') {
-                    // For No-Go trials, mark as correct if no response was made
+                    // No-Go: user did NOT press spacebar (correct)
                     setTrials(ts =>
                         ts.map(t =>
                             t.id === currentTrial.id ? { ...t, result: 'correct' } : t
                         )
                     );
-
                     if (!isPractice) {
-                        await logResponse(currentTrial.stimulus, false);
+                        await logResponse(currentTrial.stimulus, true); // did not press = true
                     }
                 } else {
-                    // For Go trials, mark as too slow if no response was made
+                    // Go: user did NOT press spacebar (too slow)
                     setTrials(ts =>
                         ts.map(t =>
                             t.id === currentTrial.id ? { ...t, result: 'too-slow' } : t
                         )
                     );
-
                     if (!isPractice) {
-                        await logResponse(currentTrial.stimulus, false);
+                        await logResponse(currentTrial.stimulus, false); // did not press = false
                     }
                 }
 
