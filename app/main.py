@@ -8,6 +8,7 @@ from app.api import (
     results,
     features,
     calibration,
+    users,
 )
 from app.db import models, database
 from app.db.database import engine
@@ -22,6 +23,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# User management
+app.include_router(users.router, prefix="/users", tags=["users"])
 
 # Intake and session control
 app.include_router(intake.router, prefix="/intake", tags=["intake"])

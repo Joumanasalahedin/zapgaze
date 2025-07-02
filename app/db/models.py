@@ -9,11 +9,25 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     birthdate = Column(Date, nullable=False)
+
+    # Relationships
+    sessions = relationship("Session", back_populates="user")
+    intakes = relationship("Intake", back_populates="user")
+
+
+class Intake(Base):
+    __tablename__ = "intakes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    session_uid = Column(String, nullable=False, index=True)
     answers_json = Column(String, nullable=False)
     total_score = Column(Integer, nullable=False)
     symptom_group = Column(String, nullable=False)
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
 
-    sessions = relationship("Session", back_populates="user")
+    # Relationships
+    user = relationship("User", back_populates="intakes")
 
 
 class Session(Base):

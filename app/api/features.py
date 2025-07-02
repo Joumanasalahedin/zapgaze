@@ -310,10 +310,33 @@ def get_session_features(session_uid: str, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=404, detail="Features not found for this session.")
 
+    # Get user information
+    user = db.query(models.User).filter(
+        models.User.id == session.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+
+    # Get intake information for this session
+    intake = db.query(models.Intake).filter(
+        models.Intake.session_uid == session_uid
+    ).first()
+
     sf = session.features
+
+    # Prepare intake data
+    intake_data = None
+    if intake:
+        intake_data = {
+            "answers": json.loads(intake.answers_json),
+            "total_score": intake.total_score,
+            "symptom_group": intake.symptom_group
+        }
+
     return {
         "session_uid": session_uid,
         "user_id": session.user_id,
+        "name": user.name,
+        "birthdate": user.birthdate.isoformat(),
         "mean_fixation_duration": sf.mean_fixation_duration,
         "fixation_count": sf.fixation_count,
         "gaze_dispersion": sf.gaze_dispersion,
@@ -327,4 +350,5 @@ def get_session_features(session_uid: str, db: Session = Depends(get_db)):
         "commission_errors": sf.commission_errors,
         "started_at": sf.started_at.isoformat() if sf.started_at else None,
         "stopped_at": sf.stopped_at.isoformat() if sf.stopped_at else None,
+        "intake": intake_data
     }

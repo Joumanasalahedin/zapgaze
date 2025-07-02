@@ -17,17 +17,105 @@ curl http://localhost:8000/
 
 ---
 
-## 2. Intake (ASRS-5)
+## 2. User Management
+
+### 2.1 Search Users
+
+**Endpoint:** `GET /users/search`
+
+**Purpose:** Search for existing users by name (partial match, case-insensitive).
+
+**Parameters:**
+- `name` (required): Name to search for
+
+**Response JSON:**
+```json
+[
+  {
+    "user_id": 1,
+    "name": "John Doe",
+    "birthdate": "2003-11-18"
+  },
+  {
+    "user_id": 3,
+    "name": "Johnny Smith",
+    "birthdate": "1995-05-20"
+  }
+]
+```
+
+**Example:**
+```bash
+curl "http://localhost:8000/users/search?name=John"
+```
+
+### 2.2 Get User Results
+
+**Endpoint:** `GET /users/results`
+
+**Purpose:** Get all results for a user, grouped by session. Requires birthdate verification.
+
+**Parameters:**
+- `user_id` (required): User ID
+- `birthdate` (required): User birthdate for verification (YYYY-MM-DD)
+
+**Response JSON:**
+```json
+{
+  "user_id": 1,
+  "user_name": "John Doe",
+  "birthdate": "2003-11-18",
+  "sessions": [
+    {
+      "session_uid": "abc123-def456-ghi789",
+      "started_at": "2025-01-02T20:50:11",
+      "stopped_at": "2025-01-02T21:15:30",
+      "status": "completed",
+      "features": {
+        "mean_fixation_duration": 23.26,
+        "fixation_count": 1,
+        "gaze_dispersion": 8.53,
+        "saccade_count": 0,
+        "saccade_rate": 0,
+        "total_blinks": 9,
+        "blink_rate": 23.15,
+        "go_reaction_time_mean": 0.61,
+        "go_reaction_time_sd": 0.15,
+        "omission_errors": 0,
+        "commission_errors": 1
+      },
+      "intake": {
+        "total_score": 12,
+        "symptom_group": "Low",
+        "answers": [3, 2, 1, 4, 0, 2],
+        "created_at": "2025-01-02T20:50:11"
+      }
+    }
+  ]
+}
+```
+
+**Example:**
+```bash
+curl "http://localhost:8000/users/results?user_id=1&birthdate=2003-11-18"
+```
+
+---
+
+## 3. Intake (ASRS-5)
+
+### 3.1 Create Intake (New or Existing User)
 
 **Endpoint:** `POST /intake/`
 
 **Purpose:**
-1. Create a new **User** with demographic and ASRS-5 answers.
-2. Compute **total_score** (0–24).
-3. Classify **symptom_group** (`High` if ≥14, else `Low`).
-4. Automatically generate an initial **Session** and return its `session_uid`.
+1. Create a new **User** with demographic and ASRS-5 answers, OR
+2. Add a new intake for an existing user (verified by birthdate)
+3. Compute **total_score** (0–24).
+4. Classify **symptom_group** (`High` if ≥14, else `Low`).
+5. Automatically generate a new **Session** and return its `session_uid`.
 
-**Request JSON:**
+**Request JSON (New User):**
 ```json
 {
   "name": "Jane Doe",
@@ -36,31 +124,134 @@ curl http://localhost:8000/
 }
 ```
 
-**Response JSON:**
+**Request JSON (Existing User):**
 ```json
 {
-  "session_uid": "<uuid>",
-  "total_score": 12,
-  "symptom_group": "Low"
+  "user_id": 1,
+  "birthdate": "1990-01-01",
+  "answers": [1, 2, 3, 2, 1, 0]
 }
 ```
 
-**Example:**
+**Response JSON:**
+```json
+{
+  "id": 1,
+  "user_id": 1,
+  "session_uid": "abc123-def456-ghi789",
+  "answers": [0, 2, 3, 1, 4, 2],
+  "total_score": 12,
+  "symptom_group": "Low",
+  "created_at": "2025-01-02T20:50:11"
+}
+```
+
+**Example (New User):**
 ```bash
 curl -X POST http://localhost:8000/intake/ \
   -H "Content-Type: application/json" \
   -d '{"name":"Jane Doe","birthdate":"1990-01-01","answers":[0,2,3,1,4,2]}'
 ```
 
+**Example (Existing User):**
+```bash
+curl -X POST http://localhost:8000/intake/ \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":1,"birthdate":"1990-01-01","answers":[1,2,3,2,1,0]}'
+```
+
+### 3.2 Get User Intake
+
+**Endpoint:** `GET /intake/user/{user_id}`
+
+**Purpose:** Get the latest intake record for a specific user.
+
+**Response JSON:**
+```json
+{
+  "id": 1,
+  "user_id": 1,
+  "session_uid": "abc123-def456-ghi789",
+  "answers": [0, 2, 3, 1, 4, 2],
+  "total_score": 12,
+  "symptom_group": "Low",
+  "created_at": "2025-01-02T20:50:11"
+}
+```
+
+**Example:**
+```bash
+curl http://localhost:8000/intake/user/1
+```
+
+### 3.3 Get User Intake History
+
+**Endpoint:** `GET /intake/user/{user_id}/history`
+
+**Purpose:** Get all intake records for a user (if they have multiple).
+
+**Response JSON:**
+```json
+[
+  {
+    "id": 2,
+    "user_id": 1,
+    "session_uid": "newer-session-uuid",
+    "answers": [1, 2, 3, 2, 1, 0],
+    "total_score": 9,
+    "symptom_group": "Low",
+    "created_at": "2025-01-02T20:55:00"
+  },
+  {
+    "id": 1,
+    "user_id": 1,
+    "session_uid": "older-session-uuid",
+    "answers": [0, 2, 3, 1, 4, 2],
+    "total_score": 12,
+    "symptom_group": "Low",
+    "created_at": "2025-01-02T20:50:11"
+  }
+]
+```
+
+**Example:**
+```bash
+curl http://localhost:8000/intake/user/1/history
+```
+
+### 3.4 Get Session Intake
+
+**Endpoint:** `GET /intake/session/{session_uid}`
+
+**Purpose:** Get the intake record for a specific session.
+
+**Response JSON:**
+```json
+{
+  "id": 1,
+  "user_id": 1,
+  "session_uid": "abc123-def456-ghi789",
+  "answers": [0, 2, 3, 1, 4, 2],
+  "total_score": 12,
+  "symptom_group": "Low",
+  "created_at": "2025-01-02T20:50:11"
+}
+```
+
+**Example:**
+```bash
+curl http://localhost:8000/intake/session/abc123-def456-ghi789
+```
+
 ---
 
-## 3. Calibration (Local Acquisition Agent)
+## 4. Calibration (Local Acquisition Agent)
 
 Before starting the Go/No-Go task, calibrate the eye-tracker. Run the local agent on the participant's machine:
 
 Host: `http://localhost:9000`
 
-### 3.1 Start Calibration
+### 4.1 Start Calibration
 
 **Endpoint:** `POST /calibrate/start`
 
@@ -76,7 +267,7 @@ Host: `http://localhost:9000`
 curl -X POST http://localhost:9000/calibrate/start
 ```
 
-### 3.2 Record Calibration Point
+### 4.2 Record Calibration Point
 
 **Endpoint:** `POST /calibrate/point`
 
@@ -110,7 +301,7 @@ curl -X POST http://localhost:9000/calibrate/point \
   -d '{"session_uid":"<uuid>","x":640,"y":360,"duration":1.0,"samples":30}'
 ```
 
-### 3.3 Finish Calibration
+### 4.3 Finish Calibration
 
 **Endpoint:** `POST /calibrate/finish`
 
@@ -131,9 +322,9 @@ curl -X POST http://localhost:9000/calibrate/finish
 
 ---
 
-## 4. Session Management (Backend API)
+## 5. Session Management (Backend API)
 
-### 4.1 Start Session
+### 5.1 Start Session
 
 **Endpoint:** `POST /session/start`
 
@@ -158,7 +349,7 @@ curl -X POST http://localhost:8000/session/start \
   -d '{}'
 ```
 
-### 4.2 Stop Session
+### 5.2 Stop Session
 
 **Endpoint:** `POST /session/stop`
 
@@ -187,9 +378,9 @@ curl -X POST http://localhost:8000/session/stop \
 
 ---
 
-## 5. Acquisition Data (Backend API)
+## 6. Acquisition Data (Backend API)
 
-### 5.1 Start Acquisition (Local Agent)
+### 6.1 Start Acquisition (Local Agent)
 
 **Endpoint:** `POST /start` on Local Agent
 
@@ -218,7 +409,7 @@ curl -X POST http://localhost:9000/start \
   -d '{"session_uid":"<uuid>","api_url":"http://localhost:8000/acquisition/batch","fps":20}'
 ```
 
-### 5.2 Single‐Frame Ingestion
+### 6.2 Single‐Frame Ingestion
 
 **Endpoint:** `POST /acquisition/data`
 
@@ -248,7 +439,7 @@ curl -X POST http://localhost:8000/acquisition/data \
   -d '{"session_uid":"<uuid>","timestamp":1620000000.123,"left_eye":{"x":100,"y":100},"right_eye":{"x":105,"y":100},"ear":0.30,"blink":false}'
 ```
 
-### 5.3 Batched Ingestion
+### 6.3 Batched Ingestion
 
 **Endpoint:** `POST /acquisition/batch`
 
@@ -274,7 +465,7 @@ curl -X POST http://localhost:8000/acquisition/batch \
   -d '[{"session_uid":"<uuid>",…},{…}]'
 ```
 
-### 5.4 Stop Acquisition (Local Agent)
+### 6.4 Stop Acquisition (Local Agent)
 
 **Endpoint:** `POST /stop` on Local Agent
 
@@ -292,7 +483,7 @@ curl -X POST http://localhost:8000/acquisition/batch \
 curl -X POST http://localhost:9000/stop
 ```
 
-### 5.5 Acquisition Status (Local Agent)
+### 6.5 Acquisition Status (Local Agent)
 
 **Endpoint:** `GET /status`
 
@@ -316,7 +507,7 @@ curl http://localhost:9000/status
 
 ---
 
-## 6. Task Event Logging (Backend API)
+## 7. Task Event Logging (Backend API)
 
 **Endpoint:** `POST /session/event`
 
@@ -353,9 +544,9 @@ curl -X POST http://localhost:8000/session/event \
 
 ---
 
-## 7. Raw Results Retrieval & Cleanup (Backend API)
+## 8. Raw Results Retrieval & Cleanup (Backend API)
 
-### 7.1 Get Raw Results
+### 8.1 Get Raw Results
 
 **Endpoint:** `GET /results/{session_uid}`
 
@@ -376,7 +567,7 @@ curl -X POST http://localhost:8000/session/event \
 curl http://localhost:8000/results/<session_uid>
 ```
 
-### 7.2 Delete Raw Results
+### 8.2 Delete Raw Results
 
 **Endpoint:** `DELETE /results/{session_uid}`
 
@@ -394,9 +585,9 @@ curl -X DELETE http://localhost:8000/results/<session_uid>
 
 ---
 
-## 8. Feature Computation & Retrieval (Backend API)
+## 9. Feature Computation & Retrieval (Backend API)
 
-### 8.1 Compute Session Features
+### 9.1 Compute Session Features
 
 **Endpoint:** `POST /features/compute/{session_uid}`
 
@@ -412,30 +603,37 @@ curl -X DELETE http://localhost:8000/results/<session_uid>
 curl -X POST http://localhost:8000/features/compute/<session_uid>
 ```
 
-### 8.2 Get Session Features
+### 9.2 Get Session Features
 
 **Endpoint:** `GET /features/sessions/{session_uid}`
 
-**Purpose:** Retrieve summary metrics (fixation, saccade, blink, RT, errors) for a session.
+**Purpose:** Retrieve summary metrics (fixation, saccade, blink, RT, errors) for a session, including user and intake information.
 
 **Response JSON:**
 ```json
 {
   "session_uid": "<uuid>",
   "user_id": 1,
-  "mean_fixation_duration": null,
-  "fixation_count": null,
-  "gaze_dispersion": null,
-  "saccade_count": null,
-  "saccade_rate": null,
-  "total_blinks": 2,
-  "blink_rate": 0.5,
-  "go_reaction_time_mean": 0.35,
-  "go_reaction_time_sd": 0.05,
-  "omission_errors": 1,
-  "commission_errors": 0,
-  "started_at": "2025-06-20T15:00:00",
-  "stopped_at": "2025-06-20T15:05:00"
+  "name": "John Doe",
+  "birthdate": "2003-11-18",
+  "mean_fixation_duration": 23.26,
+  "fixation_count": 1,
+  "gaze_dispersion": 8.53,
+  "saccade_count": 0,
+  "saccade_rate": 0,
+  "total_blinks": 9,
+  "blink_rate": 23.15,
+  "go_reaction_time_mean": 0.61,
+  "go_reaction_time_sd": 0.15,
+  "omission_errors": 0,
+  "commission_errors": 1,
+  "started_at": "2025-01-02T20:50:11",
+  "stopped_at": null,
+  "intake": {
+    "answers": [3, 2, 1, 4, 0, 2],
+    "total_score": 12,
+    "symptom_group": "Low"
+  }
 }
 ```
 
