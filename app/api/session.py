@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
 from app.db import models, database
+import time
 
 router = APIRouter()
 
@@ -42,6 +43,46 @@ def session_start(req: SessionStartRequest, db: Session = Depends(get_db)):
     return {"session_uid": sess.session_uid}
 
 
+def _stop_agent_acquisition():
+    """Helper function to stop agent acquisition (non-blocking, fails silently)"""
+    try:
+        # Import here to avoid circular imports
+        from app.api import agent as agent_module
+        from datetime import datetime, timedelta
+        
+        now = datetime.now()
+        timeout = timedelta(seconds=30)  # HEARTBEAT_TIMEOUT
+        active_agents = [
+            key
+            for key, last_heartbeat in agent_module.registered_agents.items()
+            if now - last_heartbeat <= timeout
+        ]
+        
+        if not active_agents:
+            print("⚠️  No active agent found to stop acquisition")
+            return
+        
+        agent_key = active_agents[0]
+        command_id = str(uuid.uuid4())
+        command = {
+            "command_id": command_id,
+            "type": "stop_acquisition",
+            "params": {},
+        }
+        
+        if agent_key not in agent_module.agent_commands:
+            agent_module.agent_commands[agent_key] = []
+        agent_module.agent_commands[agent_key].append(command)
+        
+        print(f"📤 Queued stop acquisition command {command_id} for agent {agent_key}")
+        
+        # Don't wait for result - just queue it and let it happen asynchronously
+        # The agent will pick it up on the next heartbeat
+    except Exception as e:
+        print(f"⚠️  Failed to stop agent acquisition: {e}")
+        # Fail silently - don't block session stop
+
+
 @router.post("/stop")
 def session_stop(req: SessionStopRequest, db: Session = Depends(get_db)):
     sess = (
@@ -53,6 +94,9 @@ def session_stop(req: SessionStopRequest, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=404, detail="No active session found with this session_uid."
         )
+
+    # Stop agent acquisition automatically when session stops
+    _stop_agent_acquisition()
 
     sess.stopped_at = datetime.utcnow()
     sess.status = "stopped"

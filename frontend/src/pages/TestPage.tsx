@@ -702,24 +702,43 @@ const TestPage: FC = () => {
   const cleanupTest = useCallback(async () => {
     let stopSessionError = null;
     try {
-      if (acquisitionStarted) {
-        await stopAcquisition();
-      }
+      // Always try to stop acquisition first (even if acquisitionStarted flag is wrong)
       try {
-        await stopSession();
+        await stopAcquisition();
+        setAcquisitionStarted(false);
       } catch (error) {
-        stopSessionError = error;
-        console.error("Failed to stop session:", error);
+        console.error("Failed to stop acquisition:", error);
+        // Continue anyway - try to stop session
       }
-      await computeSessionFeatures();
-    } catch (error) {
-      console.error("Failed to cleanup test:", error);
-      // Still try to compute features if not already attempted
-      if (!stopSessionError) {
+      
+      // Stop the session
+      if (sessionUid) {
+        try {
+          await stopSession();
+        } catch (error) {
+          stopSessionError = error;
+          console.error("Failed to stop session:", error);
+        }
+      } else {
+        console.warn("No session UID available to stop session");
+      }
+      
+      // Compute features if session was stopped successfully
+      if (!stopSessionError && sessionUid) {
         await computeSessionFeatures();
       }
+    } catch (error) {
+      console.error("Failed to cleanup test:", error);
+      // Still try to compute features if session was stopped
+      if (!stopSessionError && sessionUid) {
+        try {
+          await computeSessionFeatures();
+        } catch (e) {
+          console.error("Failed to compute features:", e);
+        }
+      }
     }
-  }, [acquisitionStarted, sessionUid]);
+  }, [acquisitionStarted, sessionUid, stopAcquisition, stopSession, computeSessionFeatures]);
 
   useEffect(() => {
     if (phase === "complete" && trials.length > 0 && !isPractice) {
