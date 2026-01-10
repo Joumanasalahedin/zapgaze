@@ -11,3 +11,8 @@ htmlcov/
 *.pyc
 
 zapgaze-vm_key.pem
+
+# PyInstaller build artifacts
+build/
+dist/
+*.spec.bak

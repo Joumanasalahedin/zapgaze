@@ -100,7 +100,7 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
 
     // GitHub Releases URL - Direct link to your release
     // Update this URL after you create the GitHub release
-    const baseUrl = "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.0";
+    const baseUrl = "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.1";
 
     switch (platform) {
       case "windows":
