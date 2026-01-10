@@ -10,7 +10,7 @@ on:
 
 jobs:
   frontend:
-    name: Frontend - Lint, Format, Type Check, Test
+    name: Frontend
     runs-on: ubuntu-latest
     
     defaults:
@@ -45,7 +45,7 @@ jobs:
         continue-on-error: true
 
   backend:
-    name: Backend (App) - Lint, Format, Test
+    name: Backend
     runs-on: ubuntu-latest
     
     defaults:
@@ -83,7 +83,7 @@ jobs:
         continue-on-error: true
 
   agent:
-    name: Agent - Lint, Format, Test
+    name: Agent
     runs-on: ubuntu-latest
     
     defaults:
