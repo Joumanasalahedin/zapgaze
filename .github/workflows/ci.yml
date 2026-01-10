@@ -82,40 +82,40 @@ jobs:
           pytest tests/ -v --tb=short || echo "No tests found or test execution failed"
         continue-on-error: true
 
-  # agent:
-  #   name: Agent
-  #   runs-on: ubuntu-latest
+  agent:
+    name: Agent
+    runs-on: ubuntu-latest
     
-  #   defaults:
-  #     run:
-  #       working-directory: ./
+    defaults:
+      run:
+        working-directory: ./
     
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v4
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       
-  #     - name: Setup Python
-  #       uses: actions/setup-python@v5
-  #       with:
-  #         python-version: '3.13'
-  #         cache: 'pip'
-  #         cache-dependency-path: requirements_local.txt
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+          cache-dependency-path: requirements_local.txt
       
-  #     - name: Install dependencies
-  #       run: |
-  #         python -m pip install --upgrade pip
-  #         pip install -r requirements_local.txt
-  #         pip install black flake8 pytest
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements_local.txt
+          pip install black flake8 pytest
       
-  #     - name: Run linter
-  #       run: |
-  #         flake8 agent/ --count --select=E9,F63,F7,F82 --show-source --statistics || true
-  #         flake8 agent/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      - name: Run linter
+        run: |
+          flake8 agent/ --count --select=E9,F63,F7,F82 --show-source --statistics || true
+          flake8 agent/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       
-  #     - name: Check formatting
-  #       run: black --check agent/ || (echo "Formatting check failed. Run 'black agent/' to fix." && exit 1)
+      - name: Check formatting
+        run: black --check agent/ || (echo "Formatting check failed. Run 'black agent/' to fix." && exit 1)
       
-  #     - name: Run tests
-  #       run: |
-  #         pytest agent/ -v --tb=short || echo "No tests found or test execution failed"
-  #       continue-on-error: true
+      - name: Run tests
+        run: |
+          pytest agent/ -v --tb=short || echo "No tests found or test execution failed"
+        continue-on-error: true
