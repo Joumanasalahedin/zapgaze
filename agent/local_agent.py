@@ -33,11 +33,24 @@ def send_heartbeat():
                 data = response.json()
                 # Check for pending commands
                 commands = data.get("commands", [])
+                if commands:
+                    print(
+                        f"📥 Received {len(commands)} command(s) from backend")
                 for command in commands:
-                    execute_command(command, backend_url)
-        except requests.RequestException:
+                    print(f"⚙️  Executing command: {command.get('type')}")
+                    # Execute commands in a separate thread so they don't block heartbeat
+                    command_thread = threading.Thread(
+                        target=execute_command,
+                        args=(command, backend_url),
+                        daemon=True,
+                    )
+                    command_thread.start()
+        except requests.RequestException as e:
+            # Log error for debugging
+            print(f"⚠️  Heartbeat error: {e}")
             pass  # Silently fail - backend might be down
-        time.sleep(2)  # Send heartbeat every 2 seconds for faster command processing
+        # Send heartbeat every 1 second for faster command processing
+        time.sleep(1)
 
 
 def execute_command(command: dict, backend_url: str):
@@ -45,12 +58,12 @@ def execute_command(command: dict, backend_url: str):
     command_id = command.get("command_id")
     command_type = command.get("type")
     params = command.get("params", {})
-    
+
     try:
         if command_type == "calibrate_start":
             from app.acquisition.camera_manager import CameraManager
             from app.acquisition.mediapipe_adapter import MediaPipeAdapter
-            
+
             app.state.cal_data = []
             cam = CameraManager()
             adapter = MediaPipeAdapter()
@@ -58,15 +71,15 @@ def execute_command(command: dict, backend_url: str):
             adapter.initialize()
             app.state.cal_camera = cam
             app.state.cal_adapter = adapter
-            
+
             result = {"status": "calibration_started"}
-            
+
         elif command_type == "calibrate_point":
             cam = app.state.cal_camera
             adapter = app.state.cal_adapter
             if cam is None or adapter is None:
                 raise Exception("Calibration not started")
-            
+
             pts = []
             for _ in range(params.get("samples", 30)):
                 frame = cam.get_frame()
@@ -76,22 +89,24 @@ def execute_command(command: dict, backend_url: str):
                     xs = [c[0] for c in centers]
                     ys = [c[1] for c in centers]
                     pts.append((sum(xs) / len(xs), sum(ys) / len(ys)))
-                time.sleep(params.get("duration", 1.0) / params.get("samples", 30))
-            
+                time.sleep(params.get("duration", 1.0) /
+                           params.get("samples", 30))
+
             if not pts:
                 raise Exception("No eye data captured")
-            
+
             mean_x = sum([p[0] for p in pts]) / len(pts)
             mean_y = sum([p[1] for p in pts]) / len(pts)
-            app.state.cal_data.append((params["x"], params["y"], mean_x, mean_y))
-            
+            app.state.cal_data.append(
+                (params["x"], params["y"], mean_x, mean_y))
+
             result = {
                 "screen_x": params["x"],
                 "screen_y": params["y"],
                 "measured_x": mean_x,
                 "measured_y": mean_y,
             }
-            
+
             # Also send to backend
             try:
                 requests.post(
@@ -101,7 +116,7 @@ def execute_command(command: dict, backend_url: str):
                 )
             except:
                 pass
-                
+
         elif command_type == "calibrate_finish":
             data = app.state.cal_data
             cam = app.state.cal_camera
@@ -109,7 +124,7 @@ def execute_command(command: dict, backend_url: str):
                 cam.release_camera()
             if not data or len(data) < 3:
                 raise Exception("At least 3 calibration points required")
-            
+
             raw = np.array([[d[2], d[3]] for d in data])
             scr = np.array([[d[0], d[1]] for d in data])
             ones = np.ones((raw.shape[0], 1))
@@ -119,27 +134,32 @@ def execute_command(command: dict, backend_url: str):
             A = [[params_x[0], params_x[1]], [params_y[0], params_y[1]]]
             b = [params_x[2], params_y[2]]
             transform = {"A": A, "b": b}
-            
+
             with open(os.path.join(os.path.dirname(__file__), "calibration.json"), "w") as f:
                 json.dump(transform, f)
-            
+
             result = transform
         else:
             raise Exception(f"Unknown command type: {command_type}")
-        
+
         # Report success
-        requests.post(
-            f"{backend_url}/agent/heartbeat",
-            json={
-                "agent_id": agent_id,
-                "command_result": {
-                    "command_id": command_id,
-                    "result": result,
-                    "success": True,
-                }
-            },
-            timeout=2,
-        )
+        print(f"✅ Command {command_id} executed successfully")
+        try:
+            requests.post(
+                f"{backend_url}/agent/heartbeat",
+                json={
+                    "agent_id": agent_id,
+                    "command_result": {
+                        "command_id": command_id,
+                        "result": result,
+                        "success": True,
+                    }
+                },
+                timeout=2,
+            )
+            print(f"📤 Reported success for command {command_id}")
+        except Exception as e:
+            print(f"❌ Failed to report command result: {e}")
     except Exception as e:
         # Report error
         try:

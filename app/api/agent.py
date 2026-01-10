@@ -60,9 +60,10 @@ def register_agent(registration: AgentRegistration):
 @router.post("/heartbeat")
 def agent_heartbeat(heartbeat: dict):
     """Update agent heartbeat and return pending commands"""
-    agent_key = heartbeat.get("session_uid") or heartbeat.get("agent_id") or "default"
+    agent_key = heartbeat.get("session_uid") or heartbeat.get(
+        "agent_id") or "default"
     registered_agents[agent_key] = datetime.now()
-    
+
     # Store command result if provided
     if "command_result" in heartbeat:
         result = heartbeat["command_result"]
@@ -73,13 +74,13 @@ def agent_heartbeat(heartbeat: dict):
                 "success": result.get("success", False),
                 "error": result.get("error"),
             }
-    
+
     # Return pending commands for this agent
     pending_commands = agent_commands.get(agent_key, [])
     # Clear commands after returning them
     if agent_key in agent_commands:
         agent_commands[agent_key] = []
-    
+
     return {
         "status": "ok",
         "timestamp": registered_agents[agent_key].isoformat(),
@@ -151,10 +152,13 @@ def proxy_calibrate_start():
         for key, last_heartbeat in registered_agents.items()
         if now - last_heartbeat <= HEARTBEAT_TIMEOUT
     ]
-    
+
     if not active_agents:
-        raise HTTPException(status_code=503, detail="No active agent found")
-    
+        raise HTTPException(
+            status_code=503,
+            detail=f"No active agent found. Registered agents: {list(registered_agents.keys())}"
+        )
+
     # Use the first active agent
     agent_key = active_agents[0]
     command_id = str(uuid.uuid4())
@@ -163,22 +167,32 @@ def proxy_calibrate_start():
         "type": "calibrate_start",
         "params": {},
     }
-    
+
     if agent_key not in agent_commands:
         agent_commands[agent_key] = []
     agent_commands[agent_key].append(command)
-    
+
+    print(f"📤 Queued command {command_id} for agent {agent_key}")
+
     # Wait for result (polling)
-    for _ in range(30):  # Wait up to 3 seconds
+    # Wait up to 10 seconds (agent polls every 1-2 seconds)
+    print(f"⏳ Waiting for command {command_id} result...")
+    for i in range(100):  # 100 * 0.1s = 10 seconds
         time.sleep(0.1)
         if command_id in command_results:
             result = command_results.pop(command_id)
+            print(f"✅ Received result for command {command_id}")
             if result["success"]:
                 return result["result"]
             else:
-                raise HTTPException(status_code=500, detail=result.get("error", "Command failed"))
-    
-    raise HTTPException(status_code=504, detail="Command timeout")
+                raise HTTPException(status_code=500, detail=result.get(
+                    "error", "Command failed"))
+        if i % 10 == 0:  # Log every second
+            print(f"⏳ Still waiting... ({i/10:.1f}s)")
+
+    print(f"❌ Timeout waiting for command {command_id}")
+    raise HTTPException(
+        status_code=504, detail="Command timeout - agent may not be responding")
 
 
 @router.post("/calibrate/point")
@@ -190,10 +204,10 @@ def proxy_calibrate_point(data: dict):
         for key, last_heartbeat in registered_agents.items()
         if now - last_heartbeat <= HEARTBEAT_TIMEOUT
     ]
-    
+
     if not active_agents:
         raise HTTPException(status_code=503, detail="No active agent found")
-    
+
     agent_key = active_agents[0]
     command_id = str(uuid.uuid4())
     command = {
@@ -201,22 +215,29 @@ def proxy_calibrate_point(data: dict):
         "type": "calibrate_point",
         "params": data,
     }
-    
+
     if agent_key not in agent_commands:
         agent_commands[agent_key] = []
     agent_commands[agent_key].append(command)
-    
-    # Wait for result
-    for _ in range(30):
+
+    # Wait for result (calibration point takes ~1-2 seconds to process)
+    print(f"⏳ Waiting for command {command_id} result...")
+    for i in range(150):  # 150 * 0.1s = 15 seconds (calibration takes time)
         time.sleep(0.1)
         if command_id in command_results:
             result = command_results.pop(command_id)
+            print(f"✅ Received result for command {command_id}")
             if result["success"]:
                 return result["result"]
             else:
-                raise HTTPException(status_code=500, detail=result.get("error", "Command failed"))
-    
-    raise HTTPException(status_code=504, detail="Command timeout")
+                raise HTTPException(status_code=500, detail=result.get(
+                    "error", "Command failed"))
+        if i % 10 == 0:  # Log every second
+            print(f"⏳ Still waiting... ({i/10:.1f}s)")
+
+    print(f"❌ Timeout waiting for command {command_id}")
+    raise HTTPException(
+        status_code=504, detail="Command timeout - agent may not be responding")
 
 
 @router.post("/calibrate/finish")
@@ -228,10 +249,10 @@ def proxy_calibrate_finish():
         for key, last_heartbeat in registered_agents.items()
         if now - last_heartbeat <= HEARTBEAT_TIMEOUT
     ]
-    
+
     if not active_agents:
         raise HTTPException(status_code=503, detail="No active agent found")
-    
+
     agent_key = active_agents[0]
     command_id = str(uuid.uuid4())
     command = {
@@ -239,11 +260,11 @@ def proxy_calibrate_finish():
         "type": "calibrate_finish",
         "params": {},
     }
-    
+
     if agent_key not in agent_commands:
         agent_commands[agent_key] = []
     agent_commands[agent_key].append(command)
-    
+
     # Wait for result
     for _ in range(30):
         time.sleep(0.1)
@@ -252,6 +273,7 @@ def proxy_calibrate_finish():
             if result["success"]:
                 return result["result"]
             else:
-                raise HTTPException(status_code=500, detail=result.get("error", "Command failed"))
-    
+                raise HTTPException(status_code=500, detail=result.get(
+                    "error", "Command failed"))
+
     raise HTTPException(status_code=504, detail="Command timeout")

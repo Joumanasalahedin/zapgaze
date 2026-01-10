@@ -34,8 +34,16 @@ except Exception as e:
 if (project_root / 'agent' / 'calibration.json').exists():
     datas_list.append((str(project_root / 'agent' / 'calibration.json'), 'agent'))
 
+# Collect all agent Python files explicitly
+agent_py_files = []
+agent_dir = project_root / 'agent'
+for py_file in agent_dir.glob('*.py'):
+    if py_file.name not in ['build_standalone.spec', '__init__.py']:  # Don't include spec or __init__ (handled separately)
+        agent_py_files.append(str(py_file))
+        print(f"Including agent file: {py_file.name}")
+
 a = Analysis(
-    [launcher_path],
+    [launcher_path] + agent_py_files,  # Include agent Python files
     pathex=[str(project_root)],
     binaries=[],
     datas=datas_list,
@@ -51,8 +59,11 @@ a = Analysis(
         'app.acquisition.camera_manager',
         'app.acquisition.mediapipe_adapter',
         'app.acquisition.eye_tracker_adapter',
+        'agent',  # Import the agent package
         'agent.local_agent',
         'agent.acquisition_client',
+        'agent.launcher',
+        'agent.setup_autostart',
     ],
     hookspath=[],
     hooksconfig={},

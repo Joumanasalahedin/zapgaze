@@ -9,9 +9,6 @@ import sys
 import socket
 from pathlib import Path
 
-# Add parent directory to path so we can import app modules
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
 
 def check_port_available(port):
     """Check if a port is available"""
@@ -26,8 +23,23 @@ def check_port_available(port):
 
 def start_agent():
     """Start the local agent server"""
-    agent_dir = Path(__file__).parent
-    project_root = agent_dir.parent
+    # Handle PyInstaller bundle vs regular script
+    if getattr(sys, "frozen", False):
+        # Running as PyInstaller bundle
+        # PyInstaller sets sys._MEIPASS to the temp folder
+        bundle_dir = Path(sys._MEIPASS)
+        # Add bundle directory to path
+        sys.path.insert(0, str(bundle_dir))
+        # Also add the directory containing the executable
+        exe_dir = Path(sys.executable).parent
+        sys.path.insert(0, str(exe_dir))
+        project_root = exe_dir
+    else:
+        # Running as regular script
+        agent_dir = Path(__file__).parent
+        project_root = agent_dir.parent
+        # Add parent directory to path so we can import app modules
+        sys.path.insert(0, str(project_root))
 
     # Change to project root for proper imports
     os.chdir(project_root)
@@ -53,9 +65,47 @@ def start_agent():
     try:
         import uvicorn
 
-        uvicorn.run(
-            "agent.local_agent:app", host="0.0.0.0", port=9000, log_level="info"
-        )
+        # Debug: Print sys.path to see what's available
+        if getattr(sys, "frozen", False):
+            print(f"🔍 PyInstaller bundle detected")
+            print(f"   sys._MEIPASS: {sys._MEIPASS}")
+            print(f"   sys.executable: {sys.executable}")
+            print(f"   sys.path: {sys.path[:3]}...")  # First 3 entries
+
+        # Import the app directly (works better with PyInstaller)
+        try:
+            # Try importing agent module first
+            import agent
+            print(f"✅ Imported agent module from: {agent.__file__}")
+            from agent.local_agent import app
+            print("✅ Successfully imported agent app")
+            # Run with app object instead of string
+            uvicorn.run(app, host="0.0.0.0", port=9000, log_level="info")
+        except ImportError as e:
+            print(f"⚠️  Direct import failed: {e}")
+            import traceback
+            traceback.print_exc()
+            print("\n   Trying alternative import methods...")
+            # Try importing from the bundle directory
+            try:
+                if getattr(sys, "frozen", False):
+                    # Add the bundle directory explicitly
+                    bundle_path = Path(sys._MEIPASS)
+                    if str(bundle_path) not in sys.path:
+                        sys.path.insert(0, str(bundle_path))
+                    # Try importing again
+                    from agent.local_agent import app
+                    print("✅ Imported from bundle directory")
+                    uvicorn.run(app, host="0.0.0.0",
+                                port=9000, log_level="info")
+                else:
+                    raise
+            except:
+                print("   Trying string import as last resort...")
+                # Fallback to string import if direct import fails
+                uvicorn.run(
+                    "agent.local_agent:app", host="0.0.0.0", port=9000, log_level="info"
+                )
     except KeyboardInterrupt:
         print("\n\nAgent stopped.")
     except Exception as e:
