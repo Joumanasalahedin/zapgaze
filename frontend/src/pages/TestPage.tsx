@@ -16,7 +16,8 @@ const CONFIG = {
   ESCAPE_CONFIRMATION_TIME: 5000,
   CALIBRATION_POINT_DURATION: 1000,
   API_BASE_URL: import.meta.env.VITE_API_URL || "http://20.74.82.26:8000",
-  AGENT_BASE_URL: import.meta.env.VITE_AGENT_URL || "http://localhost:9000",
+  AGENT_BASE_URL: import.meta.env.VITE_AGENT_URL || "http://localhost:9000", // Still used for direct agent calls
+  // Agent status is now checked through backend to avoid CORS issues
 } as const;
 
 type TestPhase =
@@ -291,14 +292,17 @@ const TestPage: FC = () => {
       setSessionUid(parsed.session_uid);
     }
 
-    // Check agent status on page load
+    // Check agent status on page load through backend
     const checkAgent = async () => {
       try {
-        const response = await fetch(`${CONFIG.AGENT_BASE_URL}/status`, {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/agent/status`, {
           signal: AbortSignal.timeout(2000),
         });
         if (response.ok) {
-          setAgentConnected(true);
+          const data = await response.json();
+          if (data.status === "connected") {
+            setAgentConnected(true);
+          }
         }
       } catch (error) {
         // Agent not running
@@ -732,6 +736,7 @@ const TestPage: FC = () => {
           <div style={{ marginBottom: "20px" }}>
             <AgentStatusChecker
               agentUrl={CONFIG.AGENT_BASE_URL}
+              apiBaseUrl={CONFIG.API_BASE_URL}
               onAgentReady={() => setAgentConnected(true)}
               showDownloadButton={true}
             />
@@ -757,6 +762,7 @@ const TestPage: FC = () => {
           open={showAgentInstallModal}
           onClose={() => setShowAgentInstallModal(false)}
           agentUrl={CONFIG.AGENT_BASE_URL}
+          apiBaseUrl={CONFIG.API_BASE_URL}
           onAgentReady={() => {
             setAgentConnected(true);
             setShowAgentInstallModal(false);

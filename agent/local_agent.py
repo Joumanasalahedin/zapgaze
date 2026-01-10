@@ -1,6 +1,8 @@
 import subprocess
 import threading
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 from pydantic import BaseModel
 import os
 import numpy as np
@@ -8,9 +10,9 @@ import requests
 import json
 import time
 import sys
-from fastapi.middleware.cors import CORSMiddleware
+import uuid
 
-app = FastAPI(title="Local Acquisition Agent")
+app = FastAPI(title="Local Acquisition Agent", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -22,10 +24,61 @@ app.add_middleware(
 
 task_proc = None
 task_thread = None
+heartbeat_thread = None
+agent_id = str(uuid.uuid4())  # Unique agent identifier
 
 app.state.cal_data = []
 app.state.cal_camera = None
 app.state.cal_adapter = None
+
+
+def send_heartbeat():
+    """Send periodic heartbeat to backend"""
+    backend_url = os.getenv("BACKEND_URL", "http://20.74.82.26:8000")
+    while True:
+        try:
+            requests.post(
+                f"{backend_url}/agent/heartbeat",
+                json={"agent_id": agent_id},
+                timeout=2,
+            )
+        except requests.RequestException:
+            pass  # Silently fail - backend might be down
+        time.sleep(15)  # Send heartbeat every 15 seconds
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Startup and shutdown events"""
+    # Register with backend on startup
+    backend_url = os.getenv("BACKEND_URL", "http://20.74.82.26:8000")
+    try:
+        requests.post(
+            f"{backend_url}/agent/register",
+            json={"agent_id": agent_id},
+            timeout=5,
+        )
+        print(f"✅ Registered with backend: {backend_url}")
+    except requests.RequestException as e:
+        print(f"⚠️  Could not register with backend: {e}")
+        print("   Agent will continue running, but frontend may not detect it.")
+
+    # Start heartbeat thread
+    global heartbeat_thread
+    heartbeat_thread = threading.Thread(target=send_heartbeat, daemon=True)
+    heartbeat_thread.start()
+
+    yield
+
+    # Unregister on shutdown
+    try:
+        requests.delete(
+            f"{backend_url}/agent/unregister",
+            params={"agent_id": agent_id},
+            timeout=2,
+        )
+    except requests.RequestException:
+        pass
 
 
 class StartRequest(BaseModel):

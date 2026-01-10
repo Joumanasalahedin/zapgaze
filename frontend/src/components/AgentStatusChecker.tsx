@@ -5,7 +5,8 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorIcon from "@mui/icons-material/Error";
 
 interface AgentStatusCheckerProps {
-  agentUrl: string;
+  agentUrl: string; // Deprecated - kept for backward compatibility
+  apiBaseUrl?: string; // Backend API URL to check agent status
   onAgentReady?: () => void;
   showDownloadButton?: boolean;
 }
@@ -13,23 +14,30 @@ interface AgentStatusCheckerProps {
 type AgentStatus = "checking" | "connected" | "disconnected" | "error";
 
 const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
-  agentUrl,
+  agentUrl, // Deprecated
+  apiBaseUrl,
   onAgentReady,
   showDownloadButton = true,
 }) => {
   const [status, setStatus] = useState<AgentStatus>("checking");
   const [showDownload, setShowDownload] = useState(false);
+  const [corsError, setCorsError] = useState(false);
 
   useEffect(() => {
     checkAgentStatus();
     // Check every 3 seconds
     const interval = setInterval(checkAgentStatus, 3000);
     return () => clearInterval(interval);
-  }, [agentUrl]);
+  }, [agentUrl, apiBaseUrl]);
 
   const checkAgentStatus = async () => {
+    // Use backend API if provided, otherwise fall back to direct agent URL
+    const statusUrl = apiBaseUrl 
+      ? `${apiBaseUrl}/agent/status`
+      : `${agentUrl}/status`;
+
     try {
-      const response = await fetch(`${agentUrl}/status`, {
+      const response = await fetch(statusUrl, {
         method: "GET",
         // Add timeout
         signal: AbortSignal.timeout(2000),
@@ -37,15 +45,37 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
 
       if (response.ok) {
         const data = await response.json();
-        setStatus("connected");
-        if (onAgentReady) {
-          onAgentReady();
+        // Backend returns {status: "connected"} or {status: "disconnected"}
+        if (data.status === "connected") {
+          setStatus("connected");
+          setCorsError(false);
+          if (onAgentReady) {
+            onAgentReady();
+          }
+        } else {
+          setStatus("disconnected");
+          setCorsError(false);
         }
       } else {
         setStatus("disconnected");
+        setCorsError(false);
       }
-    } catch (error) {
+    } catch (error: any) {
+      // Check for CORS/Private Network Access error (only for direct agent URL)
+      if (!apiBaseUrl) {
+        const errorMessage = error?.message || "";
+        if (
+          errorMessage.includes("CORS") ||
+          errorMessage.includes("more-private address space") ||
+          errorMessage.includes("loopback")
+        ) {
+          setCorsError(true);
+          setStatus("error");
+          return;
+        }
+      }
       // Network error or timeout - agent not running
+      setCorsError(false);
       setStatus("disconnected");
     }
   };
@@ -123,6 +153,55 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
         sx={{ display: "flex", alignItems: "center" }}
       >
         <Typography variant="body2">Agent connected and ready</Typography>
+      </Alert>
+    );
+  }
+
+  // CORS error - browser blocking localhost access
+  if (corsError) {
+    return (
+      <Alert severity="error" icon={<ErrorIcon />} sx={{ mb: 2 }}>
+        <Typography variant="body2" sx={{ mb: 1, fontWeight: "bold" }}>
+          Browser Security Restriction Detected
+        </Typography>
+        <Typography variant="body2" sx={{ mb: 2 }}>
+          Your browser is blocking access to the local agent because the app is served from a remote server.
+          To fix this, you need to access the app via localhost:
+        </Typography>
+        <Box component="ol" sx={{ pl: 3, mb: 2 }}>
+          <li>
+            <Typography variant="body2" sx={{ mb: 1 }}>
+              Set up SSH port forwarding from your local machine:
+            </Typography>
+            <Box
+              component="pre"
+              sx={{
+                bgcolor: "grey.100",
+                p: 1,
+                borderRadius: 1,
+                fontSize: "0.875rem",
+                overflow: "auto",
+                mb: 1,
+              }}
+            >
+              ssh -L 5173:localhost:5173 azureuser@20.74.82.26
+            </Box>
+          </li>
+          <li>
+            <Typography variant="body2" sx={{ mb: 1 }}>
+              Then open the app in a new tab at:{" "}
+              <strong>http://localhost:5173</strong>
+            </Typography>
+          </li>
+          <li>
+            <Typography variant="body2">
+              Make sure the ZapGaze Agent is running on your local machine.
+            </Typography>
+          </li>
+        </Box>
+        <Typography variant="body2" sx={{ fontSize: "0.875rem", color: "text.secondary" }}>
+          This is a browser security feature that prevents remote websites from accessing your localhost.
+        </Typography>
       </Alert>
     );
   }

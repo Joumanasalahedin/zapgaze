@@ -20,7 +20,8 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 interface AgentInstallModalProps {
   open: boolean;
   onClose: () => void;
-  agentUrl: string;
+  agentUrl: string; // Deprecated - kept for backward compatibility
+  apiBaseUrl?: string; // Backend API URL to check agent status
   onAgentReady?: () => void;
 }
 
@@ -42,7 +43,8 @@ const steps = [
 const AgentInstallModal: FC<AgentInstallModalProps> = ({
   open,
   onClose,
-  agentUrl,
+  agentUrl, // Deprecated
+  apiBaseUrl,
   onAgentReady,
 }) => {
   const [activeStep, setActiveStep] = useState(0);
@@ -56,20 +58,23 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
     else if (userAgent.includes("mac")) setPlatform("mac");
     else if (userAgent.includes("linux")) setPlatform("linux");
 
-    // Check agent status periodically
-    if (activeStep >= 2) {
+    // Check agent status periodically through backend
+    if (activeStep >= 2 && apiBaseUrl) {
       const interval = setInterval(async () => {
         try {
-          const response = await fetch(`${agentUrl}/status`, {
+          const response = await fetch(`${apiBaseUrl}/agent/status`, {
             signal: AbortSignal.timeout(2000),
           });
           if (response.ok) {
-            setAgentConnected(true);
-            setActiveStep(3);
-            if (onAgentReady) {
-              onAgentReady();
+            const data = await response.json();
+            if (data.status === "connected") {
+              setAgentConnected(true);
+              setActiveStep(3);
+              if (onAgentReady) {
+                onAgentReady();
+              }
+              clearInterval(interval);
             }
-            clearInterval(interval);
           }
         } catch (error) {
           // Agent not ready yet
@@ -78,7 +83,7 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
 
       return () => clearInterval(interval);
     }
-  }, [activeStep, agentUrl, onAgentReady]);
+  }, [activeStep, agentUrl, apiBaseUrl, onAgentReady]);
 
   const getDownloadUrl = (): string => {
     // GitHub Releases URL - Direct link to your release
@@ -207,24 +212,71 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
                     <Typography variant="body2">Double-click the .exe file to run it</Typography>
                   ) : platform === "mac" ? (
                     <Box>
-                      <Typography variant="body2" sx={{ mb: 1 }}>
-                        <strong>Important for macOS:</strong> After downloading, you'll see a security warning. 
-                        To run the app:
+                      <Alert severity="warning" sx={{ mb: 2 }}>
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          <strong>macOS Security Warning:</strong> You'll see a warning saying "ZapGazeAgent" cannot be verified. This is normal for unsigned apps.
+                        </Typography>
+                      </Alert>
+                      <Typography variant="body2" sx={{ mb: 1, fontWeight: "bold" }}>
+                        Method 1 (Recommended): Right-click to open
+                      </Typography>
+                      <Box component="ol" sx={{ marginTop: 1, paddingLeft: 3, mb: 2 }}>
+                        <li>
+                          <Typography variant="body2">Right-click (or Control+click) on the downloaded "ZapGazeAgent" file</Typography>
+                        </li>
+                        <li>
+                          <Typography variant="body2">Select <strong>"Open"</strong> from the context menu</Typography>
+                        </li>
+                        <li>
+                          <Typography variant="body2">In the security dialog that appears, click <strong>"Open"</strong> (not "Move to Trash")</Typography>
+                        </li>
+                      </Box>
+                      <Typography variant="body2" sx={{ mb: 1, fontWeight: "bold" }}>
+                        Method 2 (If file opens in TextEdit): Use Terminal
                       </Typography>
                       <Box component="ol" sx={{ marginTop: 1, paddingLeft: 3, mb: 1 }}>
                         <li>
-                          <Typography variant="body2">Right-click (or Control+click) on the downloaded file</Typography>
+                          <Typography variant="body2">Open Terminal (Applications → Utilities → Terminal)</Typography>
                         </li>
                         <li>
-                          <Typography variant="body2">Select "Open" from the context menu</Typography>
+                          <Typography variant="body2">Navigate to your Downloads folder:</Typography>
+                          <Box
+                            component="pre"
+                            sx={{
+                              bgcolor: "grey.100",
+                              p: 1,
+                              borderRadius: 1,
+                              fontSize: "0.875rem",
+                              mt: 0.5,
+                              mb: 0.5,
+                            }}
+                          >
+                            cd ~/Downloads
+                          </Box>
                         </li>
                         <li>
-                          <Typography variant="body2">In the security dialog, click "Open" again</Typography>
+                          <Typography variant="body2">Make the file executable and run it:</Typography>
+                          <Box
+                            component="pre"
+                            sx={{
+                              bgcolor: "grey.100",
+                              p: 1,
+                              borderRadius: 1,
+                              fontSize: "0.875rem",
+                              mt: 0.5,
+                              mb: 0.5,
+                            }}
+                          >
+                            chmod +x ZapGazeAgent{'\n'}./ZapGazeAgent
+                          </Box>
                         </li>
                       </Box>
-                      <Typography variant="body2" sx={{ fontSize: "0.875rem", color: "text.secondary" }}>
-                        This is normal for unsigned apps and only needs to be done once.
-                      </Typography>
+                      <Alert severity="info" sx={{ mt: 2 }}>
+                        <Typography variant="body2" sx={{ fontSize: "0.875rem" }}>
+                          <strong>Note:</strong> After using Method 1 the first time, you can double-click the file normally. 
+                          If the file opens in TextEdit, use Method 2 instead.
+                        </Typography>
+                      </Alert>
                     </Box>
                   ) : (
                     <Typography variant="body2">

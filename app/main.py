@@ -10,6 +10,7 @@ from app.api import (
     features,
     calibration,
     users,
+    agent,
 )
 from app.db import models
 from app.db.database import engine
@@ -46,6 +47,9 @@ app.include_router(acquisition.router,
 # Results & reporting
 app.include_router(results.router, prefix="/results", tags=["results"])
 app.include_router(features.router, prefix="/features", tags=["features"])
+
+# Agent registration and status
+app.include_router(agent.router, prefix="/agent", tags=["agent"])
 
 
 @app.get("/")
