@@ -3,3 +3,9 @@ venv_mp/
 venv/
 .DS_Store
 zapgaze.db
+
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/
+*.pyc
