@@ -10,7 +10,7 @@ from app.api import (
     calibration,
     users,
 )
-from app.db import models, database
+from app.db import models
 from app.db.database import engine
 
 app = FastAPI(title="ZapGaze Backend")

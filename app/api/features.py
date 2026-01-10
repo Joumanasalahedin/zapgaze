@@ -3,7 +3,6 @@ from sqlalchemy.orm import Session
 import json
 import statistics
 import numpy as np
-from datetime import datetime
 
 from app.db import models, database
 
