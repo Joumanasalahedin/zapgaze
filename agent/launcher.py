@@ -36,8 +36,8 @@ def start_agent():
     env = os.environ.copy()
     env["PYTHONPATH"] = str(project_root)
 
-    # Get backend URL from environment or use default
-    backend_url = os.getenv("BACKEND_URL", "http://localhost:8000")
+    # Get backend URL from environment or use default (Azure VM)
+    backend_url = os.getenv("BACKEND_URL", "http://20.74.82.26:8000")
     env["BACKEND_URL"] = backend_url
 
     print("=" * 50)

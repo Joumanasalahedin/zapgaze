@@ -15,8 +15,8 @@ const CONFIG = {
   GO_TRIAL_PERCENTAGE: 0.8,
   ESCAPE_CONFIRMATION_TIME: 5000,
   CALIBRATION_POINT_DURATION: 1000,
-  API_BASE_URL: "http://localhost:8000",
-  AGENT_BASE_URL: "http://localhost:9000",
+  API_BASE_URL: import.meta.env.VITE_API_URL || "http://20.74.82.26:8000",
+  AGENT_BASE_URL: import.meta.env.VITE_AGENT_URL || "http://localhost:9000",
 } as const;
 
 type TestPhase =

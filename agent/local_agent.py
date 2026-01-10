@@ -30,7 +30,8 @@ app.state.cal_adapter = None
 
 class StartRequest(BaseModel):
     session_uid: str
-    api_url: str = "http://localhost:8000/acquisition/batch"
+    api_url: str = os.getenv(
+        "BACKEND_URL", "http://20.74.82.26:8000") + "/acquisition/batch"
     fps: float = 20.0
 
 
@@ -63,9 +64,11 @@ def start_acquisition(req: StartRequest):
 
     # Check if already running (either subprocess or thread)
     if task_thread and task_thread.is_alive():
-        raise HTTPException(status_code=400, detail="Acquisition already running.")
+        raise HTTPException(
+            status_code=400, detail="Acquisition already running.")
     if task_proc and task_proc.poll() is None:
-        raise HTTPException(status_code=400, detail="Acquisition already running.")
+        raise HTTPException(
+            status_code=400, detail="Acquisition already running.")
 
     # Check if we're running as a standalone executable (PyInstaller)
     if getattr(sys, "frozen", False) or not os.path.exists(
@@ -135,7 +138,7 @@ def root():
     return {
         "status": "agent_server_running",
         "agent_url": "http://localhost:9000",
-        "backend_url": os.getenv("BACKEND_URL", "http://localhost:8000"),
+        "backend_url": os.getenv("BACKEND_URL", "http://20.74.82.26:8000"),
     }
 
 
@@ -195,9 +198,10 @@ def calibrate_point(req: CalPointRequest):
         "measured_x": mean_x,
         "measured_y": mean_y,
     }
+    backend_url = os.getenv("BACKEND_URL", "http://20.74.82.26:8000")
     try:
         requests.post(
-            f"http://localhost:8000/session/{req.session_uid}/calibration/point",
+            f"{backend_url}/session/{req.session_uid}/calibration/point",
             json=result,
             timeout=1,
         )
