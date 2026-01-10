@@ -1,5 +1,4 @@
 import subprocess
-import signal
 import threading
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -47,54 +46,66 @@ def run_acquisition_client(session_uid, api_url, fps):
     """Run acquisition client in a thread"""
     try:
         from agent.acquisition_client import run_acquisition
+
         run_acquisition(session_uid, api_url, fps)
     except Exception as e:
         import logging
+
         logging.error(f"Acquisition client error: {e}")
         import traceback
+
         traceback.print_exc()
+
 
 @app.post("/start")
 def start_acquisition(req: StartRequest):
     global task_proc, task_thread
-    
+
     # Check if already running (either subprocess or thread)
     if task_thread and task_thread.is_alive():
-        raise HTTPException(
-            status_code=400, detail="Acquisition already running.")
+        raise HTTPException(status_code=400, detail="Acquisition already running.")
     if task_proc and task_proc.poll() is None:
-        raise HTTPException(
-            status_code=400, detail="Acquisition already running.")
+        raise HTTPException(status_code=400, detail="Acquisition already running.")
 
     # Check if we're running as a standalone executable (PyInstaller)
-    if getattr(sys, 'frozen', False) or not os.path.exists(os.path.join(os.getcwd(), "agent", "acquisition_client.py")):
+    if getattr(sys, "frozen", False) or not os.path.exists(
+        os.path.join(os.getcwd(), "agent", "acquisition_client.py")
+    ):
         # Running as executable - use thread
         task_thread = threading.Thread(
             target=run_acquisition_client,
             args=(req.session_uid, req.api_url, req.fps),
-            daemon=True
+            daemon=True,
         )
         task_thread.start()
         return {"status": "acquisition_started", "mode": "thread"}
     else:
         # Running as script - use subprocess (original method)
         cmd = [
-            "python", os.path.join(os.getcwd(), "agent", "acquisition_client.py"),
-            "--session-uid", req.session_uid,
-            "--api-url", req.api_url,
-            "--fps", str(req.fps)
+            "python",
+            os.path.join(os.getcwd(), "agent", "acquisition_client.py"),
+            "--session-uid",
+            req.session_uid,
+            "--api-url",
+            req.api_url,
+            "--fps",
+            str(req.fps),
         ]
         env = os.environ.copy()
         current_dir = os.getcwd()
-        env['PYTHONPATH'] = current_dir + ':' + env.get('PYTHONPATH', '')
+        env["PYTHONPATH"] = current_dir + ":" + env.get("PYTHONPATH", "")
         task_proc = subprocess.Popen(cmd, env=env, cwd=current_dir)
-        return {"status": "acquisition_started", "pid": task_proc.pid, "mode": "subprocess"}
+        return {
+            "status": "acquisition_started",
+            "pid": task_proc.pid,
+            "mode": "subprocess",
+        }
 
 
 @app.post("/stop")
 def stop_acquisition():
     global task_proc, task_thread
-    
+
     # Stop thread mode
     if task_thread and task_thread.is_alive():
         # Thread will stop when acquisition_client exits (KeyboardInterrupt handling)
@@ -102,7 +113,7 @@ def stop_acquisition():
         # For now, we'll just mark it as stopped
         task_thread = None
         return {"status": "acquisition_stopped", "mode": "thread"}
-    
+
     # Stop subprocess mode
     if task_proc and task_proc.poll() is None:
         task_proc.terminate()
@@ -114,9 +125,8 @@ def stop_acquisition():
         finally:
             task_proc = None
         return {"status": "acquisition_stopped", "mode": "subprocess"}
-    
-    raise HTTPException(
-        status_code=400, detail="No acquisition in progress.")
+
+    raise HTTPException(status_code=400, detail="No acquisition in progress.")
 
 
 @app.get("/")
@@ -125,8 +135,9 @@ def root():
     return {
         "status": "agent_server_running",
         "agent_url": "http://localhost:9000",
-        "backend_url": os.getenv("BACKEND_URL", "http://localhost:8000")
+        "backend_url": os.getenv("BACKEND_URL", "http://localhost:8000"),
     }
+
 
 @app.get("/status")
 def status():
@@ -188,7 +199,7 @@ def calibrate_point(req: CalPointRequest):
         requests.post(
             f"http://localhost:8000/session/{req.session_uid}/calibration/point",
             json=result,
-            timeout=1
+            timeout=1,
         )
     except requests.RequestException:
         pass

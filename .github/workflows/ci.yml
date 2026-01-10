@@ -79,7 +79,7 @@ jobs:
       
       - name: Run tests
         run: |
-          pytest tests/ -v --tb=short || echo "No tests found or test execution failed"
+          pytest app/tests/ -v --tb=short || echo "No tests found or test execution failed"
         continue-on-error: true
 
   agent:
@@ -117,5 +117,5 @@ jobs:
       
       - name: Run tests
         run: |
-          pytest agent/ -v --tb=short || echo "No tests found or test execution failed"
+          PYTHONPATH=. pytest agent/tests/ -v --tb=short || echo "No tests found or test execution failed"
         continue-on-error: true

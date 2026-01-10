@@ -21,20 +21,23 @@ def parse_args():
         description="Acquisition Client: capture eye-tracking data and send to backend in batches"
     )
     parser.add_argument(
-        "--session-uid", type=str, required=True,
-        help="Session UID returned by /intake endpoint"
+        "--session-uid",
+        type=str,
+        required=True,
+        help="Session UID returned by /intake endpoint",
     )
     parser.add_argument(
-        "--api-url", type=str,
+        "--api-url",
+        type=str,
         default="http://localhost:8000/acquisition/data",
-        help="Single-record backend endpoint"
+        help="Single-record backend endpoint",
     )
     parser.add_argument(
-        "--fps", type=float, default=20.0,
-        help="Capture frames per second"
+        "--fps", type=float, default=20.0, help="Capture frames per second"
     )
     parser.add_argument(
-        "--batch-size", type=int,
+        "--batch-size",
+        type=int,
         help="Number of frames to batch before sending (default = fps)",
     )
     return parser.parse_args()
@@ -53,11 +56,10 @@ def run_acquisition(session_uid, api_url, fps, batch_size=None):
     batch_size = batch_size or int(fps)
 
     # Derive batch endpoint from api-url
-    base = api_url.rstrip('/')
-    batch_url = base.rsplit('/', 1)[0] + '/batch'
+    base = api_url.rstrip("/")
+    batch_url = base.rsplit("/", 1)[0] + "/batch"
 
-    logging.info(
-        f"Starting acquisition client: {fps} FPS, batch size {batch_size}")
+    logging.info(f"Starting acquisition client: {fps} FPS, batch size {batch_size}")
 
     buffer = []
     try:
@@ -70,18 +72,25 @@ def run_acquisition(session_uid, api_url, fps, batch_size=None):
             record = {
                 "session_uid": session_uid,
                 "timestamp": time.time(),
-                "left_eye": {"x": le[0][0], "y": le[0][1]} if len(le) > 0 else {"x": None, "y": None},
-                "right_eye": {"x": le[1][0], "y": le[1][1]} if len(le) > 1 else {"x": None, "y": None},
+                "left_eye": (
+                    {"x": le[0][0], "y": le[0][1]}
+                    if len(le) > 0
+                    else {"x": None, "y": None}
+                ),
+                "right_eye": (
+                    {"x": le[1][0], "y": le[1][1]}
+                    if len(le) > 1
+                    else {"x": None, "y": None}
+                ),
                 "ear": result.get("ear"),
                 "blink": result.get("blink"),
-                "pupil_size": result.get("pupil_size")
+                "pupil_size": result.get("pupil_size"),
             }
             buffer.append(record)
 
             # Flush batch when full
             if len(buffer) >= batch_size:
-                logging.info(
-                    f"Sending batch of {len(buffer)} records to backend")
+                logging.info(f"Sending batch of {len(buffer)} records to backend")
                 try:
                     resp = requests.post(batch_url, json=buffer, timeout=5)
                     resp.raise_for_status()
@@ -104,10 +113,12 @@ def run_acquisition(session_uid, api_url, fps, batch_size=None):
     except Exception as e:
         logging.error(f"Acquisition error: {e}")
         import traceback
+
         traceback.print_exc()
     finally:
         camera.release_camera()
         logging.info("Camera released, exiting.")
+
 
 def main():
     args = parse_args()
