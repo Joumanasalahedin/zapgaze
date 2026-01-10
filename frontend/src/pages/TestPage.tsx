@@ -120,15 +120,28 @@ const TestPage: FC = () => {
     try {
       setIsCalibrating(true);
       setCalibrationError(null);
-      await apiCall(`${CONFIG.AGENT_BASE_URL}/calibrate/start`, {
+      await apiCall(`${CONFIG.API_BASE_URL}/agent/calibrate/start`, {
         method: "POST",
       });
       console.log("Calibration started successfully");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to start calibration:", error);
-      setCalibrationError(
-        "Failed to start calibration. Please check if the backend and local agent are running."
-      );
+      const errorMessage = error?.message || "";
+      if (
+        errorMessage.includes("CORS") ||
+        errorMessage.includes("more-private address space") ||
+        errorMessage.includes("loopback")
+      ) {
+        setCalibrationError(
+          "Browser security restriction: You need to access the app via localhost with SSH port forwarding. " +
+          "Run: ssh -L 5173:localhost:5173 -L 9000:localhost:9000 azureuser@20.74.82.26 " +
+          "then open http://localhost:5173"
+        );
+      } else {
+        setCalibrationError(
+          "Failed to start calibration. Please check if the backend and local agent are running."
+        );
+      }
     } finally {
       setIsCalibrating(false);
     }
@@ -136,7 +149,7 @@ const TestPage: FC = () => {
 
   const recordCalibrationPoint = async (point: CalibrationPoint) => {
     try {
-      const response = await apiCall(`${CONFIG.AGENT_BASE_URL}/calibrate/point`, {
+      const response = await apiCall(`${CONFIG.API_BASE_URL}/agent/calibrate/point`, {
         method: "POST",
         body: JSON.stringify({
           session_uid: sessionUid,
@@ -157,7 +170,7 @@ const TestPage: FC = () => {
 
   const finishCalibration = async () => {
     try {
-      const response = await apiCall(`${CONFIG.AGENT_BASE_URL}/calibrate/finish`, {
+      const response = await apiCall(`${CONFIG.API_BASE_URL}/agent/calibrate/finish`, {
         method: "POST",
       });
 

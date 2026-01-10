@@ -12,39 +12,152 @@ import time
 import sys
 import uuid
 
-app = FastAPI(title="Local Acquisition Agent", lifespan=lifespan)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["GET", "POST"],
-    allow_headers=["*"],
-)
-
+# Global variables
 task_proc = None
 task_thread = None
 heartbeat_thread = None
 agent_id = str(uuid.uuid4())  # Unique agent identifier
 
-app.state.cal_data = []
-app.state.cal_camera = None
-app.state.cal_adapter = None
-
 
 def send_heartbeat():
-    """Send periodic heartbeat to backend"""
+    """Send periodic heartbeat to backend and execute any pending commands"""
     backend_url = os.getenv("BACKEND_URL", "http://20.74.82.26:8000")
     while True:
         try:
-            requests.post(
+            response = requests.post(
                 f"{backend_url}/agent/heartbeat",
                 json={"agent_id": agent_id},
-                timeout=2,
+                timeout=5,
             )
+            if response.status_code == 200:
+                data = response.json()
+                # Check for pending commands
+                commands = data.get("commands", [])
+                for command in commands:
+                    execute_command(command, backend_url)
         except requests.RequestException:
             pass  # Silently fail - backend might be down
-        time.sleep(15)  # Send heartbeat every 15 seconds
+        time.sleep(2)  # Send heartbeat every 2 seconds for faster command processing
+
+
+def execute_command(command: dict, backend_url: str):
+    """Execute a command from the backend"""
+    command_id = command.get("command_id")
+    command_type = command.get("type")
+    params = command.get("params", {})
+    
+    try:
+        if command_type == "calibrate_start":
+            from app.acquisition.camera_manager import CameraManager
+            from app.acquisition.mediapipe_adapter import MediaPipeAdapter
+            
+            app.state.cal_data = []
+            cam = CameraManager()
+            adapter = MediaPipeAdapter()
+            cam.start_camera()
+            adapter.initialize()
+            app.state.cal_camera = cam
+            app.state.cal_adapter = adapter
+            
+            result = {"status": "calibration_started"}
+            
+        elif command_type == "calibrate_point":
+            cam = app.state.cal_camera
+            adapter = app.state.cal_adapter
+            if cam is None or adapter is None:
+                raise Exception("Calibration not started")
+            
+            pts = []
+            for _ in range(params.get("samples", 30)):
+                frame = cam.get_frame()
+                res = adapter.analyze_frame(frame)
+                centers = res.get("eye_centers", [])
+                if centers:
+                    xs = [c[0] for c in centers]
+                    ys = [c[1] for c in centers]
+                    pts.append((sum(xs) / len(xs), sum(ys) / len(ys)))
+                time.sleep(params.get("duration", 1.0) / params.get("samples", 30))
+            
+            if not pts:
+                raise Exception("No eye data captured")
+            
+            mean_x = sum([p[0] for p in pts]) / len(pts)
+            mean_y = sum([p[1] for p in pts]) / len(pts)
+            app.state.cal_data.append((params["x"], params["y"], mean_x, mean_y))
+            
+            result = {
+                "screen_x": params["x"],
+                "screen_y": params["y"],
+                "measured_x": mean_x,
+                "measured_y": mean_y,
+            }
+            
+            # Also send to backend
+            try:
+                requests.post(
+                    f"{backend_url}/session/{params.get('session_uid')}/calibration/point",
+                    json=result,
+                    timeout=1,
+                )
+            except:
+                pass
+                
+        elif command_type == "calibrate_finish":
+            data = app.state.cal_data
+            cam = app.state.cal_camera
+            if cam:
+                cam.release_camera()
+            if not data or len(data) < 3:
+                raise Exception("At least 3 calibration points required")
+            
+            raw = np.array([[d[2], d[3]] for d in data])
+            scr = np.array([[d[0], d[1]] for d in data])
+            ones = np.ones((raw.shape[0], 1))
+            X = np.hstack([raw, ones])
+            params_x, _, _, _ = np.linalg.lstsq(X, scr[:, 0], rcond=None)
+            params_y, _, _, _ = np.linalg.lstsq(X, scr[:, 1], rcond=None)
+            A = [[params_x[0], params_x[1]], [params_y[0], params_y[1]]]
+            b = [params_x[2], params_y[2]]
+            transform = {"A": A, "b": b}
+            
+            with open(os.path.join(os.path.dirname(__file__), "calibration.json"), "w") as f:
+                json.dump(transform, f)
+            
+            result = transform
+        else:
+            raise Exception(f"Unknown command type: {command_type}")
+        
+        # Report success
+        requests.post(
+            f"{backend_url}/agent/heartbeat",
+            json={
+                "agent_id": agent_id,
+                "command_result": {
+                    "command_id": command_id,
+                    "result": result,
+                    "success": True,
+                }
+            },
+            timeout=2,
+        )
+    except Exception as e:
+        # Report error
+        try:
+            requests.post(
+                f"{backend_url}/agent/heartbeat",
+                json={
+                    "agent_id": agent_id,
+                    "command_result": {
+                        "command_id": command_id,
+                        "result": None,
+                        "success": False,
+                        "error": str(e),
+                    }
+                },
+                timeout=2,
+            )
+        except:
+            pass
 
 
 @asynccontextmanager
@@ -79,6 +192,22 @@ async def lifespan(app: FastAPI):
         )
     except requests.RequestException:
         pass
+
+
+# Create FastAPI app with lifespan
+app = FastAPI(title="Local Acquisition Agent", lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
+
+app.state.cal_data = []
+app.state.cal_camera = None
+app.state.cal_adapter = None
 
 
 class StartRequest(BaseModel):

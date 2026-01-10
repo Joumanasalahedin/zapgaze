@@ -184,13 +184,19 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
                 mb: 1,
               }}
             >
-              ssh -L 5173:localhost:5173 azureuser@20.74.82.26
+              ssh -L 5173:localhost:5173 -L 9000:localhost:9000 azureuser@20.74.82.26
             </Box>
           </li>
           <li>
             <Typography variant="body2" sx={{ mb: 1 }}>
               Then open the app in a new tab at:{" "}
               <strong>http://localhost:5173</strong>
+            </Typography>
+          </li>
+          <li>
+            <Typography variant="body2" sx={{ mb: 1 }}>
+              <strong>Important:</strong> The command above forwards both the frontend (port 5173) 
+              and the agent (port 9000) so the app can communicate with your local agent.
             </Typography>
           </li>
           <li>
