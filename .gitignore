@@ -9,3 +9,5 @@ zapgaze.db
 .coverage
 htmlcov/
 *.pyc
+
+zapgaze-vm_key.pem
