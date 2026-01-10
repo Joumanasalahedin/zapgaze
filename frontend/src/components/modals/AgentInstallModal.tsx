@@ -112,12 +112,7 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
 
   const handleDownload = () => {
     const url = getDownloadUrl();
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = url.split("/").pop() || "ZapGazeAgent";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    window.open(url, "_blank");
     setActiveStep(1);
   };
 
@@ -158,13 +153,7 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
                     startIcon={<DownloadIcon />}
                     onClick={() => {
                       const baseUrl = "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.0";
-                      const url = `${baseUrl}/ZapGazeAgent.exe`;
-                      const link = document.createElement("a");
-                      link.href = url;
-                      link.download = "ZapGazeAgent.exe";
-                      document.body.appendChild(link);
-                      link.click();
-                      document.body.removeChild(link);
+                      window.open(`${baseUrl}/ZapGazeAgent.exe`, "_blank");
                       setActiveStep(1);
                     }}
                   >
@@ -175,13 +164,7 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
                     startIcon={<DownloadIcon />}
                     onClick={() => {
                       const baseUrl = "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.0";
-                      const url = `${baseUrl}/ZapGazeAgent`;
-                      const link = document.createElement("a");
-                      link.href = url;
-                      link.download = "ZapGazeAgent";
-                      document.body.appendChild(link);
-                      link.click();
-                      document.body.removeChild(link);
+                      window.open(`${baseUrl}/ZapGazeAgent`, "_blank");
                       setActiveStep(1);
                     }}
                   >
@@ -192,13 +175,7 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
                     startIcon={<DownloadIcon />}
                     onClick={() => {
                       const baseUrl = "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.0";
-                      const url = `${baseUrl}/ZapGazeAgent-linux`;
-                      const link = document.createElement("a");
-                      link.href = url;
-                      link.download = "ZapGazeAgent-linux";
-                      document.body.appendChild(link);
-                      link.click();
-                      document.body.removeChild(link);
+                      window.open(`${baseUrl}/ZapGazeAgent-linux`, "_blank");
                       setActiveStep(1);
                     }}
                   >
@@ -226,13 +203,34 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
                   </Typography>
                 </li>
                 <li>
-                  <Typography variant="body2">
-                    {platform === "windows"
-                      ? "Double-click the .exe file to run it"
-                      : platform === "mac"
-                        ? 'Double-click the file. If you see a security warning, right-click and select "Open"'
-                        : "Make it executable: chmod +x ZapGazeAgent, then run: ./ZapGazeAgent"}
-                  </Typography>
+                  {platform === "windows" ? (
+                    <Typography variant="body2">Double-click the .exe file to run it</Typography>
+                  ) : platform === "mac" ? (
+                    <Box>
+                      <Typography variant="body2" sx={{ mb: 1 }}>
+                        <strong>Important for macOS:</strong> After downloading, you'll see a security warning. 
+                        To run the app:
+                      </Typography>
+                      <Box component="ol" sx={{ marginTop: 1, paddingLeft: 3, mb: 1 }}>
+                        <li>
+                          <Typography variant="body2">Right-click (or Control+click) on the downloaded file</Typography>
+                        </li>
+                        <li>
+                          <Typography variant="body2">Select "Open" from the context menu</Typography>
+                        </li>
+                        <li>
+                          <Typography variant="body2">In the security dialog, click "Open" again</Typography>
+                        </li>
+                      </Box>
+                      <Typography variant="body2" sx={{ fontSize: "0.875rem", color: "text.secondary" }}>
+                        This is normal for unsigned apps and only needs to be done once.
+                      </Typography>
+                    </Box>
+                  ) : (
+                    <Typography variant="body2">
+                      Make it executable: chmod +x ZapGazeAgent, then run: ./ZapGazeAgent
+                    </Typography>
+                  )}
                 </li>
                 <li>
                   <Typography variant="body2">
