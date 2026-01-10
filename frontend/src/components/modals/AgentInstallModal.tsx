@@ -89,11 +89,11 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
       case "windows":
         return `${baseUrl}/ZapGazeAgent.exe`;
       case "mac":
-        return `${baseUrl}/ZapGazeAgent-mac`;
+        return `${baseUrl}/ZapGazeAgent`;
       case "linux":
         return `${baseUrl}/ZapGazeAgent-linux`;
       default:
-        return baseUrl;
+        return `${baseUrl}/ZapGazeAgent`;
     }
   };
 
@@ -112,7 +112,12 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
 
   const handleDownload = () => {
     const url = getDownloadUrl();
-    window.open(url, "_blank");
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = url.split("/").pop() || "ZapGazeAgent";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
     setActiveStep(1);
   };
 
@@ -153,7 +158,13 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
                     startIcon={<DownloadIcon />}
                     onClick={() => {
                       const baseUrl = "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.0";
-                      window.open(`${baseUrl}/ZapGazeAgent.exe`, "_blank");
+                      const url = `${baseUrl}/ZapGazeAgent.exe`;
+                      const link = document.createElement("a");
+                      link.href = url;
+                      link.download = "ZapGazeAgent.exe";
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
                       setActiveStep(1);
                     }}
                   >
@@ -164,7 +175,13 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
                     startIcon={<DownloadIcon />}
                     onClick={() => {
                       const baseUrl = "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.0";
-                      window.open(`${baseUrl}/ZapGazeAgent`, "_blank");
+                      const url = `${baseUrl}/ZapGazeAgent`;
+                      const link = document.createElement("a");
+                      link.href = url;
+                      link.download = "ZapGazeAgent";
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
                       setActiveStep(1);
                     }}
                   >
@@ -175,7 +192,13 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
                     startIcon={<DownloadIcon />}
                     onClick={() => {
                       const baseUrl = "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.0";
-                      window.open(`${baseUrl}/ZapGazeAgent-linux`, "_blank");
+                      const url = `${baseUrl}/ZapGazeAgent-linux`;
+                      const link = document.createElement("a");
+                      link.href = url;
+                      link.download = "ZapGazeAgent-linux";
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
                       setActiveStep(1);
                     }}
                   >

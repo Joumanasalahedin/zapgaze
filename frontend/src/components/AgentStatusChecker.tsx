@@ -100,9 +100,14 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
       return;
     }
 
-    // Trigger download
+    // Trigger download using anchor element (forces download instead of opening)
     if (downloadUrl) {
-      window.open(downloadUrl, "_blank");
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = downloadUrl.split("/").pop() || "ZapGazeAgent";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
   };
 
@@ -187,7 +192,14 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
                   variant="outlined"
                   onClick={() => {
                     const url = getDownloadUrl("windows");
-                    if (url) window.open(url, "_blank");
+                    if (url) {
+                      const link = document.createElement("a");
+                      link.href = url;
+                      link.download = url.split("/").pop() || "ZapGazeAgent.exe";
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                    }
                   }}
                 >
                   Windows (.exe)
@@ -196,7 +208,14 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
                   variant="outlined"
                   onClick={() => {
                     const url = getDownloadUrl("mac");
-                    if (url) window.open(url, "_blank");
+                    if (url) {
+                      const link = document.createElement("a");
+                      link.href = url;
+                      link.download = url.split("/").pop() || "ZapGazeAgent";
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                    }
                   }}
                 >
                   macOS
@@ -205,7 +224,14 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
                   variant="outlined"
                   onClick={() => {
                     const url = getDownloadUrl("linux");
-                    if (url) window.open(url, "_blank");
+                    if (url) {
+                      const link = document.createElement("a");
+                      link.href = url;
+                      link.download = url.split("/").pop() || "ZapGazeAgent-linux";
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                    }
                   }}
                 >
                   Linux
