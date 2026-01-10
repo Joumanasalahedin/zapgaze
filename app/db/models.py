@@ -1,4 +1,14 @@
-from sqlalchemy import Column, Integer, String, Date, DateTime, ForeignKey, Float, Boolean, func
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Date,
+    DateTime,
+    ForeignKey,
+    Float,
+    Boolean,
+    func,
+)
 from sqlalchemy.orm import relationship
 from .database import Base
 
@@ -44,8 +54,7 @@ class Session(Base):
     results = relationship("Results", back_populates="session")
     events = relationship("TaskEvent", back_populates="session")
     calibrations = relationship("CalibrationPoint", back_populates="session")
-    features = relationship(
-        "SessionFeatures", back_populates="session", uselist=False)
+    features = relationship("SessionFeatures", back_populates="session", uselist=False)
 
 
 class CalibrationPoint(Base):

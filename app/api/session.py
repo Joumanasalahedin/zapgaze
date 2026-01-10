@@ -28,14 +28,9 @@ class SessionStopRequest(BaseModel):
 @router.post("/start")
 def session_start(req: SessionStartRequest, db: Session = Depends(get_db)):
     if req.session_uid:
-        sess = (
-            db.query(models.Session)
-              .filter_by(session_uid=req.session_uid)
-              .first()
-        )
+        sess = db.query(models.Session).filter_by(session_uid=req.session_uid).first()
         if not sess:
-            raise HTTPException(
-                status_code=404, detail="Session UID not found.")
+            raise HTTPException(status_code=404, detail="Session UID not found.")
         return {"session_uid": sess.session_uid}
 
     # Create new session without user_id (will be set during intake)
@@ -51,12 +46,13 @@ def session_start(req: SessionStartRequest, db: Session = Depends(get_db)):
 def session_stop(req: SessionStopRequest, db: Session = Depends(get_db)):
     sess = (
         db.query(models.Session)
-          .filter_by(session_uid=req.session_uid, status="active")
-          .first()
+        .filter_by(session_uid=req.session_uid, status="active")
+        .first()
     )
     if not sess:
         raise HTTPException(
-            status_code=404, detail="No active session found with this session_uid.")
+            status_code=404, detail="No active session found with this session_uid."
+        )
 
     sess.stopped_at = datetime.utcnow()
     sess.status = "stopped"
@@ -64,5 +60,5 @@ def session_stop(req: SessionStopRequest, db: Session = Depends(get_db)):
     return {
         "status": "session_stopped",
         "session_uid": sess.session_uid,
-        "stopped_at": sess.stopped_at.isoformat()
+        "stopped_at": sess.stopped_at.isoformat(),
     }

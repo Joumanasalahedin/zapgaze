@@ -18,7 +18,7 @@ def get_db():
 class TaskEventRequest(BaseModel):
     session_uid: str
     timestamp: float
-    event_type: str             # e.g. "stimulus_onset", "response", "error"
+    event_type: str  # e.g. "stimulus_onset", "response", "error"
     stimulus: Optional[str] = None
     response: Optional[bool] = None
 
@@ -26,11 +26,7 @@ class TaskEventRequest(BaseModel):
 @router.post("/event")
 def log_event(req: TaskEventRequest, db: Session = Depends(get_db)):
     # Verify session exists using only session_uid
-    sess = (
-        db.query(models.Session)
-          .filter_by(session_uid=req.session_uid)
-          .first()
-    )
+    sess = db.query(models.Session).filter_by(session_uid=req.session_uid).first()
     if not sess:
         raise HTTPException(status_code=404, detail="Session not found.")
 
@@ -40,7 +36,7 @@ def log_event(req: TaskEventRequest, db: Session = Depends(get_db)):
         timestamp=req.timestamp,
         event_type=req.event_type,
         stimulus=req.stimulus,
-        response=req.response
+        response=req.response,
     )
     db.add(evt)
     db.commit()

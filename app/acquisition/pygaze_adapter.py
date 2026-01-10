@@ -11,7 +11,7 @@ class PyGazeAdapter(EyeTrackerAdapter):
             max_num_faces=1,
             refine_landmarks=True,
             min_detection_confidence=0.5,
-            min_tracking_confidence=0.5
+            min_tracking_confidence=0.5,
         )
 
         self.EAR_THRESHOLD = 0.15
@@ -20,10 +20,42 @@ class PyGazeAdapter(EyeTrackerAdapter):
         self.frames_below_threshold = 0
         self.blink_count = 0
 
-        self.LEFT_EYE_INDICES = [362, 382, 381, 380, 374, 373,
-                                 390, 249, 263, 466, 388, 387, 386, 385, 384, 398]
-        self.RIGHT_EYE_INDICES = [33, 7, 163, 144, 145, 153,
-                                  154, 155, 133, 173, 157, 158, 159, 160, 161, 246]
+        self.LEFT_EYE_INDICES = [
+            362,
+            382,
+            381,
+            380,
+            374,
+            373,
+            390,
+            249,
+            263,
+            466,
+            388,
+            387,
+            386,
+            385,
+            384,
+            398,
+        ]
+        self.RIGHT_EYE_INDICES = [
+            33,
+            7,
+            163,
+            144,
+            145,
+            153,
+            154,
+            155,
+            133,
+            173,
+            157,
+            158,
+            159,
+            160,
+            161,
+            246,
+        ]
 
     def initialize(self):
         pass
@@ -35,8 +67,7 @@ class PyGazeAdapter(EyeTrackerAdapter):
         """
         Calculate Eye Aspect Ratio (EAR) using MediaPipe landmarks.
         """
-        points = np.array([(landmarks[idx].x, landmarks[idx].y)
-                          for idx in eye_indices])
+        points = np.array([(landmarks[idx].x, landmarks[idx].y) for idx in eye_indices])
 
         v1 = np.linalg.norm(points[1] - points[5])
         v2 = np.linalg.norm(points[2] - points[4])
@@ -68,20 +99,22 @@ class PyGazeAdapter(EyeTrackerAdapter):
             face_landmarks = results.multi_face_landmarks[0]
 
             left_ear = self.calculate_ear(
-                face_landmarks.landmark, self.LEFT_EYE_INDICES)
+                face_landmarks.landmark, self.LEFT_EYE_INDICES
+            )
             right_ear = self.calculate_ear(
-                face_landmarks.landmark, self.RIGHT_EYE_INDICES)
+                face_landmarks.landmark, self.RIGHT_EYE_INDICES
+            )
 
             current_ear = (left_ear + right_ear) / 2.0
 
             h, w = frame.shape[:2]
             left_eye_center = (
                 int(face_landmarks.landmark[self.LEFT_EYE_INDICES[0]].x * w),
-                int(face_landmarks.landmark[self.LEFT_EYE_INDICES[0]].y * h)
+                int(face_landmarks.landmark[self.LEFT_EYE_INDICES[0]].y * h),
             )
             right_eye_center = (
                 int(face_landmarks.landmark[self.RIGHT_EYE_INDICES[0]].x * w),
-                int(face_landmarks.landmark[self.RIGHT_EYE_INDICES[0]].y * h)
+                int(face_landmarks.landmark[self.RIGHT_EYE_INDICES[0]].y * h),
             )
             eye_centers = [left_eye_center, right_eye_center]
 
@@ -109,5 +142,5 @@ class PyGazeAdapter(EyeTrackerAdapter):
             "eye_centers": eye_centers,
             "blink": blink_detected,
             "ear": round(current_ear, 3),
-            "total_blinks": self.blink_count
+            "total_blinks": self.blink_count,
         }

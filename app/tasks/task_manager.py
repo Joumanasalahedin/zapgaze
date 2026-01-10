@@ -31,6 +31,7 @@ class GoNoGoTask:
         print("Press Enter for Go...", end="", flush=True)
         import sys
         import select
+
         rlist, _, _ = select.select([sys.stdin], [], [], timeout)
         if rlist:
             _ = sys.stdin.readline()

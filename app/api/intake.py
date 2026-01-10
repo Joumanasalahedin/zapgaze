@@ -29,26 +29,27 @@ class IntakeData(BaseModel):
     # ASRS-5 has 6 items (0=Never to 4=Very Often)
     answers: List[int] = Field(..., min_items=6, max_items=6)
 
-    @validator('name', 'user_id')
+    @validator("name", "user_id")
     def validate_user_identification(cls, v, values):
         """Ensure either name (new user) or user_id (existing user) is provided, but not both."""
-        if 'name' in values and 'user_id' in values:
-            if values['name'] is not None and values['user_id'] is not None:
+        if "name" in values and "user_id" in values:
+            if values["name"] is not None and values["user_id"] is not None:
                 raise ValueError(
-                    "Cannot provide both name and user_id. Use name for new users, user_id for existing users.")
+                    "Cannot provide both name and user_id. Use name for new users, user_id for existing users."
+                )
         return v
 
-    @validator('name')
+    @validator("name")
     def validate_name_for_new_user(cls, v, values):
         """Ensure name is provided when user_id is not provided."""
-        if 'user_id' in values and values['user_id'] is None and v is None:
+        if "user_id" in values and values["user_id"] is None and v is None:
             raise ValueError("Name is required for new users.")
         return v
 
-    @validator('user_id')
+    @validator("user_id")
     def validate_user_id_for_existing_user(cls, v, values):
         """Ensure user_id is provided when name is not provided."""
-        if 'name' in values and values['name'] is None and v is None:
+        if "name" in values and values["name"] is None and v is None:
             raise ValueError("User ID is required for existing users.")
         return v
 
@@ -76,15 +77,18 @@ def intake(data: IntakeData, db: Session = Depends(get_db)):
     # Handle existing user case
     if data.user_id is not None:
         # Verify existing user exists and birthdate matches
-        user = db.query(models.User).filter(
-            models.User.id == data.user_id,
-            models.User.birthdate == data.birthdate
-        ).first()
+        user = (
+            db.query(models.User)
+            .filter(
+                models.User.id == data.user_id, models.User.birthdate == data.birthdate
+            )
+            .first()
+        )
 
         if not user:
             raise HTTPException(
                 status_code=404,
-                detail="User not found or birthdate does not match. Please check your user ID and birthdate."
+                detail="User not found or birthdate does not match. Please check your user ID and birthdate.",
             )
 
         print(f"Using existing user: {user.name} (ID: {user.id})")
@@ -92,10 +96,7 @@ def intake(data: IntakeData, db: Session = Depends(get_db)):
     # Handle new user case
     elif data.name is not None:
         # Create new User (basic info only)
-        user = models.User(
-            name=data.name,
-            birthdate=data.birthdate
-        )
+        user = models.User(name=data.name, birthdate=data.birthdate)
         db.add(user)
         db.commit()
         db.refresh(user)
@@ -114,7 +115,7 @@ def intake(data: IntakeData, db: Session = Depends(get_db)):
         session_uid=session_uid,
         answers_json=json.dumps(data.answers),
         total_score=total_score,
-        symptom_group=symptom_group
+        symptom_group=symptom_group,
     )
     db.add(intake_record)
     db.commit()
@@ -127,7 +128,7 @@ def intake(data: IntakeData, db: Session = Depends(get_db)):
         answers=json.loads(intake_record.answers_json),
         total_score=intake_record.total_score,
         symptom_group=intake_record.symptom_group,
-        created_at=intake_record.created_at
+        created_at=intake_record.created_at,
     )
 
 
@@ -141,13 +142,17 @@ def get_user_intake(user_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User not found")
 
     # Get the latest intake record for this user
-    intake_record = db.query(models.Intake).filter(
-        models.Intake.user_id == user_id
-    ).order_by(models.Intake.created_at.desc()).first()
+    intake_record = (
+        db.query(models.Intake)
+        .filter(models.Intake.user_id == user_id)
+        .order_by(models.Intake.created_at.desc())
+        .first()
+    )
 
     if not intake_record:
         raise HTTPException(
-            status_code=404, detail="No intake data found for this user")
+            status_code=404, detail="No intake data found for this user"
+        )
 
     return IntakeResponse(
         id=intake_record.id,
@@ -156,7 +161,7 @@ def get_user_intake(user_id: int, db: Session = Depends(get_db)):
         answers=json.loads(intake_record.answers_json),
         total_score=intake_record.total_score,
         symptom_group=intake_record.symptom_group,
-        created_at=intake_record.created_at
+        created_at=intake_record.created_at,
     )
 
 
@@ -165,19 +170,23 @@ def get_session_intake(session_uid: str, db: Session = Depends(get_db)):
     """Get the intake record for a specific session."""
 
     # Check if session exists
-    session = db.query(models.Session).filter(
-        models.Session.session_uid == session_uid).first()
+    session = (
+        db.query(models.Session)
+        .filter(models.Session.session_uid == session_uid)
+        .first()
+    )
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
     # Get the intake record for this session
-    intake_record = db.query(models.Intake).filter(
-        models.Intake.session_uid == session_uid
-    ).first()
+    intake_record = (
+        db.query(models.Intake).filter(models.Intake.session_uid == session_uid).first()
+    )
 
     if not intake_record:
         raise HTTPException(
-            status_code=404, detail="No intake data found for this session")
+            status_code=404, detail="No intake data found for this session"
+        )
 
     return IntakeResponse(
         id=intake_record.id,
@@ -186,7 +195,7 @@ def get_session_intake(session_uid: str, db: Session = Depends(get_db)):
         answers=json.loads(intake_record.answers_json),
         total_score=intake_record.total_score,
         symptom_group=intake_record.symptom_group,
-        created_at=intake_record.created_at
+        created_at=intake_record.created_at,
     )
 
 
@@ -200,13 +209,17 @@ def get_user_intake_history(user_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User not found")
 
     # Get all intake records for this user
-    intake_records = db.query(models.Intake).filter(
-        models.Intake.user_id == user_id
-    ).order_by(models.Intake.created_at.desc()).all()
+    intake_records = (
+        db.query(models.Intake)
+        .filter(models.Intake.user_id == user_id)
+        .order_by(models.Intake.created_at.desc())
+        .all()
+    )
 
     if not intake_records:
         raise HTTPException(
-            status_code=404, detail="No intake data found for this user")
+            status_code=404, detail="No intake data found for this user"
+        )
 
     return [
         IntakeResponse(
@@ -216,7 +229,7 @@ def get_user_intake_history(user_id: int, db: Session = Depends(get_db)):
             answers=json.loads(record.answers_json),
             total_score=record.total_score,
             symptom_group=record.symptom_group,
-            created_at=record.created_at
+            created_at=record.created_at,
         )
         for record in intake_records
     ]

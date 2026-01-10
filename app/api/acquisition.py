@@ -21,18 +21,12 @@ def get_db():
 def receive_acquisition(data: AcquisitionData, db: Session = Depends(get_db)):
     # Verify session exists using only session_uid
     session_entry = (
-        db.query(models.Session)
-          .filter_by(session_uid=data.session_uid)
-          .first()
+        db.query(models.Session).filter_by(session_uid=data.session_uid).first()
     )
     if not session_entry:
-        raise HTTPException(
-            status_code=404, detail="Session not found.")
+        raise HTTPException(status_code=404, detail="Session not found.")
     # Persist single record
-    record = models.Results(
-        session_id=session_entry.id,
-        data=json.dumps(data.dict())
-    )
+    record = models.Results(session_id=session_entry.id, data=json.dumps(data.dict()))
     db.add(record)
     db.commit()
     return {"status": "success"}
@@ -40,26 +34,19 @@ def receive_acquisition(data: AcquisitionData, db: Session = Depends(get_db)):
 
 @router.post("/batch")
 def receive_acquisition_batch(
-    records: List[AcquisitionData],
-    db: Session = Depends(get_db)
+    records: List[AcquisitionData], db: Session = Depends(get_db)
 ):
     entries = []
     for item in records:
         session_entry = (
-            db.query(models.Session)
-              .filter_by(session_uid=item.session_uid)
-              .first()
+            db.query(models.Session).filter_by(session_uid=item.session_uid).first()
         )
         if not session_entry:
             raise HTTPException(
-                status_code=404,
-                detail=f"Session not found for uid {item.session_uid}"
+                status_code=404, detail=f"Session not found for uid {item.session_uid}"
             )
         entries.append(
-            models.Results(
-                session_id=session_entry.id,
-                data=json.dumps(item.dict())
-            )
+            models.Results(session_id=session_entry.id, data=json.dumps(item.dict()))
         )
     # Bulk insert for performance
     db.bulk_save_objects(entries)

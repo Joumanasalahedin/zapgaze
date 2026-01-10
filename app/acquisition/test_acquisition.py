@@ -10,7 +10,7 @@ def run_acquisition_loop():
         ear_threshold_ratio=0.5,
         consecutive_frames=3,
         calibration_frames=50,
-        refractory_frames=15
+        refractory_frames=15,
     )
     camera.start_camera()
     adapter.initialize()
@@ -23,23 +23,63 @@ def run_acquisition_loop():
             if frame is None:
                 print("Failed to get frame from camera")
                 break
-                
+
             result = adapter.analyze_frame(frame)
 
             # Draw eye centers at computed centroid
-            for center in result['eye_centers']:
+            for center in result["eye_centers"]:
                 cv2.circle(frame, center, 5, (0, 255, 0), -1)
 
             # Display EAR, baseline, threshold, and blink count
-            cv2.putText(frame, f"EAR: {result['ear']}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-            if result['baseline_ear'] is not None:
-                cv2.putText(frame, f"Base: {result['baseline_ear']}", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200, 200, 0), 2)
-                cv2.putText(frame, f"Thresh: {result['ear_threshold']}", (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200, 0, 0), 2)
-            cv2.putText(frame, f"Blinks: {result['total_blinks']}", (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-            if result['blink']:
-                cv2.putText(frame, 'BLINK!', (100, 100), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 0, 255), 3)
+            cv2.putText(
+                frame,
+                f"EAR: {result['ear']}",
+                (10, 30),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.7,
+                (255, 255, 255),
+                2,
+            )
+            if result["baseline_ear"] is not None:
+                cv2.putText(
+                    frame,
+                    f"Base: {result['baseline_ear']}",
+                    (10, 60),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.7,
+                    (200, 200, 0),
+                    2,
+                )
+                cv2.putText(
+                    frame,
+                    f"Thresh: {result['ear_threshold']}",
+                    (10, 90),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.7,
+                    (200, 0, 0),
+                    2,
+                )
+            cv2.putText(
+                frame,
+                f"Blinks: {result['total_blinks']}",
+                (10, 120),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.7,
+                (255, 255, 255),
+                2,
+            )
+            if result["blink"]:
+                cv2.putText(
+                    frame,
+                    "BLINK!",
+                    (100, 100),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    1.2,
+                    (0, 0, 255),
+                    3,
+                )
 
-            cv2.imshow('ZapGaze Mediapipe', frame)
+            cv2.imshow("ZapGaze Mediapipe", frame)
 
             print(
                 f"Faces: {result['num_faces']}, Eyes: {len(result['eye_centers'])}, "
@@ -48,7 +88,7 @@ def run_acquisition_loop():
 
             # Improved key detection with longer wait time
             key = cv2.waitKey(30) & 0xFF
-            if key == ord('q') or key == ord('Q'):
+            if key == ord("q") or key == ord("Q"):
                 print("Quit key pressed. Exiting...")
                 break
             elif key == 27:  # ESC key
@@ -56,7 +96,7 @@ def run_acquisition_loop():
                 break
 
             time.sleep(0.03)
-            
+
     except KeyboardInterrupt:
         print("\nKeyboard interrupt detected. Exiting...")
     except Exception as e:
@@ -69,5 +109,6 @@ def run_acquisition_loop():
         for i in range(5):
             cv2.waitKey(1)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     run_acquisition_loop()
