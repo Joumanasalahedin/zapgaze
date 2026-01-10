@@ -68,18 +68,19 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
       return ""; // Will show instructions instead
     }
 
-    // These URLs will need to be configured based on where you host the executables
-    const baseUrl = process.env.VITE_AGENT_DOWNLOAD_URL || "https://your-cdn.com/zapgaze-agent";
+    // GitHub Releases URL - Direct link to your release
+    // Update this URL after you create the GitHub release
+    const baseUrl = "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.0";
 
     switch (platform) {
       case "windows":
         return `${baseUrl}/ZapGazeAgent.exe`;
       case "mac":
-        return `${baseUrl}/ZapGazeAgent-mac`;
+        return `${baseUrl}/ZapGazeAgent`; // macOS executable
       case "linux":
-        return `${baseUrl}/ZapGazeAgent-linux`;
+        return `${baseUrl}/ZapGazeAgent-linux`; // If you build Linux version later
       default:
-        return `${baseUrl}`;
+        return `${baseUrl}/ZapGazeAgent`;
     }
   };
 

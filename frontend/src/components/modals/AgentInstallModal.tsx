@@ -81,7 +81,9 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
   }, [activeStep, agentUrl, onAgentReady]);
 
   const getDownloadUrl = (): string => {
-    const baseUrl = process.env.VITE_AGENT_DOWNLOAD_URL || "https://your-cdn.com/zapgaze-agent";
+    // GitHub Releases URL - Direct link to your release
+    // Update this URL after you create the GitHub release
+    const baseUrl = "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.0";
 
     switch (platform) {
       case "windows":
@@ -150,10 +152,8 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
                     variant="outlined"
                     startIcon={<DownloadIcon />}
                     onClick={() => {
-                      window.open(
-                        `${getDownloadUrl().replace(/\/[^/]+$/, "")}/ZapGazeAgent.exe`,
-                        "_blank"
-                      );
+                      const baseUrl = "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.0";
+                      window.open(`${baseUrl}/ZapGazeAgent.exe`, "_blank");
                       setActiveStep(1);
                     }}
                   >
@@ -163,10 +163,8 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
                     variant="outlined"
                     startIcon={<DownloadIcon />}
                     onClick={() => {
-                      window.open(
-                        `${getDownloadUrl().replace(/\/[^/]+$/, "")}/ZapGazeAgent-mac`,
-                        "_blank"
-                      );
+                      const baseUrl = "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.0";
+                      window.open(`${baseUrl}/ZapGazeAgent`, "_blank");
                       setActiveStep(1);
                     }}
                   >
@@ -176,10 +174,8 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
                     variant="outlined"
                     startIcon={<DownloadIcon />}
                     onClick={() => {
-                      window.open(
-                        `${getDownloadUrl().replace(/\/[^/]+$/, "")}/ZapGazeAgent-linux`,
-                        "_blank"
-                      );
+                      const baseUrl = "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.0";
+                      window.open(`${baseUrl}/ZapGazeAgent-linux`, "_blank");
                       setActiveStep(1);
                     }}
                   >
