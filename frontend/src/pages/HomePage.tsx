@@ -6,7 +6,7 @@ const HomePage: FC = () => {
   const [currentFactIndex, setCurrentFactIndex] = useState(0);
   const [greeting, setGreeting] = useState("");
   const [isManualControl, setIsManualControl] = useState(false);
-  const autoResumeTimeoutRef = useRef<number | null>(null);
+  const autoResumeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const adhdFacts = [
     {
