@@ -1,7 +1,7 @@
 .header {
   background: #fff;
   border-bottom: 1px solid #e5e7eb;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
   position: fixed;
   top: 0;
   width: 100%;
@@ -31,12 +31,14 @@
 }
 
 .link {
-  color: var(--text-color);;
+  color: var(--text-color);
   font-weight: 500;
   text-decoration: none;
   padding: 0.5rem 1rem;
   border-radius: 0.5rem;
-  transition: background 0.2s, color 0.2s;
+  transition:
+    background 0.2s,
+    color 0.2s;
 }
 
 .linkActive {
@@ -45,6 +47,6 @@
 }
 
 .link:hover {
-  background: var(--gray-color);;
+  background: var(--gray-color);
   color: var(--primary-color);
 }
