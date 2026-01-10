@@ -55,6 +55,8 @@ def send_heartbeat():
 
 def execute_command(command: dict, backend_url: str):
     """Execute a command from the backend"""
+    global task_proc, task_thread  # Declare globals at the top of the function
+
     command_id = command.get("command_id")
     command_type = command.get("type")
     params = command.get("params", {})
@@ -142,8 +144,6 @@ def execute_command(command: dict, backend_url: str):
 
         elif command_type == "start_acquisition":
             # Start acquisition using the same logic as the /start endpoint
-            global task_proc, task_thread
-
             # Check if already running
             if task_thread and task_thread.is_alive():
                 raise Exception("Acquisition already running")
@@ -192,8 +192,6 @@ def execute_command(command: dict, backend_url: str):
 
         elif command_type == "stop_acquisition":
             # Stop acquisition using the same logic as the /stop endpoint
-            global task_proc, task_thread
-
             # Stop thread mode
             if task_thread and task_thread.is_alive():
                 task_thread = None
@@ -359,25 +357,25 @@ def start_acquisition(req: StartRequest):
         return {"status": "acquisition_started", "mode": "thread"}
     else:
         # Running as script - use subprocess (original method)
-    cmd = [
-        "python",
-        os.path.join(os.getcwd(), "agent", "acquisition_client.py"),
-        "--session-uid",
-        req.session_uid,
-        "--api-url",
-        req.api_url,
-        "--fps",
-        str(req.fps),
-    ]
-    env = os.environ.copy()
-    current_dir = os.getcwd()
-    env["PYTHONPATH"] = current_dir + ":" + env.get("PYTHONPATH", "")
-    task_proc = subprocess.Popen(cmd, env=env, cwd=current_dir)
-    return {
-        "status": "acquisition_started",
-        "pid": task_proc.pid,
-        "mode": "subprocess",
-    }
+        cmd = [
+            "python",
+            os.path.join(os.getcwd(), "agent", "acquisition_client.py"),
+            "--session-uid",
+            req.session_uid,
+            "--api-url",
+            req.api_url,
+            "--fps",
+            str(req.fps),
+        ]
+        env = os.environ.copy()
+        current_dir = os.getcwd()
+        env["PYTHONPATH"] = current_dir + ":" + env.get("PYTHONPATH", "")
+        task_proc = subprocess.Popen(cmd, env=env, cwd=current_dir)
+        return {
+            "status": "acquisition_started",
+            "pid": task_proc.pid,
+            "mode": "subprocess",
+        }
 
 
 @app.post("/stop")
@@ -394,14 +392,14 @@ def stop_acquisition():
 
     # Stop subprocess mode
     if task_proc and task_proc.poll() is None:
-    task_proc.terminate()
-    try:
-        task_proc.wait(timeout=5)
-    except subprocess.TimeoutExpired:
-        if task_proc:
-        task_proc.kill()
-    finally:
-        task_proc = None
+        task_proc.terminate()
+        try:
+            task_proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            if task_proc:
+                task_proc.kill()
+        finally:
+            task_proc = None
         return {"status": "acquisition_stopped", "mode": "subprocess"}
 
     raise HTTPException(status_code=400, detail="No acquisition in progress.")

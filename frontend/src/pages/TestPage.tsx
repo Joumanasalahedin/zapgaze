@@ -231,9 +231,14 @@ const TestPage: FC = () => {
   };
 
   const stopSession = async () => {
+    if (!sessionUid) {
+      console.error("No session UID available");
+      return;
+    }
     try {
       const response = await apiCall(`${CONFIG.API_BASE_URL}/session/stop`, {
         method: "POST",
+        body: JSON.stringify({ session_uid: sessionUid }),
       });
 
       console.log("Session stopped:", response);
