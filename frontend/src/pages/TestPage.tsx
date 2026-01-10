@@ -2,6 +2,8 @@ import { FC, useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import styles from "./TestPage.module.css";
 import EscapeConfirmationModal from "../components/modals/EscapeConfirmationModal";
+import AgentInstallModal from "../components/modals/AgentInstallModal";
+import AgentStatusChecker from "../components/AgentStatusChecker";
 import { ASRS_QUESTIONS, ASRS_OPTIONS } from "./IntakeQuestionnairePage";
 
 const CONFIG = {
@@ -63,6 +65,10 @@ const TestPage: FC = () => {
   const [acquisitionStarted, setAcquisitionStarted] = useState(false);
   const [isStartingTest, setIsStartingTest] = useState(false);
 
+  // Agent status state
+  const [agentConnected, setAgentConnected] = useState(false);
+  const [showAgentInstallModal, setShowAgentInstallModal] = useState(false);
+
   const navigate = useNavigate();
   const [showIntakeModal, setShowIntakeModal] = useState(false);
   const [intakeData, setIntakeData] = useState<any | null>(null);
@@ -104,6 +110,12 @@ const TestPage: FC = () => {
   };
 
   const startCalibration = async () => {
+    // Check if agent is connected first
+    if (!agentConnected) {
+      setShowAgentInstallModal(true);
+      return;
+    }
+
     try {
       setIsCalibrating(true);
       setCalibrationError(null);
@@ -278,6 +290,22 @@ const TestPage: FC = () => {
       setIntakeData(parsed);
       setSessionUid(parsed.session_uid);
     }
+
+    // Check agent status on page load
+    const checkAgent = async () => {
+      try {
+        const response = await fetch(`${CONFIG.AGENT_BASE_URL}/status`, {
+          signal: AbortSignal.timeout(2000),
+        });
+        if (response.ok) {
+          setAgentConnected(true);
+        }
+      } catch (error) {
+        // Agent not running
+        setAgentConnected(false);
+      }
+    };
+    checkAgent();
   }, []);
 
   const generateTrials = useCallback((count: number, isPractice: boolean = false) => {
@@ -391,6 +419,10 @@ const TestPage: FC = () => {
       }
 
       if (event.key === "Enter" && phase === "instructions") {
+        if (!agentConnected) {
+          setShowAgentInstallModal(true);
+          return;
+        }
         await startCalibration();
         setPhase("calibration");
         setCalibrationStep(0);
@@ -477,6 +509,8 @@ const TestPage: FC = () => {
     showEscapeConfirmation,
     sessionUid,
     isPractice,
+    agentConnected,
+    trials,
   ]);
 
   useEffect(() => {
@@ -693,16 +727,41 @@ const TestPage: FC = () => {
       <div className={styles.container}>
         <div className={styles.modal}>
           <h1>Go/No-Go Test Instructions</h1>
+
+          {/* Agent Status Checker */}
+          <div style={{ marginBottom: "20px" }}>
+            <AgentStatusChecker
+              agentUrl={CONFIG.AGENT_BASE_URL}
+              onAgentReady={() => setAgentConnected(true)}
+              showDownloadButton={true}
+            />
+          </div>
+
           <TestInstructions
             showActionButtons={true}
             onViewResults={() => setShowIntakeModal(true)}
             onRetake={handleRetake}
             onProceed={async () => {
+              if (!agentConnected) {
+                setShowAgentInstallModal(true);
+                return;
+              }
               await startCalibration();
               setPhase("calibration");
             }}
           />
         </div>
+
+        {/* Agent Install Modal */}
+        <AgentInstallModal
+          open={showAgentInstallModal}
+          onClose={() => setShowAgentInstallModal(false)}
+          agentUrl={CONFIG.AGENT_BASE_URL}
+          onAgentReady={() => {
+            setAgentConnected(true);
+            setShowAgentInstallModal(false);
+          }}
+        />
 
         {showIntakeModal && (
           <div className={styles.intakeModalOverlay}>
