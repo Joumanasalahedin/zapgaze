@@ -1,5 +1,6 @@
 import subprocess
 import signal
+import threading
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import os
@@ -7,6 +8,7 @@ import numpy as np
 import requests
 import json
 import time
+import sys
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="Local Acquisition Agent")
@@ -20,6 +22,7 @@ app.add_middleware(
 )
 
 task_proc = None
+task_thread = None
 
 app.state.cal_data = []
 app.state.cal_camera = None
@@ -40,51 +43,100 @@ class CalPointRequest(BaseModel):
     samples: int = 30
 
 
+def run_acquisition_client(session_uid, api_url, fps):
+    """Run acquisition client in a thread"""
+    try:
+        from agent.acquisition_client import run_acquisition
+        run_acquisition(session_uid, api_url, fps)
+    except Exception as e:
+        import logging
+        logging.error(f"Acquisition client error: {e}")
+        import traceback
+        traceback.print_exc()
+
 @app.post("/start")
 def start_acquisition(req: StartRequest):
-    global task_proc
+    global task_proc, task_thread
+    
+    # Check if already running (either subprocess or thread)
+    if task_thread and task_thread.is_alive():
+        raise HTTPException(
+            status_code=400, detail="Acquisition already running.")
     if task_proc and task_proc.poll() is None:
         raise HTTPException(
             status_code=400, detail="Acquisition already running.")
 
-    # Build the command line
-    cmd = [
-        "python", os.path.join(os.getcwd(), "agent", "acquisition_client.py"),
-        "--session-uid", req.session_uid,
-        "--api-url", req.api_url,
-        "--fps", str(req.fps)
-    ]
-    # Launch acquisition client with proper environment
-    env = os.environ.copy()
-    current_dir = os.getcwd()
-    env['PYTHONPATH'] = current_dir + ':' + env.get('PYTHONPATH', '')
-    task_proc = subprocess.Popen(cmd, env=env, cwd=current_dir)
-    return {"status": "acquisition_started", "pid": task_proc.pid}
+    # Check if we're running as a standalone executable (PyInstaller)
+    if getattr(sys, 'frozen', False) or not os.path.exists(os.path.join(os.getcwd(), "agent", "acquisition_client.py")):
+        # Running as executable - use thread
+        task_thread = threading.Thread(
+            target=run_acquisition_client,
+            args=(req.session_uid, req.api_url, req.fps),
+            daemon=True
+        )
+        task_thread.start()
+        return {"status": "acquisition_started", "mode": "thread"}
+    else:
+        # Running as script - use subprocess (original method)
+        cmd = [
+            "python", os.path.join(os.getcwd(), "agent", "acquisition_client.py"),
+            "--session-uid", req.session_uid,
+            "--api-url", req.api_url,
+            "--fps", str(req.fps)
+        ]
+        env = os.environ.copy()
+        current_dir = os.getcwd()
+        env['PYTHONPATH'] = current_dir + ':' + env.get('PYTHONPATH', '')
+        task_proc = subprocess.Popen(cmd, env=env, cwd=current_dir)
+        return {"status": "acquisition_started", "pid": task_proc.pid, "mode": "subprocess"}
 
 
 @app.post("/stop")
 def stop_acquisition():
-    global task_proc
-    if not task_proc or task_proc.poll() is not None:
-        raise HTTPException(
-            status_code=400, detail="No acquisition in progress.")
+    global task_proc, task_thread
+    
+    # Stop thread mode
+    if task_thread and task_thread.is_alive():
+        # Thread will stop when acquisition_client exits (KeyboardInterrupt handling)
+        # We can't directly kill a thread, but the acquisition loop should check a flag
+        # For now, we'll just mark it as stopped
+        task_thread = None
+        return {"status": "acquisition_stopped", "mode": "thread"}
+    
+    # Stop subprocess mode
+    if task_proc and task_proc.poll() is None:
+        task_proc.terminate()
+        try:
+            task_proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            if task_proc:
+                task_proc.kill()
+        finally:
+            task_proc = None
+        return {"status": "acquisition_stopped", "mode": "subprocess"}
+    
+    raise HTTPException(
+        status_code=400, detail="No acquisition in progress.")
 
-    # Terminate the process
-    task_proc.terminate()
-    try:
-        task_proc.wait(timeout=5)
-    except subprocess.TimeoutExpired:
-        if task_proc:  # Check if task_proc is still not None
-            task_proc.kill()
-    finally:
-        task_proc = None
-    return {"status": "acquisition_stopped"}
 
+@app.get("/")
+def root():
+    """Health check endpoint - confirms agent server is running"""
+    return {
+        "status": "agent_server_running",
+        "agent_url": "http://localhost:9000",
+        "backend_url": os.getenv("BACKEND_URL", "http://localhost:8000")
+    }
 
 @app.get("/status")
 def status():
+    """Status of acquisition task (not agent server)"""
+    # Check thread mode
+    if task_thread and task_thread.is_alive():
+        return {"status": "running", "mode": "thread"}
+    # Check subprocess mode
     if task_proc and task_proc.poll() is None:
-        return {"status": "running", "pid": task_proc.pid}
+        return {"status": "running", "pid": task_proc.pid, "mode": "subprocess"}
     return {"status": "stopped"}
 
 

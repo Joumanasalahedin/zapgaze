@@ -40,8 +40,8 @@ def parse_args():
     return parser.parse_args()
 
 
-def main():
-    args = parse_args()
+def run_acquisition(session_uid, api_url, fps, batch_size=None):
+    """Run acquisition with direct parameters (for use in threads or standalone)"""
     camera = CameraManager()
     adapter = MediaPipeAdapter()
 
@@ -49,15 +49,15 @@ def main():
     adapter.initialize()
 
     # Compute intervals and batch size
-    interval = 1.0 / args.fps
-    batch_size = args.batch_size or int(args.fps)
+    interval = 1.0 / fps
+    batch_size = batch_size or int(fps)
 
     # Derive batch endpoint from api-url
-    base = args.api_url.rstrip('/')
+    base = api_url.rstrip('/')
     batch_url = base.rsplit('/', 1)[0] + '/batch'
 
     logging.info(
-        f"Starting acquisition client: {args.fps} FPS, batch size {batch_size}")
+        f"Starting acquisition client: {fps} FPS, batch size {batch_size}")
 
     buffer = []
     try:
@@ -68,7 +68,7 @@ def main():
             # Build single record
             le = result.get("eye_centers", [])
             record = {
-                "session_uid": args.session_uid,
+                "session_uid": session_uid,
                 "timestamp": time.time(),
                 "left_eye": {"x": le[0][0], "y": le[0][1]} if len(le) > 0 else {"x": None, "y": None},
                 "right_eye": {"x": le[1][0], "y": le[1][1]} if len(le) > 1 else {"x": None, "y": None},
@@ -101,9 +101,17 @@ def main():
                 logging.info(f"Sent final batch of {len(buffer)} records")
             except Exception as e:
                 logging.warning(f"Failed to send final batch: {e}")
+    except Exception as e:
+        logging.error(f"Acquisition error: {e}")
+        import traceback
+        traceback.print_exc()
     finally:
         camera.release_camera()
         logging.info("Camera released, exiting.")
+
+def main():
+    args = parse_args()
+    run_acquisition(args.session_uid, args.api_url, args.fps, args.batch_size)
 
 
 if __name__ == "__main__":
