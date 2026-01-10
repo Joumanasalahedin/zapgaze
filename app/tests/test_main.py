@@ -1,6 +1,7 @@
 """
 Simple unit tests for the main FastAPI application.
 """
+
 from fastapi.testclient import TestClient
 
 
