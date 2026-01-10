@@ -277,3 +277,89 @@ def proxy_calibrate_finish():
                     "error", "Command failed"))
 
     raise HTTPException(status_code=504, detail="Command timeout")
+
+
+@router.post("/start")
+def proxy_start_acquisition(data: dict):
+    """Queue start acquisition command for agent"""
+    now = datetime.now()
+    active_agents = [
+        key
+        for key, last_heartbeat in registered_agents.items()
+        if now - last_heartbeat <= HEARTBEAT_TIMEOUT
+    ]
+    
+    if not active_agents:
+        raise HTTPException(status_code=503, detail="No active agent found")
+    
+    agent_key = active_agents[0]
+    command_id = str(uuid.uuid4())
+    command = {
+        "command_id": command_id,
+        "type": "start_acquisition",
+        "params": data,
+    }
+    
+    if agent_key not in agent_commands:
+        agent_commands[agent_key] = []
+    agent_commands[agent_key].append(command)
+    
+    # Wait for result (acquisition start is quick)
+    print(f"⏳ Waiting for command {command_id} result...")
+    for i in range(50):  # 50 * 0.1s = 5 seconds
+        time.sleep(0.1)
+        if command_id in command_results:
+            result = command_results.pop(command_id)
+            print(f"✅ Received result for command {command_id}")
+            if result["success"]:
+                return result["result"]
+            else:
+                raise HTTPException(status_code=500, detail=result.get("error", "Command failed"))
+        if i % 10 == 0:  # Log every second
+            print(f"⏳ Still waiting... ({i/10:.1f}s)")
+    
+    print(f"❌ Timeout waiting for command {command_id}")
+    raise HTTPException(status_code=504, detail="Command timeout - agent may not be responding")
+
+
+@router.post("/stop")
+def proxy_stop_acquisition():
+    """Queue stop acquisition command for agent"""
+    now = datetime.now()
+    active_agents = [
+        key
+        for key, last_heartbeat in registered_agents.items()
+        if now - last_heartbeat <= HEARTBEAT_TIMEOUT
+    ]
+    
+    if not active_agents:
+        raise HTTPException(status_code=503, detail="No active agent found")
+    
+    agent_key = active_agents[0]
+    command_id = str(uuid.uuid4())
+    command = {
+        "command_id": command_id,
+        "type": "stop_acquisition",
+        "params": {},
+    }
+    
+    if agent_key not in agent_commands:
+        agent_commands[agent_key] = []
+    agent_commands[agent_key].append(command)
+    
+    # Wait for result (acquisition stop is quick)
+    print(f"⏳ Waiting for command {command_id} result...")
+    for i in range(50):  # 50 * 0.1s = 5 seconds
+        time.sleep(0.1)
+        if command_id in command_results:
+            result = command_results.pop(command_id)
+            print(f"✅ Received result for command {command_id}")
+            if result["success"]:
+                return result["result"]
+            else:
+                raise HTTPException(status_code=500, detail=result.get("error", "Command failed"))
+        if i % 10 == 0:  # Log every second
+            print(f"⏳ Still waiting... ({i/10:.1f}s)")
+    
+    print(f"❌ Timeout waiting for command {command_id}")
+    raise HTTPException(status_code=504, detail="Command timeout - agent may not be responding")

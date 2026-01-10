@@ -198,7 +198,7 @@ const TestPage: FC = () => {
 
   const startAcquisition = async (acqSessionUid?: string) => {
     try {
-      const response = await apiCall(`${CONFIG.AGENT_BASE_URL}/start`, {
+      const response = await apiCall(`${CONFIG.API_BASE_URL}/agent/start`, {
         method: "POST",
         body: JSON.stringify({
           session_uid: acqSessionUid || sessionUid,
@@ -217,7 +217,7 @@ const TestPage: FC = () => {
 
   const stopAcquisition = async () => {
     try {
-      const response = await apiCall(`${CONFIG.AGENT_BASE_URL}/stop`, {
+      const response = await apiCall(`${CONFIG.API_BASE_URL}/agent/stop`, {
         method: "POST",
       });
 
