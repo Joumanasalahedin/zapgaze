@@ -769,7 +769,8 @@ const TestPage: FC = () => {
                             </div>
                         )}
 
-                        <p>Tips: <ul>
+                        <p>Tips:</p>
+                        <ul>
                             <li>
                                 Please make sure the monitor with the webcam is in the center of your field of view,{'\u00A0'}
                                 and is the same as the one you are looking at.
@@ -777,7 +778,7 @@ const TestPage: FC = () => {
                             <li>
                                 Press <strong>[Escape]</strong> at any time to stop the process.
                             </li>
-                        </ul></p>
+                        </ul>
                     </div>
                 )}
 
