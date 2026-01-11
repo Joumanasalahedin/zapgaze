@@ -46,18 +46,25 @@ jobs:
             git reset --hard origin/master
             git clean -fd
             
+            # Detect docker compose command (plugin vs standalone)
+            if command -v docker-compose &> /dev/null; then
+              DOCKER_COMPOSE="docker-compose"
+            else
+              DOCKER_COMPOSE="docker compose"
+            fi
+            
             echo "🐳 Stopping existing containers..."
-            docker-compose down || true
+            ${DOCKER_COMPOSE} down || true
             
             echo "🔨 Building and starting containers..."
-            docker-compose up -d --build
+            ${DOCKER_COMPOSE} up -d --build
             
             echo "✅ Deployment complete!"
             
             # Show running containers
-            docker-compose ps
+            ${DOCKER_COMPOSE} ps
             
             # Show recent logs
             echo "📋 Recent container logs:"
-            docker-compose logs --tail=20
+            ${DOCKER_COMPOSE} logs --tail=20
           EOF
