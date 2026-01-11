@@ -542,6 +542,8 @@ const TestPage: FC = () => {
       try {
         const currentPoint = calibrationDots[calibrationStep - 1];
         await recordCalibrationPoint(currentPoint);
+        // Clear any previous errors on success
+        setCalibrationError(null);
         if (calibrationStep < 8) {
           setTimeout(
             () => setCalibrationStep((calibrationStep + 1) as CalibrationStep),
@@ -554,8 +556,41 @@ const TestPage: FC = () => {
             CONFIG.CALIBRATION_POINT_DURATION
           );
         }
-      } catch (error) {
-        setCalibrationError("Calibration failed. Please try again.");
+      } catch (error: any) {
+        console.error("Calibration point error:", error);
+        const errorMessage = error?.message || "Calibration point failed";
+        setCalibrationError(
+          `Point ${calibrationStep} failed: ${errorMessage}. The system will retry automatically in a moment...`
+        );
+        // Auto-retry after 2 seconds
+        setTimeout(() => {
+          setCalibrationError(null);
+          // Retry the same point
+          const doRetry = async () => {
+            try {
+              const currentPoint = calibrationDots[calibrationStep - 1];
+              await recordCalibrationPoint(currentPoint);
+              setCalibrationError(null);
+              if (calibrationStep < 8) {
+                setTimeout(
+                  () => setCalibrationStep((calibrationStep + 1) as CalibrationStep),
+                  CONFIG.CALIBRATION_POINT_DURATION
+                );
+              } else {
+                await finishCalibration();
+                setTimeout(
+                  () => setCalibrationStep(9 as CalibrationStep),
+                  CONFIG.CALIBRATION_POINT_DURATION
+                );
+              }
+            } catch (retryError) {
+              setCalibrationError(
+                `Point ${calibrationStep} failed after retry. Please check your camera connection and try again.`
+              );
+            }
+          };
+          doRetry();
+        }, 2000);
       }
     };
     doStep();

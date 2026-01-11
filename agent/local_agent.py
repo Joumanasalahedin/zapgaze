@@ -92,19 +92,62 @@ def execute_command(command: dict, backend_url: str):
                 raise Exception("Calibration not started")
 
             pts = []
-            for _ in range(params.get("samples", 30)):
-                frame = cam.get_frame()
-                res = adapter.analyze_frame(frame)
-                centers = res.get("eye_centers", [])
-                if centers:
-                    xs = [c[0] for c in centers]
-                    ys = [c[1] for c in centers]
-                    pts.append((sum(xs) / len(xs), sum(ys) / len(ys)))
-                time.sleep(params.get("duration", 1.0) /
-                           params.get("samples", 30))
+            samples = params.get("samples", 30)
+            duration = params.get("duration", 1.0)
+            max_attempts = samples * 2  # Allow up to 2x samples in case of failures
+            attempt = 0
+            successful_samples = 0
+
+            print(
+                f"📸 Starting calibration point capture: {samples} samples over {duration}s")
+
+            start_time = time.time()
+            timeout = duration + 5  # Add 5 second buffer for processing
+
+            while successful_samples < samples and attempt < max_attempts:
+                # Check for timeout
+                if time.time() - start_time > timeout:
+                    print(f"⏱️  Calibration point timeout after {timeout}s")
+                    break
+
+                try:
+                    # Try to get frame with a timeout check
+                    frame = cam.get_frame()
+                    if frame is None:
+                        print(
+                            f"⚠️  Failed to get frame (attempt {attempt + 1})")
+                        attempt += 1
+                        time.sleep(0.05)  # Short delay before retry
+                        continue
+
+                    res = adapter.analyze_frame(frame)
+                    centers = res.get("eye_centers", [])
+                    if centers and len(centers) >= 2:
+                        xs = [c[0] for c in centers]
+                        ys = [c[1] for c in centers]
+                        pts.append((sum(xs) / len(xs), sum(ys) / len(ys)))
+                        successful_samples += 1
+                        if successful_samples % 10 == 0:
+                            print(
+                                f"📊 Collected {successful_samples}/{samples} samples")
+                    else:
+                        # No eyes detected, but continue
+                        pass
+
+                    # Sleep to maintain timing
+                    time.sleep(duration / samples)
+                    attempt += 1
+
+                except Exception as e:
+                    print(
+                        f"⚠️  Error during calibration sample {attempt + 1}: {e}")
+                    attempt += 1
+                    time.sleep(0.05)  # Short delay before retry
+                    # Continue trying - don't fail on individual frame errors
 
             if not pts:
-                raise Exception("No eye data captured")
+                raise Exception(
+                    f"No eye data captured after {attempt} attempts")
 
             mean_x = sum([p[0] for p in pts]) / len(pts)
             mean_y = sum([p[1] for p in pts]) / len(pts)
@@ -117,6 +160,9 @@ def execute_command(command: dict, backend_url: str):
                 "measured_x": mean_x,
                 "measured_y": mean_y,
             }
+
+            print(
+                f"✅ Calibration point completed: ({params['x']}, {params['y']}) -> ({mean_x:.2f}, {mean_y:.2f})")
 
             # Also send to backend
             try:
@@ -388,25 +434,25 @@ def start_acquisition(req: StartRequest):
         return {"status": "acquisition_started", "mode": "thread"}
     else:
         # Running as script - use subprocess (original method)
-        cmd = [
-            "python",
-            os.path.join(os.getcwd(), "agent", "acquisition_client.py"),
-            "--session-uid",
-            req.session_uid,
-            "--api-url",
-            req.api_url,
-            "--fps",
-            str(req.fps),
-        ]
-        env = os.environ.copy()
-        current_dir = os.getcwd()
-        env["PYTHONPATH"] = current_dir + ":" + env.get("PYTHONPATH", "")
-        task_proc = subprocess.Popen(cmd, env=env, cwd=current_dir)
-        return {
-            "status": "acquisition_started",
-            "pid": task_proc.pid,
-            "mode": "subprocess",
-        }
+    cmd = [
+        "python",
+        os.path.join(os.getcwd(), "agent", "acquisition_client.py"),
+        "--session-uid",
+        req.session_uid,
+        "--api-url",
+        req.api_url,
+        "--fps",
+        str(req.fps),
+    ]
+    env = os.environ.copy()
+    current_dir = os.getcwd()
+    env["PYTHONPATH"] = current_dir + ":" + env.get("PYTHONPATH", "")
+    task_proc = subprocess.Popen(cmd, env=env, cwd=current_dir)
+    return {
+        "status": "acquisition_started",
+        "pid": task_proc.pid,
+        "mode": "subprocess",
+    }
 
 
 @app.post("/stop")
@@ -425,14 +471,14 @@ def stop_acquisition():
 
     # Stop subprocess mode
     if task_proc and task_proc.poll() is None:
-        task_proc.terminate()
-        try:
-            task_proc.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            if task_proc:
-                task_proc.kill()
-        finally:
-            task_proc = None
+    task_proc.terminate()
+    try:
+        task_proc.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        if task_proc:
+        task_proc.kill()
+    finally:
+        task_proc = None
         return {"status": "acquisition_stopped", "mode": "subprocess"}
 
     raise HTTPException(status_code=400, detail="No acquisition in progress.")
