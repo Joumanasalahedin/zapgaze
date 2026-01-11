@@ -22,6 +22,7 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
   const [status, setStatus] = useState<AgentStatus>("checking");
   const [showDownload, setShowDownload] = useState(false);
   const [corsError, setCorsError] = useState(false);
+  const [waitingForAgent, setWaitingForAgent] = useState(false);
 
   useEffect(() => {
     checkAgentStatus();
@@ -47,6 +48,7 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
         if (data.status === "connected") {
           setStatus("connected");
           setCorsError(false);
+          setWaitingForAgent(false); // Agent connected, stop waiting
           if (onAgentReady) {
             onAgentReady();
           }
@@ -78,11 +80,10 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
     }
   };
 
-  const getPlatform = (): "windows" | "mac" | "linux" | "unknown" => {
+  const getPlatform = (): "windows" | "mac" | "unknown" => {
     const userAgent = navigator.userAgent.toLowerCase();
     if (userAgent.includes("win")) return "windows";
     if (userAgent.includes("mac")) return "mac";
-    if (userAgent.includes("linux")) return "linux";
     return "unknown";
   };
 
@@ -96,8 +97,6 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
         return `${baseUrl}/ZapGazeAgent.exe`;
       case "mac":
         return `${baseUrl}/ZapGazeAgent`; // macOS executable
-      case "linux":
-        return `${baseUrl}/ZapGazeAgent-linux`; // If you build Linux version later
       default:
         return `${baseUrl}/ZapGazeAgent`;
     }
@@ -137,6 +136,16 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
     );
   }
 
+  // If waiting for agent after download, show waiting message
+  if (waitingForAgent) {
+    return (
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        <CircularProgress size={20} />
+        <Typography variant="body2">Waiting for agent to connect...</Typography>
+      </Box>
+    );
+  }
+
   // Disconnected - show download option
   return (
     <Box>
@@ -166,7 +175,11 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
               variant="outlined"
               onClick={() => {
                 const url = getDownloadUrl("windows");
-                if (url) window.open(url, "_blank");
+                if (url) {
+                  window.open(url, "_blank");
+                  setWaitingForAgent(true);
+                  setShowDownload(false);
+                }
               }}
             >
               Windows (.exe)
@@ -175,19 +188,14 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
               variant="outlined"
               onClick={() => {
                 const url = getDownloadUrl("mac");
-                if (url) window.open(url, "_blank");
+                if (url) {
+                  window.open(url, "_blank");
+                  setWaitingForAgent(true);
+                  setShowDownload(false);
+                }
               }}
             >
               macOS
-            </Button>
-            <Button
-              variant="outlined"
-              onClick={() => {
-                const url = getDownloadUrl("linux");
-                if (url) window.open(url, "_blank");
-              }}
-            >
-              Linux
             </Button>
           </Box>
         </Box>
