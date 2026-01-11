@@ -17,6 +17,7 @@ task_proc = None
 task_thread = None
 heartbeat_thread = None
 agent_id = str(uuid.uuid4())  # Unique agent identifier
+current_session_uid = None  # Track the current session UID for heartbeats
 acquisition_stop_flag = threading.Event()  # Flag to signal acquisition to stop
 
 
@@ -25,9 +26,14 @@ def send_heartbeat():
     backend_url = os.getenv("BACKEND_URL", "http://20.74.82.26:8000")
     while True:
         try:
+            # Send both agent_id and session_uid (if available) so backend can match by either
+            heartbeat_data = {"agent_id": agent_id}
+            if current_session_uid:
+                heartbeat_data["session_uid"] = current_session_uid
+
             response = requests.post(
                 f"{backend_url}/agent/heartbeat",
-                json={"agent_id": agent_id},
+                json=heartbeat_data,
                 timeout=5,
             )
             if response.status_code == 200:
@@ -209,6 +215,10 @@ def execute_command(command: dict, backend_url: str):
             api_url = params.get("api_url", f"{backend_url}/acquisition/batch")
             fps = params.get("fps", 20.0)
 
+            # Track the current session UID for heartbeats
+            global current_session_uid
+            current_session_uid = session_uid
+
             # Check if we're running as a standalone executable (PyInstaller)
             if getattr(sys, "frozen", False) or not os.path.exists(
                 os.path.join(os.getcwd(), "agent", "acquisition_client.py")
@@ -277,6 +287,10 @@ def execute_command(command: dict, backend_url: str):
                     "ℹ️  Stop command received but no acquisition is running (already stopped)")
                 result = {"status": "acquisition_stopped",
                           "mode": "already_stopped"}
+
+            # Clear session UID when acquisition stops
+            global current_session_uid
+            current_session_uid = None
         else:
             raise Exception(f"Unknown command type: {command_type}")
 
@@ -434,25 +448,25 @@ def start_acquisition(req: StartRequest):
         return {"status": "acquisition_started", "mode": "thread"}
     else:
         # Running as script - use subprocess (original method)
-    cmd = [
-        "python",
-        os.path.join(os.getcwd(), "agent", "acquisition_client.py"),
-        "--session-uid",
-        req.session_uid,
-        "--api-url",
-        req.api_url,
-        "--fps",
-        str(req.fps),
-    ]
-    env = os.environ.copy()
-    current_dir = os.getcwd()
-    env["PYTHONPATH"] = current_dir + ":" + env.get("PYTHONPATH", "")
-    task_proc = subprocess.Popen(cmd, env=env, cwd=current_dir)
-    return {
-        "status": "acquisition_started",
-        "pid": task_proc.pid,
-        "mode": "subprocess",
-    }
+        cmd = [
+            "python",
+            os.path.join(os.getcwd(), "agent", "acquisition_client.py"),
+            "--session-uid",
+            req.session_uid,
+            "--api-url",
+            req.api_url,
+            "--fps",
+            str(req.fps),
+        ]
+        env = os.environ.copy()
+        current_dir = os.getcwd()
+        env["PYTHONPATH"] = current_dir + ":" + env.get("PYTHONPATH", "")
+        task_proc = subprocess.Popen(cmd, env=env, cwd=current_dir)
+        return {
+            "status": "acquisition_started",
+            "pid": task_proc.pid,
+            "mode": "subprocess",
+        }
 
 
 @app.post("/stop")
@@ -471,14 +485,14 @@ def stop_acquisition():
 
     # Stop subprocess mode
     if task_proc and task_proc.poll() is None:
-    task_proc.terminate()
-    try:
-        task_proc.wait(timeout=5)
-    except subprocess.TimeoutExpired:
-        if task_proc:
-        task_proc.kill()
-    finally:
-        task_proc = None
+        task_proc.terminate()
+        try:
+            task_proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            if task_proc:
+                task_proc.kill()
+        finally:
+            task_proc = None
         return {"status": "acquisition_stopped", "mode": "subprocess"}
 
     raise HTTPException(status_code=400, detail="No acquisition in progress.")

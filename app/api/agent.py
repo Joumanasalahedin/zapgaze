@@ -63,19 +63,27 @@ def register_agent(registration: AgentRegistration):
 @router.post("/heartbeat")
 def agent_heartbeat(heartbeat: dict):
     """Update agent heartbeat and return pending commands"""
-    agent_key = heartbeat.get("session_uid") or heartbeat.get(
-        "agent_id") or "default"
+    session_uid = heartbeat.get("session_uid")
+    agent_id = heartbeat.get("agent_id")
+    agent_key = session_uid or agent_id or "default"
     
     # Check if agent was stopped (unregistered after session stop)
-    if agent_key in stopped_agents:
+    # Check both session_uid and agent_id in case they're different
+    if agent_key in stopped_agents or (session_uid and session_uid in stopped_agents) or (agent_id and agent_id in stopped_agents):
         # Don't re-register, tell agent to stop
+        print(f"🛑 Agent {agent_key} is in stopped_agents, telling it to stop")
         return {
             "status": "stopped",
             "message": "Agent unregistered after session stop. Please stop sending heartbeats.",
         }
     
     # Re-register agent (update timestamp)
+    # Register with both keys if both are provided
     registered_agents[agent_key] = datetime.now()
+    if session_uid and session_uid != agent_key:
+        registered_agents[session_uid] = datetime.now()
+    if agent_id and agent_id != agent_key:
+        registered_agents[agent_id] = datetime.now()
 
     # Store command result if provided
     if "command_result" in heartbeat:

@@ -43,7 +43,7 @@ def session_start(req: SessionStartRequest, db: Session = Depends(get_db)):
     return {"session_uid": sess.session_uid}
 
 
-def _stop_agent_acquisition():
+def _stop_agent_acquisition(agent_id_to_stop: str):
     """Helper function to stop agent acquisition and unregister agent (non-blocking, fails silently)"""
     try:
         # Import here to avoid circular imports
@@ -52,17 +52,29 @@ def _stop_agent_acquisition():
         
         now = datetime.now()
         timeout = timedelta(seconds=30)  # HEARTBEAT_TIMEOUT
-        active_agents = [
-            key
-            for key, last_heartbeat in agent_module.registered_agents.items()
-            if now - last_heartbeat <= timeout
-        ]
         
-        if not active_agents:
-            print("⚠️  No active agent found to stop acquisition")
+        # Try to find the agent by the provided agent_id/session_uid
+        # First check if it's directly registered
+        agent_key = None
+        if agent_id_to_stop in agent_module.registered_agents:
+            last_heartbeat = agent_module.registered_agents[agent_id_to_stop]
+            if now - last_heartbeat <= timeout:
+                agent_key = agent_id_to_stop
+        
+        # If not found, try to find any active agent (fallback)
+        if not agent_key:
+            active_agents = [
+                key
+                for key, last_heartbeat in agent_module.registered_agents.items()
+                if now - last_heartbeat <= timeout
+            ]
+            if active_agents:
+                agent_key = active_agents[0]
+                print(f"⚠️  Agent {agent_id_to_stop} not found, using active agent {agent_key}")
+        
+        if not agent_key:
+            print(f"⚠️  No active agent found to stop acquisition (looked for: {agent_id_to_stop})")
             return
-        
-        agent_key = active_agents[0]
         
         # Queue stop command
         command_id = str(uuid.uuid4())
@@ -94,6 +106,8 @@ def _stop_agent_acquisition():
         
     except Exception as e:
         print(f"⚠️  Failed to stop agent acquisition: {e}")
+        import traceback
+        traceback.print_exc()
         # Fail silently - don't block session stop
 
 
@@ -110,7 +124,8 @@ def session_stop(req: SessionStopRequest, db: Session = Depends(get_db)):
         )
 
     # Stop agent acquisition automatically when session stops
-    _stop_agent_acquisition()
+    # Pass session_uid as the agent identifier
+    _stop_agent_acquisition(sess.session_uid)
 
     sess.stopped_at = datetime.utcnow()
     sess.status = "stopped"
