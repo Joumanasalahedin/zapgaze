@@ -125,36 +125,56 @@ const TestPage: FC = () => {
     setIsInitializingCamera(true);
     setCalibrationError(null);
 
-    // Start calibration in the background (non-blocking)
-    try {
-      setIsCalibrating(true);
-      await apiCall(`${CONFIG.API_BASE_URL}/agent/calibrate/start`, {
-        method: "POST",
-      });
-      console.log("Calibration started successfully");
-      setIsInitializingCamera(false);
-    } catch (error: any) {
-      console.error("Failed to start calibration:", error);
-      setIsInitializingCamera(false);
-      const errorMessage = error?.message || "";
-      if (
-        errorMessage.includes("CORS") ||
-        errorMessage.includes("more-private address space") ||
-        errorMessage.includes("loopback")
-      ) {
-        setCalibrationError(
-          "Browser security restriction: You need to access the app via localhost with SSH port forwarding. " +
-            "Run: ssh -L 5173:localhost:5173 -L 9000:localhost:9000 azureuser@20.74.82.26 " +
-            "then open http://localhost:5173"
-        );
-      } else {
-        setCalibrationError(
-          "Failed to start calibration. Please check if the backend and local agent are running."
-        );
+    // Start calibration in the background with retry logic
+    // Keep showing "initializing" until it succeeds
+    const maxRetries = 30; // 30 attempts = ~30 seconds max
+    let retryCount = 0;
+
+    const tryStartCalibration = async (): Promise<void> => {
+      try {
+        setIsCalibrating(true);
+        await apiCall(`${CONFIG.API_BASE_URL}/agent/calibrate/start`, {
+          method: "POST",
+        });
+        console.log("Calibration started successfully");
+        setIsInitializingCamera(false);
+        setIsCalibrating(false);
+      } catch (error: any) {
+        retryCount++;
+        console.log(`Calibration start attempt ${retryCount}/${maxRetries} failed, retrying...`);
+
+        if (retryCount >= maxRetries) {
+          // Only show error after max retries
+          console.error("Failed to start calibration after max retries:", error);
+          setIsInitializingCamera(false);
+          setIsCalibrating(false);
+          const errorMessage = error?.message || "";
+          if (
+            errorMessage.includes("CORS") ||
+            errorMessage.includes("more-private address space") ||
+            errorMessage.includes("loopback")
+          ) {
+            setCalibrationError(
+              "Browser security restriction: You need to access the app via localhost with SSH port forwarding. " +
+                "Run: ssh -L 5173:localhost:5173 -L 9000:localhost:9000 azureuser@20.74.82.26 " +
+                "then open http://localhost:5173"
+            );
+          } else {
+            setCalibrationError(
+              "Failed to start calibration. Please check if the backend and local agent are running."
+            );
+          }
+        } else {
+          // Retry after 1 second
+          setTimeout(() => {
+            tryStartCalibration();
+          }, 1000);
+        }
       }
-    } finally {
-      setIsCalibrating(false);
-    }
+    };
+
+    // Start the retry loop
+    tryStartCalibration();
   };
 
   const recordCalibrationPoint = async (point: CalibrationPoint) => {
@@ -906,13 +926,10 @@ const TestPage: FC = () => {
           <div className={styles.calibrationInstructions}>
             <h2>Calibration</h2>
             {isInitializingCamera ? (
-              <>
-                <div className={styles.loadingMessage}>
-                  <p>Agent connected and initializing camera...</p>
-                  <p>This may take a minute. Please wait.</p>
-                </div>
-                {calibrationError && <div className={styles.errorMessage}>{calibrationError}</div>}
-              </>
+              <div className={styles.loadingMessage}>
+                <p>Agent connected and initializing camera...</p>
+                <p>This may take a minute. Please wait.</p>
+              </div>
             ) : (
               <>
                 <p>We need to calibrate your gaze. Please follow the dots as they appear.</p>
