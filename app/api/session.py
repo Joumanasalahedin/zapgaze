@@ -78,16 +78,19 @@ def _stop_agent_acquisition():
         
         print(f"📤 Queued stop acquisition command {command_id} for agent {agent_key}")
         
-        # Unregister the agent so backend stops checking for heartbeats
+        # Mark agent as stopped so it stops sending heartbeats
         # This happens after a short delay to allow the stop command to be processed
         import threading
-        def unregister_after_delay():
+        def stop_agent_after_delay():
             time.sleep(2)  # Wait 2 seconds for stop command to be processed
+            # Add to stopped_agents set so heartbeat endpoint tells it to stop
+            agent_module.stopped_agents.add(agent_key)
+            # Also remove from registered_agents
             if agent_key in agent_module.registered_agents:
                 del agent_module.registered_agents[agent_key]
-                print(f"🔌 Unregistered agent {agent_key} after session stop")
+            print(f"🔌 Marked agent {agent_key} as stopped - it will stop sending heartbeats")
         
-        threading.Thread(target=unregister_after_delay, daemon=True).start()
+        threading.Thread(target=stop_agent_after_delay, daemon=True).start()
         
     except Exception as e:
         print(f"⚠️  Failed to stop agent acquisition: {e}")

@@ -32,6 +32,14 @@ def send_heartbeat():
             )
             if response.status_code == 200:
                 data = response.json()
+
+                # Check if backend told us to stop
+                if data.get("status") == "stopped":
+                    print(
+                        f"🛑 Backend requested agent to stop: {data.get('message', 'Session stopped')}")
+                    print("   Stopping heartbeat loop...")
+                    break  # Exit the heartbeat loop
+
                 # Check for pending commands
                 commands = data.get("commands", [])
                 if commands:

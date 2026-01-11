@@ -23,6 +23,9 @@ agent_commands: Dict[str, list] = {}
 # Key: command_id, Value: result
 command_results: Dict[str, dict] = {}
 
+# Agents that should stop sending heartbeats (unregistered after session stop)
+stopped_agents: set = set()
+
 # Heartbeat timeout - agent must send heartbeat within this time
 HEARTBEAT_TIMEOUT = timedelta(seconds=30)
 
@@ -62,6 +65,16 @@ def agent_heartbeat(heartbeat: dict):
     """Update agent heartbeat and return pending commands"""
     agent_key = heartbeat.get("session_uid") or heartbeat.get(
         "agent_id") or "default"
+    
+    # Check if agent was stopped (unregistered after session stop)
+    if agent_key in stopped_agents:
+        # Don't re-register, tell agent to stop
+        return {
+            "status": "stopped",
+            "message": "Agent unregistered after session stop. Please stop sending heartbeats.",
+        }
+    
+    # Re-register agent (update timestamp)
     registered_agents[agent_key] = datetime.now()
 
     # Store command result if provided
