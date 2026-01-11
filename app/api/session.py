@@ -76,7 +76,8 @@ def _stop_agent_acquisition(agent_id_to_stop: str):
             print(f"⚠️  No active agent found to stop acquisition (looked for: {agent_id_to_stop})")
             return
         
-        # Queue stop command
+        # Queue stop command for the found agent key
+        # Also queue for all active agents to ensure it's received
         command_id = str(uuid.uuid4())
         command = {
             "command_id": command_id,
@@ -84,11 +85,20 @@ def _stop_agent_acquisition(agent_id_to_stop: str):
             "params": {},
         }
         
+        # Queue for the specific agent key
         if agent_key not in agent_module.agent_commands:
             agent_module.agent_commands[agent_key] = []
         agent_module.agent_commands[agent_key].append(command)
-        
         print(f"📤 Queued stop acquisition command {command_id} for agent {agent_key}")
+        
+        # Also queue for all other active agents to ensure command is received
+        # (agent might be registered with multiple keys)
+        for other_key in active_agents:
+            if other_key != agent_key:
+                if other_key not in agent_module.agent_commands:
+                    agent_module.agent_commands[other_key] = []
+                agent_module.agent_commands[other_key].append(command)
+                print(f"📤 Also queued stop command {command_id} for agent {other_key}")
         
         # Mark agent as stopped so it stops sending heartbeats
         # This happens after a short delay to allow the stop command to be processed

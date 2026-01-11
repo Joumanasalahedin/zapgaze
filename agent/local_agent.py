@@ -19,6 +19,8 @@ heartbeat_thread = None
 agent_id = str(uuid.uuid4())  # Unique agent identifier
 current_session_uid = None  # Track the current session UID for heartbeats
 acquisition_stop_flag = threading.Event()  # Flag to signal acquisition to stop
+# Store camera instance for direct release (like calibration)
+acquisition_camera = None
 
 
 def send_heartbeat():
@@ -70,7 +72,7 @@ def send_heartbeat():
 
 def execute_command(command: dict, backend_url: str):
     """Execute a command from the backend"""
-    global task_proc, task_thread, acquisition_stop_flag  # Declare all globals at the top
+    global task_proc, task_thread, acquisition_stop_flag, current_session_uid, acquisition_camera  # Declare all globals at the top
 
     command_id = command.get("command_id")
     command_type = command.get("type")
@@ -216,7 +218,6 @@ def execute_command(command: dict, backend_url: str):
             fps = params.get("fps", 20.0)
 
             # Track the current session UID for heartbeats
-            global current_session_uid
             current_session_uid = session_uid
 
             # Check if we're running as a standalone executable (PyInstaller)
@@ -259,16 +260,43 @@ def execute_command(command: dict, backend_url: str):
                 }
 
         elif command_type == "stop_acquisition":
-            # Stop acquisition using the same logic as the /stop endpoint
-            # Stop thread mode
+            # Stop acquisition using the same method as calibration_finish - directly release camera
+            print(
+                f"🛑 Stop command received. task_thread: {task_thread}, is_alive: {task_thread.is_alive() if task_thread else 'N/A'}")
+            print(
+                f"🛑 app.state.acquisition_camera: {app.state.acquisition_camera}")
+            # Stop thread mode - use same approach as calibration: directly release camera
             if task_thread and task_thread.is_alive():
-                # Set stop flag to signal the acquisition loop to exit
+                # Directly release camera (like calibration_finish does)
+                # This will cause camera.get_frame() to fail, breaking the loop immediately
+                # Set stop flag first (as backup)
                 acquisition_stop_flag.set()
-                print("🛑 Set stop flag for acquisition thread")
-                # Wait a moment for the thread to see the flag
-                time.sleep(0.5)
-                task_thread = None
+                print("🛑 Set stop flag")
+
+                # Directly release camera (like calibration_finish does)
+                # This will cause camera.get_frame() to fail, breaking the loop immediately
+                cam = app.state.acquisition_camera
+                if cam:
+                    print(
+                        "🛑 Directly releasing acquisition camera (like calibration_finish)")
+                    try:
+                        cam.release_camera()
+                        app.state.acquisition_camera = None
+                        print(
+                            "✅ Camera released directly - loop should exit on next get_frame()")
+                    except Exception as e:
+                        print(f"⚠️  Error releasing camera: {e}")
+                        import traceback
+                        traceback.print_exc()
+                        # Stop flag already set, so loop will exit on next check
+                else:
+                    print(
+                        "⚠️  No acquisition_camera in app.state, using stop flag only")
+
                 result = {"status": "acquisition_stopped", "mode": "thread"}
+
+                # Note: We don't set task_thread = None here because the thread might still be
+                # finishing up (flushing buffer, releasing camera). The thread will exit on its own.
             # Stop subprocess mode
             elif task_proc and task_proc.poll() is None:
                 task_proc.terminate()
@@ -289,7 +317,6 @@ def execute_command(command: dict, backend_url: str):
                           "mode": "already_stopped"}
 
             # Clear session UID when acquisition stops
-            global current_session_uid
             current_session_uid = None
         else:
             raise Exception(f"Unknown command type: {command_type}")
@@ -380,6 +407,8 @@ app.add_middleware(
 app.state.cal_data = []
 app.state.cal_camera = None
 app.state.cal_adapter = None
+# Store acquisition camera for direct release (like calibration)
+app.state.acquisition_camera = None
 
 
 class StartRequest(BaseModel):
@@ -399,17 +428,26 @@ class CalPointRequest(BaseModel):
 
 def run_acquisition_client(session_uid, api_url, fps):
     """Run acquisition client in a thread"""
-    global acquisition_stop_flag
+    global acquisition_stop_flag, acquisition_camera
 
     try:
         from agent.acquisition_client import run_acquisition
 
         # Reset stop flag before starting
         acquisition_stop_flag.clear()
+        acquisition_camera = None  # Clear any previous reference
 
-        # Pass stop flag to acquisition function
+        # Pass stop flag to acquisition function, and get camera reference back
+        # We'll modify run_acquisition to store the camera instance globally
+        # List to hold camera reference (mutable, for backup)
+        camera_ref_holder = [None]
         run_acquisition(session_uid, api_url, fps,
-                        stop_event=acquisition_stop_flag)
+                        stop_event=acquisition_stop_flag,
+                        camera_ref_holder=camera_ref_holder)
+
+        # Note: acquisition_camera should be set inside run_acquisition before the loop starts
+        # If it wasn't set, try to get it from camera_ref_holder (though this won't work
+        # since run_acquisition blocks, but it's here for completeness)
     except Exception as e:
         import logging
 

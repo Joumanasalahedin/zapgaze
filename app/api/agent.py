@@ -97,10 +97,19 @@ def agent_heartbeat(heartbeat: dict):
             }
 
     # Return pending commands for this agent
-    pending_commands = agent_commands.get(agent_key, [])
-    # Clear commands after returning them
-    if agent_key in agent_commands:
-        agent_commands[agent_key] = []
+    # Check all possible keys (agent_key, session_uid, agent_id) to get commands
+    pending_commands = []
+    keys_to_check = [agent_key]
+    if session_uid and session_uid != agent_key:
+        keys_to_check.append(session_uid)
+    if agent_id and agent_id != agent_key:
+        keys_to_check.append(agent_id)
+    
+    # Collect commands from all keys and clear them
+    for key in keys_to_check:
+        if key in agent_commands:
+            pending_commands.extend(agent_commands[key])
+            agent_commands[key] = []  # Clear after returning
 
     return {
         "status": "ok",
@@ -356,7 +365,8 @@ def proxy_stop_acquisition():
     if not active_agents:
         raise HTTPException(status_code=503, detail="No active agent found")
     
-    agent_key = active_agents[0]
+    # Queue command for ALL active agent keys to ensure it's received
+    # (agent might be registered with multiple keys: agent_id, session_uid, etc.)
     command_id = str(uuid.uuid4())
     command = {
         "command_id": command_id,
@@ -364,9 +374,12 @@ def proxy_stop_acquisition():
         "params": {},
     }
     
-    if agent_key not in agent_commands:
-        agent_commands[agent_key] = []
-    agent_commands[agent_key].append(command)
+    # Queue for all active agent keys
+    for agent_key in active_agents:
+        if agent_key not in agent_commands:
+            agent_commands[agent_key] = []
+        agent_commands[agent_key].append(command)
+        print(f"📤 Queued stop command {command_id} for agent key: {agent_key}")
     
     # Wait for result (acquisition stop is quick)
     print(f"⏳ Waiting for command {command_id} result...")
