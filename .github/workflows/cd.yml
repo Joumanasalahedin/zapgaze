@@ -36,39 +36,36 @@ jobs:
           VM_USER: ${{ secrets.VM_USER }}
           VM_DEPLOY_PATH: ${{ secrets.VM_DEPLOY_PATH }}
         run: |
-          if [ -z "${VM_DEPLOY_PATH}" ]; then
-            DEPLOY_PATH="~/zapgaze"
-          else
-            DEPLOY_PATH="${VM_DEPLOY_PATH}"
-          fi
-          ssh -o StrictHostKeyChecking=no ${VM_USER}@${VM_HOST} "export DEPLOY_PATH='${DEPLOY_PATH}' && bash -s" << 'REMOTE_SCRIPT'
+          DEPLOY_PATH="${VM_DEPLOY_PATH:-/home/azureuser/zapgaze}"
+          ssh -o StrictHostKeyChecking=no ${VM_USER}@${VM_HOST} "DEPLOY_PATH='${DEPLOY_PATH}' bash -s" << 'EOF'
             set -e
-            cd "${DEPLOY_PATH}"
+            cd "$DEPLOY_PATH"
             
             echo "🔄 Pulling latest code..."
             git fetch origin
             git reset --hard origin/master
             git clean -fd
             
-            # Detect docker compose command (plugin vs standalone)
-            if command -v docker-compose &> /dev/null; then
-              DOCKER_COMPOSE="docker-compose"
-            else
-              DOCKER_COMPOSE="docker compose"
-            fi
+            compose() {
+              if command -v docker-compose >/dev/null 2>&1; then
+                docker-compose "$@"
+              else
+                docker compose "$@"
+              fi
+            }
             
             echo "🐳 Stopping existing containers..."
-            ${DOCKER_COMPOSE} down || true
+            compose down || true
             
             echo "🔨 Building and starting containers..."
-            ${DOCKER_COMPOSE} up -d --build
+            compose up -d --build
             
             echo "✅ Deployment complete!"
             
             # Show running containers
-            ${DOCKER_COMPOSE} ps
+            compose ps
             
             # Show recent logs
             echo "📋 Recent container logs:"
-            ${DOCKER_COMPOSE} logs --tail=20
-          REMOTE_SCRIPT
+            compose logs --tail=20
+          EOF
