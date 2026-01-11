@@ -56,6 +56,7 @@ a = Analysis(
         'mediapipe',
         'mediapipe.python.solutions.face_mesh',
         'mediapipe.python.solutions.drawing_utils',
+        'contextlib',  # For asynccontextmanager
         'app.acquisition.camera_manager',
         'app.acquisition.mediapipe_adapter',
         'app.acquisition.eye_tracker_adapter',

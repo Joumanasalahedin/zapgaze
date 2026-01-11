@@ -359,6 +359,8 @@ def execute_command(command: dict, backend_url: str):
             pass
 
 
+# Define lifespan function BEFORE creating the FastAPI app
+# This ensures it's available when the app is created
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup and shutdown events"""
@@ -394,6 +396,7 @@ async def lifespan(app: FastAPI):
 
 
 # Create FastAPI app with lifespan
+# Note: lifespan must be defined before this line
 app = FastAPI(title="Local Acquisition Agent", lifespan=lifespan)
 
 app.add_middleware(
