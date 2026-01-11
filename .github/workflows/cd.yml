@@ -1,0 +1,63 @@
+name: CD
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+    branches:
+      - master
+
+jobs:
+  deploy:
+    name: Deploy to Azure VM
+    runs-on: ubuntu-latest
+    if: |
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'master'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VM_SSH_PRIVATE_KEY }}
+      
+      - name: Add VM to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts
+      
+      - name: Deploy to VM
+        env:
+          VM_HOST: ${{ secrets.VM_HOST }}
+          VM_USER: ${{ secrets.VM_USER }}
+          VM_DEPLOY_PATH: ${{ secrets.VM_DEPLOY_PATH }}
+        run: |
+          DEPLOY_PATH="${VM_DEPLOY_PATH:-~/zapgaze}"
+          ssh -o StrictHostKeyChecking=no ${VM_USER}@${VM_HOST} << EOF
+            set -e
+            cd ${DEPLOY_PATH}
+            
+            echo "🔄 Pulling latest code..."
+            git fetch origin
+            git reset --hard origin/master
+            git clean -fd
+            
+            echo "🐳 Stopping existing containers..."
+            docker-compose down || true
+            
+            echo "🔨 Building and starting containers..."
+            docker-compose up -d --build
+            
+            echo "✅ Deployment complete!"
+            
+            # Show running containers
+            docker-compose ps
+            
+            # Show recent logs
+            echo "📋 Recent container logs:"
+            docker-compose logs --tail=20
+          EOF
