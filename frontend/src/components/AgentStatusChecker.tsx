@@ -88,16 +88,7 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
     return "unknown";
   };
 
-  const isLocalDevelopment = () => {
-    return window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-  };
-
   const getDownloadUrl = (platform: string): string => {
-    // For local development, provide instructions instead of download link
-    if (isLocalDevelopment()) {
-      return ""; // Will show instructions instead
-    }
-
     // GitHub Releases URL - Direct link to your release
     // Update this URL after you create the GitHub release
     const baseUrl = "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.1";
@@ -116,7 +107,6 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
 
   const handleDownload = () => {
     const platform = getPlatform();
-    const downloadUrl = getDownloadUrl(platform);
 
     if (platform === "unknown") {
       // Show all platform options
@@ -124,16 +114,8 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
       return;
     }
 
-    // For local development, show instructions
-    if (isLocalDevelopment()) {
-      setShowDownload(true);
-      return;
-    }
-
-    // Open GitHub release URL - browser will handle the download
-    if (downloadUrl) {
-      window.open(downloadUrl, "_blank");
-    }
+    // Show download options
+    setShowDownload(true);
   };
 
   if (status === "checking") {
@@ -153,61 +135,6 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
         sx={{ display: "flex", alignItems: "center" }}
       >
         <Typography variant="body2">Agent connected and ready</Typography>
-      </Alert>
-    );
-  }
-
-  // CORS error - browser blocking localhost access
-  if (corsError) {
-    return (
-      <Alert severity="error" icon={<ErrorIcon />} sx={{ mb: 2 }}>
-        <Typography variant="body2" sx={{ mb: 1, fontWeight: "bold" }}>
-          Browser Security Restriction Detected
-        </Typography>
-        <Typography variant="body2" sx={{ mb: 2 }}>
-          Your browser is blocking access to the local agent because the app is served from a remote server.
-          To fix this, you need to access the app via localhost:
-        </Typography>
-        <Box component="ol" sx={{ pl: 3, mb: 2 }}>
-          <li>
-            <Typography variant="body2" sx={{ mb: 1 }}>
-              Set up SSH port forwarding from your local machine:
-            </Typography>
-            <Box
-              component="pre"
-              sx={{
-                bgcolor: "grey.100",
-                p: 1,
-                borderRadius: 1,
-                fontSize: "0.875rem",
-                overflow: "auto",
-                mb: 1,
-              }}
-            >
-              ssh -L 5173:localhost:5173 -L 9000:localhost:9000 azureuser@20.74.82.26
-            </Box>
-          </li>
-          <li>
-            <Typography variant="body2" sx={{ mb: 1 }}>
-              Then open the app in a new tab at:{" "}
-              <strong>http://localhost:5173</strong>
-            </Typography>
-          </li>
-          <li>
-            <Typography variant="body2" sx={{ mb: 1 }}>
-              <strong>Important:</strong> The command above forwards both the frontend (port 5173) 
-              and the agent (port 9000) so the app can communicate with your local agent.
-            </Typography>
-          </li>
-          <li>
-            <Typography variant="body2">
-              Make sure the ZapGaze Agent is running on your local machine.
-            </Typography>
-          </li>
-        </Box>
-        <Typography variant="body2" sx={{ fontSize: "0.875rem", color: "text.secondary" }}>
-          This is a browser security feature that prevents remote websites from accessing your localhost.
-        </Typography>
       </Alert>
     );
   }
@@ -233,71 +160,38 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
 
       {showDownload && (
         <Box sx={{ mt: 2, p: 2, bgcolor: "background.paper", borderRadius: 1 }}>
-          {isLocalDevelopment() ? (
-            <>
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                Local Development Instructions:
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 2 }}>
-                For local testing, use the executable you built:
-              </Typography>
-              <Box
-                component="pre"
-                sx={{
-                  bgcolor: "grey.100",
-                  p: 1,
-                  borderRadius: 1,
-                  fontSize: "0.875rem",
-                  overflow: "auto",
-                }}
-              >
-                {getPlatform() === "mac" || getPlatform() === "linux"
-                  ? "./dist/ZapGazeAgent"
-                  : "dist\\ZapGazeAgent.exe"}
-              </Box>
-              <Typography
-                variant="body2"
-                sx={{ mt: 2, fontSize: "0.875rem", color: "text.secondary" }}
-              >
-                Run this command in your terminal from the project root directory.
-              </Typography>
-            </>
-          ) : (
-            <>
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                Download for your platform:
-              </Typography>
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                <Button
-                  variant="outlined"
-                  onClick={() => {
-                    const url = getDownloadUrl("windows");
-                    if (url) window.open(url, "_blank");
-                  }}
-                >
-                  Windows (.exe)
-                </Button>
-                <Button
-                  variant="outlined"
-                  onClick={() => {
-                    const url = getDownloadUrl("mac");
-                    if (url) window.open(url, "_blank");
-                  }}
-                >
-                  macOS
-                </Button>
-                <Button
-                  variant="outlined"
-                  onClick={() => {
-                    const url = getDownloadUrl("linux");
-                    if (url) window.open(url, "_blank");
-                  }}
-                >
-                  Linux
-                </Button>
-              </Box>
-            </>
-          )}
+          <Typography variant="subtitle2" sx={{ mb: 1 }}>
+            Download for your platform:
+          </Typography>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+            <Button
+              variant="outlined"
+              onClick={() => {
+                const url = getDownloadUrl("windows");
+                if (url) window.open(url, "_blank");
+              }}
+            >
+              Windows (.exe)
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={() => {
+                const url = getDownloadUrl("mac");
+                if (url) window.open(url, "_blank");
+              }}
+            >
+              macOS
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={() => {
+                const url = getDownloadUrl("linux");
+                if (url) window.open(url, "_blank");
+              }}
+            >
+              Linux
+            </Button>
+          </Box>
         </Box>
       )}
     </Box>
