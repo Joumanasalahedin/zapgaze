@@ -36,13 +36,11 @@ app.include_router(users.router, prefix="/users", tags=["users"])
 # Intake and session control
 app.include_router(intake.router, prefix="/intake", tags=["intake"])
 app.include_router(session.router, prefix="/session", tags=["session"])
-app.include_router(session_events.router, prefix="/session",
-                   tags=["session-events"])
+app.include_router(session_events.router, prefix="/session", tags=["session-events"])
 
 # Calibration & Acquisition data endpoints
 app.include_router(calibration.router, tags=["calibration"])
-app.include_router(acquisition.router,
-                   prefix="/acquisition", tags=["acquisition"])
+app.include_router(acquisition.router, prefix="/acquisition", tags=["acquisition"])
 
 # Results & reporting
 app.include_router(results.router, prefix="/results", tags=["results"])

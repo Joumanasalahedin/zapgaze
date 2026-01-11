@@ -144,8 +144,8 @@ const TestPage: FC = () => {
       ) {
         setCalibrationError(
           "Browser security restriction: You need to access the app via localhost with SSH port forwarding. " +
-          "Run: ssh -L 5173:localhost:5173 -L 9000:localhost:9000 azureuser@20.74.82.26 " +
-          "then open http://localhost:5173"
+            "Run: ssh -L 5173:localhost:5173 -L 9000:localhost:9000 azureuser@20.74.82.26 " +
+            "then open http://localhost:5173"
         );
       } else {
         setCalibrationError(
@@ -755,7 +755,7 @@ const TestPage: FC = () => {
         console.error("Failed to stop acquisition:", error);
         // Continue anyway - try to stop session
       }
-      
+
       // Stop the session
       if (sessionUid) {
         try {
@@ -767,7 +767,7 @@ const TestPage: FC = () => {
       } else {
         console.warn("No session UID available to stop session");
       }
-      
+
       // Compute features if session was stopped successfully
       if (!stopSessionError && sessionUid) {
         await computeSessionFeatures();
@@ -925,7 +925,8 @@ const TestPage: FC = () => {
                 <p>Tips:</p>
                 <ul>
                   <li>
-                    Please make sure the monitor with the webcam is in the center of your field of view,
+                    Please make sure the monitor with the webcam is in the center of your field of
+                    view,
                     {"\u00A0"}
                     and is the same as the one you are looking at.
                   </li>

@@ -2,6 +2,7 @@
 Agent registration and status API
 Allows agents to register with the backend and frontend to check agent status
 """
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from datetime import datetime, timedelta
@@ -66,17 +67,21 @@ def agent_heartbeat(heartbeat: dict):
     session_uid = heartbeat.get("session_uid")
     agent_id = heartbeat.get("agent_id")
     agent_key = session_uid or agent_id or "default"
-    
+
     # Check if agent was stopped (unregistered after session stop)
     # Check both session_uid and agent_id in case they're different
-    if agent_key in stopped_agents or (session_uid and session_uid in stopped_agents) or (agent_id and agent_id in stopped_agents):
+    if (
+        agent_key in stopped_agents
+        or (session_uid and session_uid in stopped_agents)
+        or (agent_id and agent_id in stopped_agents)
+    ):
         # Don't re-register, tell agent to stop
         print(f"🛑 Agent {agent_key} is in stopped_agents, telling it to stop")
         return {
             "status": "stopped",
             "message": "Agent unregistered after session stop. Please stop sending heartbeats.",
         }
-    
+
     # Re-register agent (update timestamp)
     # Register with both keys if both are provided
     registered_agents[agent_key] = datetime.now()
@@ -104,7 +109,7 @@ def agent_heartbeat(heartbeat: dict):
         keys_to_check.append(session_uid)
     if agent_id and agent_id != agent_key:
         keys_to_check.append(agent_id)
-    
+
     # Collect commands from all keys and clear them
     for key in keys_to_check:
         if key in agent_commands:
@@ -186,7 +191,7 @@ def proxy_calibrate_start():
     if not active_agents:
         raise HTTPException(
             status_code=503,
-            detail=f"No active agent found. Registered agents: {list(registered_agents.keys())}"
+            detail=f"No active agent found. Registered agents: {list(registered_agents.keys())}",
         )
 
     # Use the first active agent
@@ -215,14 +220,16 @@ def proxy_calibrate_start():
             if result["success"]:
                 return result["result"]
             else:
-                raise HTTPException(status_code=500, detail=result.get(
-                    "error", "Command failed"))
+                raise HTTPException(
+                    status_code=500, detail=result.get("error", "Command failed")
+                )
         if i % 10 == 0:  # Log every second
             print(f"⏳ Still waiting... ({i/10:.1f}s)")
 
     print(f"❌ Timeout waiting for command {command_id}")
     raise HTTPException(
-        status_code=504, detail="Command timeout - agent may not be responding")
+        status_code=504, detail="Command timeout - agent may not be responding"
+    )
 
 
 @router.post("/calibrate/point")
@@ -260,14 +267,16 @@ def proxy_calibrate_point(data: dict):
             if result["success"]:
                 return result["result"]
             else:
-                raise HTTPException(status_code=500, detail=result.get(
-                    "error", "Command failed"))
+                raise HTTPException(
+                    status_code=500, detail=result.get("error", "Command failed")
+                )
         if i % 10 == 0:  # Log every second
             print(f"⏳ Still waiting... ({i/10:.1f}s)")
 
     print(f"❌ Timeout waiting for command {command_id}")
     raise HTTPException(
-        status_code=504, detail="Command timeout - agent may not be responding")
+        status_code=504, detail="Command timeout - agent may not be responding"
+    )
 
 
 @router.post("/calibrate/finish")
@@ -303,8 +312,9 @@ def proxy_calibrate_finish():
             if result["success"]:
                 return result["result"]
             else:
-                raise HTTPException(status_code=500, detail=result.get(
-                    "error", "Command failed"))
+                raise HTTPException(
+                    status_code=500, detail=result.get("error", "Command failed")
+                )
 
     raise HTTPException(status_code=504, detail="Command timeout")
 
@@ -318,10 +328,10 @@ def proxy_start_acquisition(data: dict):
         for key, last_heartbeat in registered_agents.items()
         if now - last_heartbeat <= HEARTBEAT_TIMEOUT
     ]
-    
+
     if not active_agents:
         raise HTTPException(status_code=503, detail="No active agent found")
-    
+
     agent_key = active_agents[0]
     command_id = str(uuid.uuid4())
     command = {
@@ -329,11 +339,11 @@ def proxy_start_acquisition(data: dict):
         "type": "start_acquisition",
         "params": data,
     }
-    
+
     if agent_key not in agent_commands:
         agent_commands[agent_key] = []
     agent_commands[agent_key].append(command)
-    
+
     # Wait for result (acquisition start is quick)
     print(f"⏳ Waiting for command {command_id} result...")
     for i in range(50):  # 50 * 0.1s = 5 seconds
@@ -344,12 +354,16 @@ def proxy_start_acquisition(data: dict):
             if result["success"]:
                 return result["result"]
             else:
-                raise HTTPException(status_code=500, detail=result.get("error", "Command failed"))
+                raise HTTPException(
+                    status_code=500, detail=result.get("error", "Command failed")
+                )
         if i % 10 == 0:  # Log every second
             print(f"⏳ Still waiting... ({i/10:.1f}s)")
-    
+
     print(f"❌ Timeout waiting for command {command_id}")
-    raise HTTPException(status_code=504, detail="Command timeout - agent may not be responding")
+    raise HTTPException(
+        status_code=504, detail="Command timeout - agent may not be responding"
+    )
 
 
 @router.post("/stop")
@@ -361,10 +375,10 @@ def proxy_stop_acquisition():
         for key, last_heartbeat in registered_agents.items()
         if now - last_heartbeat <= HEARTBEAT_TIMEOUT
     ]
-    
+
     if not active_agents:
         raise HTTPException(status_code=503, detail="No active agent found")
-    
+
     # Queue command for ALL active agent keys to ensure it's received
     # (agent might be registered with multiple keys: agent_id, session_uid, etc.)
     command_id = str(uuid.uuid4())
@@ -373,14 +387,14 @@ def proxy_stop_acquisition():
         "type": "stop_acquisition",
         "params": {},
     }
-    
+
     # Queue for all active agent keys
     for agent_key in active_agents:
         if agent_key not in agent_commands:
             agent_commands[agent_key] = []
         agent_commands[agent_key].append(command)
         print(f"📤 Queued stop command {command_id} for agent key: {agent_key}")
-    
+
     # Wait for result (acquisition stop is quick)
     print(f"⏳ Waiting for command {command_id} result...")
     for i in range(50):  # 50 * 0.1s = 5 seconds
@@ -391,9 +405,13 @@ def proxy_stop_acquisition():
             if result["success"]:
                 return result["result"]
             else:
-                raise HTTPException(status_code=500, detail=result.get("error", "Command failed"))
+                raise HTTPException(
+                    status_code=500, detail=result.get("error", "Command failed")
+                )
         if i % 10 == 0:  # Log every second
             print(f"⏳ Still waiting... ({i/10:.1f}s)")
-    
+
     print(f"❌ Timeout waiting for command {command_id}")
-    raise HTTPException(status_code=504, detail="Command timeout - agent may not be responding")
+    raise HTTPException(
+        status_code=504, detail="Command timeout - agent may not be responding"
+    )

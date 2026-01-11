@@ -136,7 +136,9 @@ const SingleResultPage = () => {
   useEffect(() => {
     if (!sessionUid) return;
     setLoading(true);
-        fetch(`${import.meta.env.VITE_API_URL || "http://20.74.82.26:8000"}/features/sessions/${sessionUid}`)
+    fetch(
+      `${import.meta.env.VITE_API_URL || "http://20.74.82.26:8000"}/features/sessions/${sessionUid}`
+    )
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch result");
         return res.json();

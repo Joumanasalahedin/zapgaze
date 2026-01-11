@@ -65,11 +65,14 @@ const IntakeQuestionnairePage: FC = () => {
         birthdate,
         answers: scoredAnswers,
       };
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://20.74.82.26:8000"}/intake/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL || "http://20.74.82.26:8000"}/intake/`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
       if (!res.ok) throw new Error("Failed to submit intake.");
       const data = await res.json();
       const intakeDataWithTimestamp = {

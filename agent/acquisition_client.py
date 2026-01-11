@@ -43,7 +43,9 @@ def parse_args():
     return parser.parse_args()
 
 
-def run_acquisition(session_uid, api_url, fps, batch_size=None, stop_event=None, camera_ref_holder=None):
+def run_acquisition(
+    session_uid, api_url, fps, batch_size=None, stop_event=None, camera_ref_holder=None
+):
     """Run acquisition with direct parameters (for use in threads or standalone)"""
     camera = CameraManager()
     adapter = MediaPipeAdapter()
@@ -56,17 +58,18 @@ def run_acquisition(session_uid, api_url, fps, batch_size=None, stop_event=None,
         try:
             # Import here to avoid circular import
             import sys
+
             # Get the local_agent module that's already loaded
-            if 'agent.local_agent' in sys.modules:
-                local_agent_module = sys.modules['agent.local_agent']
-                if hasattr(local_agent_module, 'app'):
+            if "agent.local_agent" in sys.modules:
+                local_agent_module = sys.modules["agent.local_agent"]
+                if hasattr(local_agent_module, "app"):
                     local_agent_module.app.state.acquisition_camera = camera
                     logging.info(
-                        "✅ Stored camera reference in app.state.acquisition_camera")
+                        "✅ Stored camera reference in app.state.acquisition_camera"
+                    )
         except Exception as e:
             # If we can't store in app.state, that's okay - camera_ref_holder will work
-            logging.warning(
-                f"Could not store camera reference in app.state: {e}")
+            logging.warning(f"Could not store camera reference in app.state: {e}")
 
     camera.start_camera()
     adapter.initialize()
@@ -79,8 +82,7 @@ def run_acquisition(session_uid, api_url, fps, batch_size=None, stop_event=None,
     base = api_url.rstrip("/")
     batch_url = base.rsplit("/", 1)[0] + "/batch"
 
-    logging.info(
-        f"Starting acquisition client: {fps} FPS, batch size {batch_size}")
+    logging.info(f"Starting acquisition client: {fps} FPS, batch size {batch_size}")
 
     buffer = []
     try:
@@ -95,15 +97,15 @@ def run_acquisition(session_uid, api_url, fps, batch_size=None, stop_event=None,
             except RuntimeError as e:
                 # Camera was released (like calibration_finish does)
                 if "Camera not started" in str(e) or "Failed to read frame" in str(e):
-                    logging.info(
-                        "Camera was released, stopping acquisition...")
+                    logging.info("Camera was released, stopping acquisition...")
                     break
                 raise  # Re-raise if it's a different error
 
             # Check stop flag again after potentially blocking operation
             if stop_event and stop_event.is_set():
                 logging.info(
-                    "Stop flag detected after get_frame, stopping acquisition...")
+                    "Stop flag detected after get_frame, stopping acquisition..."
+                )
                 break
 
             result = adapter.analyze_frame(frame)
@@ -134,11 +136,11 @@ def run_acquisition(session_uid, api_url, fps, batch_size=None, stop_event=None,
                 # Check stop flag before sending batch
                 if stop_event and stop_event.is_set():
                     logging.info(
-                        "Stop flag detected before batch send, stopping acquisition...")
+                        "Stop flag detected before batch send, stopping acquisition..."
+                    )
                     break
 
-                logging.info(
-                    f"Sending batch of {len(buffer)} records to backend")
+                logging.info(f"Sending batch of {len(buffer)} records to backend")
                 try:
                     resp = requests.post(batch_url, json=buffer, timeout=5)
                     resp.raise_for_status()
@@ -152,15 +154,15 @@ def run_acquisition(session_uid, api_url, fps, batch_size=None, stop_event=None,
             if stop_event:
                 # Check if already set before waiting
                 if stop_event.is_set():
-                    logging.info(
-                        "Stop flag already set, stopping acquisition...")
+                    logging.info("Stop flag already set, stopping acquisition...")
                     break
                 # stop_event.wait() returns True if the event was set during the wait
                 # It returns False if timeout occurred without event being set
                 event_set = stop_event.wait(interval)
                 if event_set:
                     logging.info(
-                        "Stop flag detected during sleep, stopping acquisition...")
+                        "Stop flag detected during sleep, stopping acquisition..."
+                    )
                     break
             else:
                 # If no stop_event provided, use regular sleep
@@ -171,6 +173,7 @@ def run_acquisition(session_uid, api_url, fps, batch_size=None, stop_event=None,
     except Exception as e:
         logging.error(f"Acquisition error: {e}")
         import traceback
+
         traceback.print_exc()
     finally:
         # Flush remaining buffer before stopping
@@ -186,9 +189,10 @@ def run_acquisition(session_uid, api_url, fps, batch_size=None, stop_event=None,
         # Clear camera reference from app.state (like calibration does)
         try:
             import sys
-            if 'agent.local_agent' in sys.modules:
-                local_agent_module = sys.modules['agent.local_agent']
-                if hasattr(local_agent_module, 'app'):
+
+            if "agent.local_agent" in sys.modules:
+                local_agent_module = sys.modules["agent.local_agent"]
+                if hasattr(local_agent_module, "app"):
                     local_agent_module.app.state.acquisition_camera = None
         except:
             pass  # If we can't clear it, that's okay

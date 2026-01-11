@@ -32,9 +32,7 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
 
   const checkAgentStatus = async () => {
     // Use backend API if provided, otherwise fall back to direct agent URL
-    const statusUrl = apiBaseUrl 
-      ? `${apiBaseUrl}/agent/status`
-      : `${agentUrl}/status`;
+    const statusUrl = apiBaseUrl ? `${apiBaseUrl}/agent/status` : `${agentUrl}/status`;
 
     try {
       const response = await fetch(statusUrl, {

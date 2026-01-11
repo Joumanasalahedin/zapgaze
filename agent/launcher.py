@@ -76,14 +76,17 @@ def start_agent():
         try:
             # Try importing agent module first
             import agent
+
             print(f"✅ Imported agent module from: {agent.__file__}")
             from agent.local_agent import app
+
             print("✅ Successfully imported agent app")
             # Run with app object instead of string
             uvicorn.run(app, host="0.0.0.0", port=9000, log_level="info")
         except ImportError as e:
             print(f"⚠️  Direct import failed: {e}")
             import traceback
+
             traceback.print_exc()
             print("\n   Trying alternative import methods...")
             # Try importing from the bundle directory
@@ -95,9 +98,9 @@ def start_agent():
                         sys.path.insert(0, str(bundle_path))
                     # Try importing again
                     from agent.local_agent import app
+
                     print("✅ Imported from bundle directory")
-                    uvicorn.run(app, host="0.0.0.0",
-                                port=9000, log_level="info")
+                    uvicorn.run(app, host="0.0.0.0", port=9000, log_level="info")
                 else:
                     raise
             except:

@@ -157,7 +157,8 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
                     variant="outlined"
                     startIcon={<DownloadIcon />}
                     onClick={() => {
-                      const baseUrl = "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.1";
+                      const baseUrl =
+                        "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.1";
                       window.open(`${baseUrl}/ZapGazeAgent.exe`, "_blank");
                       setActiveStep(1);
                     }}
@@ -168,7 +169,8 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
                     variant="outlined"
                     startIcon={<DownloadIcon />}
                     onClick={() => {
-                      const baseUrl = "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.1";
+                      const baseUrl =
+                        "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.1";
                       window.open(`${baseUrl}/ZapGazeAgent`, "_blank");
                       setActiveStep(1);
                     }}
@@ -179,7 +181,8 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
                     variant="outlined"
                     startIcon={<DownloadIcon />}
                     onClick={() => {
-                      const baseUrl = "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.1";
+                      const baseUrl =
+                        "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.1";
                       window.open(`${baseUrl}/ZapGazeAgent-linux`, "_blank");
                       setActiveStep(1);
                     }}
@@ -214,7 +217,8 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
                     <Box>
                       <Alert severity="warning" sx={{ mb: 2 }}>
                         <Typography variant="body2" sx={{ mb: 1 }}>
-                          <strong>macOS Security Warning:</strong> You'll see a warning saying "ZapGazeAgent" cannot be verified. This is normal for unsigned apps.
+                          <strong>macOS Security Warning:</strong> You'll see a warning saying
+                          "ZapGazeAgent" cannot be verified. This is normal for unsigned apps.
                         </Typography>
                       </Alert>
                       <Typography variant="body2" sx={{ mb: 1, fontWeight: "bold" }}>
@@ -222,13 +226,20 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
                       </Typography>
                       <Box component="ol" sx={{ marginTop: 1, paddingLeft: 3, mb: 2 }}>
                         <li>
-                          <Typography variant="body2">Right-click (or Control+click) on the downloaded "ZapGazeAgent" file</Typography>
+                          <Typography variant="body2">
+                            Right-click (or Control+click) on the downloaded "ZapGazeAgent" file
+                          </Typography>
                         </li>
                         <li>
-                          <Typography variant="body2">Select <strong>"Open"</strong> from the context menu</Typography>
+                          <Typography variant="body2">
+                            Select <strong>"Open"</strong> from the context menu
+                          </Typography>
                         </li>
                         <li>
-                          <Typography variant="body2">In the security dialog that appears, click <strong>"Open"</strong> (not "Move to Trash")</Typography>
+                          <Typography variant="body2">
+                            In the security dialog that appears, click <strong>"Open"</strong> (not
+                            "Move to Trash")
+                          </Typography>
                         </li>
                       </Box>
                       <Typography variant="body2" sx={{ mb: 1, fontWeight: "bold" }}>
@@ -236,10 +247,14 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
                       </Typography>
                       <Box component="ol" sx={{ marginTop: 1, paddingLeft: 3, mb: 1 }}>
                         <li>
-                          <Typography variant="body2">Open Terminal (Applications → Utilities → Terminal)</Typography>
+                          <Typography variant="body2">
+                            Open Terminal (Applications → Utilities → Terminal)
+                          </Typography>
                         </li>
                         <li>
-                          <Typography variant="body2">Navigate to your Downloads folder:</Typography>
+                          <Typography variant="body2">
+                            Navigate to your Downloads folder:
+                          </Typography>
                           <Box
                             component="pre"
                             sx={{
@@ -255,7 +270,9 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
                           </Box>
                         </li>
                         <li>
-                          <Typography variant="body2">Make the file executable and run it:</Typography>
+                          <Typography variant="body2">
+                            Make the file executable and run it:
+                          </Typography>
                           <Box
                             component="pre"
                             sx={{
@@ -267,14 +284,15 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
                               mb: 0.5,
                             }}
                           >
-                            chmod +x ZapGazeAgent{'\n'}./ZapGazeAgent
+                            chmod +x ZapGazeAgent{"\n"}./ZapGazeAgent
                           </Box>
                         </li>
                       </Box>
                       <Alert severity="info" sx={{ mt: 2 }}>
                         <Typography variant="body2" sx={{ fontSize: "0.875rem" }}>
-                          <strong>Note:</strong> After using Method 1 the first time, you can double-click the file normally. 
-                          If the file opens in TextEdit, use Method 2 instead.
+                          <strong>Note:</strong> After using Method 1 the first time, you can
+                          double-click the file normally. If the file opens in TextEdit, use Method
+                          2 instead.
                         </Typography>
                       </Alert>
                     </Box>
