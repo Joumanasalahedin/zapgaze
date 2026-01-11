@@ -44,7 +44,7 @@ def session_start(req: SessionStartRequest, db: Session = Depends(get_db)):
 
 
 def _stop_agent_acquisition():
-    """Helper function to stop agent acquisition (non-blocking, fails silently)"""
+    """Helper function to stop agent acquisition and unregister agent (non-blocking, fails silently)"""
     try:
         # Import here to avoid circular imports
         from app.api import agent as agent_module
@@ -63,6 +63,8 @@ def _stop_agent_acquisition():
             return
         
         agent_key = active_agents[0]
+        
+        # Queue stop command
         command_id = str(uuid.uuid4())
         command = {
             "command_id": command_id,
@@ -76,8 +78,17 @@ def _stop_agent_acquisition():
         
         print(f"📤 Queued stop acquisition command {command_id} for agent {agent_key}")
         
-        # Don't wait for result - just queue it and let it happen asynchronously
-        # The agent will pick it up on the next heartbeat
+        # Unregister the agent so backend stops checking for heartbeats
+        # This happens after a short delay to allow the stop command to be processed
+        import threading
+        def unregister_after_delay():
+            time.sleep(2)  # Wait 2 seconds for stop command to be processed
+            if agent_key in agent_module.registered_agents:
+                del agent_module.registered_agents[agent_key]
+                print(f"🔌 Unregistered agent {agent_key} after session stop")
+        
+        threading.Thread(target=unregister_after_delay, daemon=True).start()
+        
     except Exception as e:
         print(f"⚠️  Failed to stop agent acquisition: {e}")
         # Fail silently - don't block session stop

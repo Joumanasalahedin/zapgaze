@@ -17,6 +17,7 @@ task_proc = None
 task_thread = None
 heartbeat_thread = None
 agent_id = str(uuid.uuid4())  # Unique agent identifier
+acquisition_stop_flag = threading.Event()  # Flag to signal acquisition to stop
 
 
 def send_heartbeat():
@@ -55,7 +56,7 @@ def send_heartbeat():
 
 def execute_command(command: dict, backend_url: str):
     """Execute a command from the backend"""
-    global task_proc, task_thread  # Declare globals at the top of the function
+    global task_proc, task_thread, acquisition_stop_flag  # Declare all globals at the top
 
     command_id = command.get("command_id")
     command_type = command.get("type")
@@ -159,6 +160,9 @@ def execute_command(command: dict, backend_url: str):
                 os.path.join(os.getcwd(), "agent", "acquisition_client.py")
             ):
                 # Running as executable - use thread
+                # Reset stop flag before starting new acquisition
+                acquisition_stop_flag.clear()
+
                 task_thread = threading.Thread(
                     target=run_acquisition_client,
                     args=(session_uid, api_url, fps),
@@ -194,6 +198,11 @@ def execute_command(command: dict, backend_url: str):
             # Stop acquisition using the same logic as the /stop endpoint
             # Stop thread mode
             if task_thread and task_thread.is_alive():
+                # Set stop flag to signal the acquisition loop to exit
+                acquisition_stop_flag.set()
+                print("🛑 Set stop flag for acquisition thread")
+                # Wait a moment for the thread to see the flag
+                time.sleep(0.5)
                 task_thread = None
                 result = {"status": "acquisition_stopped", "mode": "thread"}
             # Stop subprocess mode
@@ -209,7 +218,11 @@ def execute_command(command: dict, backend_url: str):
                 result = {"status": "acquisition_stopped",
                           "mode": "subprocess"}
             else:
-                raise Exception("No acquisition in progress")
+                # Acquisition already stopped or never started - this is fine, just return success
+                print(
+                    "ℹ️  Stop command received but no acquisition is running (already stopped)")
+                result = {"status": "acquisition_stopped",
+                          "mode": "already_stopped"}
         else:
             raise Exception(f"Unknown command type: {command_type}")
 
@@ -318,10 +331,17 @@ class CalPointRequest(BaseModel):
 
 def run_acquisition_client(session_uid, api_url, fps):
     """Run acquisition client in a thread"""
+    global acquisition_stop_flag
+
     try:
         from agent.acquisition_client import run_acquisition
 
-        run_acquisition(session_uid, api_url, fps)
+        # Reset stop flag before starting
+        acquisition_stop_flag.clear()
+
+        # Pass stop flag to acquisition function
+        run_acquisition(session_uid, api_url, fps,
+                        stop_event=acquisition_stop_flag)
     except Exception as e:
         import logging
 
@@ -333,7 +353,7 @@ def run_acquisition_client(session_uid, api_url, fps):
 
 @app.post("/start")
 def start_acquisition(req: StartRequest):
-    global task_proc, task_thread
+    global task_proc, task_thread, acquisition_stop_flag
 
     # Check if already running (either subprocess or thread)
     if task_thread and task_thread.is_alive():
@@ -348,6 +368,9 @@ def start_acquisition(req: StartRequest):
         os.path.join(os.getcwd(), "agent", "acquisition_client.py")
     ):
         # Running as executable - use thread
+        # Reset stop flag before starting new acquisition
+        acquisition_stop_flag.clear()
+
         task_thread = threading.Thread(
             target=run_acquisition_client,
             args=(req.session_uid, req.api_url, req.fps),
@@ -380,13 +403,15 @@ def start_acquisition(req: StartRequest):
 
 @app.post("/stop")
 def stop_acquisition():
-    global task_proc, task_thread
+    global task_proc, task_thread, acquisition_stop_flag
 
     # Stop thread mode
     if task_thread and task_thread.is_alive():
-        # Thread will stop when acquisition_client exits (KeyboardInterrupt handling)
-        # We can't directly kill a thread, but the acquisition loop should check a flag
-        # For now, we'll just mark it as stopped
+        # Set stop flag to signal the acquisition loop to exit
+        acquisition_stop_flag.set()
+        print("🛑 Set stop flag for acquisition thread")
+        # Wait a moment for the thread to see the flag
+        time.sleep(0.5)
         task_thread = None
         return {"status": "acquisition_stopped", "mode": "thread"}
 

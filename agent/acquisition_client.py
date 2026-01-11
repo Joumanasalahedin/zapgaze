@@ -43,7 +43,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def run_acquisition(session_uid, api_url, fps, batch_size=None):
+def run_acquisition(session_uid, api_url, fps, batch_size=None, stop_event=None):
     """Run acquisition with direct parameters (for use in threads or standalone)"""
     camera = CameraManager()
     adapter = MediaPipeAdapter()
@@ -64,6 +64,10 @@ def run_acquisition(session_uid, api_url, fps, batch_size=None):
     buffer = []
     try:
         while True:
+            # Check stop flag if provided
+            if stop_event and stop_event.is_set():
+                logging.info("Stop flag detected, stopping acquisition...")
+                break
             frame = camera.get_frame()
             result = adapter.analyze_frame(frame)
 
@@ -100,9 +104,20 @@ def run_acquisition(session_uid, api_url, fps, batch_size=None):
                 buffer.clear()
 
             time.sleep(interval)
+            
+            # Check stop flag again after sleep
+            if stop_event and stop_event.is_set():
+                logging.info("Stop flag detected, stopping acquisition...")
+                break
 
     except KeyboardInterrupt:
         logging.info("Interrupted by user, flushing remaining data...")
+    except Exception as e:
+        logging.error(f"Acquisition error: {e}")
+        import traceback
+        traceback.print_exc()
+    finally:
+        # Flush remaining buffer before stopping
         if buffer:
             try:
                 resp = requests.post(batch_url, json=buffer, timeout=5)
@@ -110,12 +125,7 @@ def run_acquisition(session_uid, api_url, fps, batch_size=None):
                 logging.info(f"Sent final batch of {len(buffer)} records")
             except Exception as e:
                 logging.warning(f"Failed to send final batch: {e}")
-    except Exception as e:
-        logging.error(f"Acquisition error: {e}")
-        import traceback
-
-        traceback.print_exc()
-    finally:
+        
         camera.release_camera()
         logging.info("Camera released, exiting.")
 
