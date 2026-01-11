@@ -36,10 +36,14 @@ jobs:
           VM_USER: ${{ secrets.VM_USER }}
           VM_DEPLOY_PATH: ${{ secrets.VM_DEPLOY_PATH }}
         run: |
-          DEPLOY_PATH="${VM_DEPLOY_PATH:-~/zapgaze}"
-          ssh -o StrictHostKeyChecking=no ${VM_USER}@${VM_HOST} << EOF
+          if [ -z "${VM_DEPLOY_PATH}" ]; then
+            DEPLOY_PATH="~/zapgaze"
+          else
+            DEPLOY_PATH="${VM_DEPLOY_PATH}"
+          fi
+          ssh -o StrictHostKeyChecking=no ${VM_USER}@${VM_HOST} "export DEPLOY_PATH='${DEPLOY_PATH}' && bash -s" << 'REMOTE_SCRIPT'
             set -e
-            cd ${DEPLOY_PATH}
+            cd "${DEPLOY_PATH}"
             
             echo "🔄 Pulling latest code..."
             git fetch origin
@@ -67,4 +71,4 @@ jobs:
             # Show recent logs
             echo "📋 Recent container logs:"
             ${DOCKER_COMPOSE} logs --tail=20
-          EOF
+          REMOTE_SCRIPT
