@@ -52,8 +52,7 @@ def send_heartbeat():
                 # Check for pending commands
                 commands = data.get("commands", [])
                 if commands:
-                    print(
-                        f"📥 Received {len(commands)} command(s) from backend")
+                    print(f"📥 Received {len(commands)} command(s) from backend")
                 for command in commands:
                     print(f"⚙️  Executing command: {command.get('type')}")
                     # Execute commands in a separate thread so they don't block heartbeat
@@ -124,8 +123,7 @@ def execute_command(command: dict, backend_url: str):
                     # Try to get frame with a timeout check
                     frame = cam.get_frame()
                     if frame is None:
-                        print(
-                            f"⚠️  Failed to get frame (attempt {attempt + 1})")
+                        print(f"⚠️  Failed to get frame (attempt {attempt + 1})")
                         attempt += 1
                         time.sleep(0.05)  # Short delay before retry
                         continue
@@ -150,20 +148,17 @@ def execute_command(command: dict, backend_url: str):
                     attempt += 1
 
                 except Exception as e:
-                    print(
-                        f"⚠️  Error during calibration sample {attempt + 1}: {e}")
+                    print(f"⚠️  Error during calibration sample {attempt + 1}: {e}")
                     attempt += 1
                     time.sleep(0.05)  # Short delay before retry
                     # Continue trying - don't fail on individual frame errors
 
             if not pts:
-                raise Exception(
-                    f"No eye data captured after {attempt} attempts")
+                raise Exception(f"No eye data captured after {attempt} attempts")
 
             mean_x = sum([p[0] for p in pts]) / len(pts)
             mean_y = sum([p[1] for p in pts]) / len(pts)
-            app.state.cal_data.append(
-                (params["x"], params["y"], mean_x, mean_y))
+            app.state.cal_data.append((params["x"], params["y"], mean_x, mean_y))
 
             result = {
                 "screen_x": params["x"],
@@ -205,8 +200,7 @@ def execute_command(command: dict, backend_url: str):
             transform = {"A": A, "b": b}
 
             with open(
-                os.path.join(os.path.dirname(__file__),
-                             "calibration.json"), "w"
+                os.path.join(os.path.dirname(__file__), "calibration.json"), "w"
             ) as f:
                 json.dump(transform, f)
 
@@ -246,8 +240,7 @@ def execute_command(command: dict, backend_url: str):
                 # Running as script - use subprocess
                 cmd = [
                     "python",
-                    os.path.join(os.getcwd(), "agent",
-                                 "acquisition_client.py"),
+                    os.path.join(os.getcwd(), "agent", "acquisition_client.py"),
                     "--session-uid",
                     session_uid,
                     "--api-url",
@@ -257,8 +250,7 @@ def execute_command(command: dict, backend_url: str):
                 ]
                 env = os.environ.copy()
                 current_dir = os.getcwd()
-                env["PYTHONPATH"] = current_dir + \
-                    ":" + env.get("PYTHONPATH", "")
+                env["PYTHONPATH"] = current_dir + ":" + env.get("PYTHONPATH", "")
                 task_proc = subprocess.Popen(cmd, env=env, cwd=current_dir)
                 result = {
                     "status": "acquisition_started",
@@ -271,8 +263,7 @@ def execute_command(command: dict, backend_url: str):
             print(
                 f"🛑 Stop command received. task_thread: {task_thread}, is_alive: {task_thread.is_alive() if task_thread else 'N/A'}"
             )
-            print(
-                f"🛑 app.state.acquisition_camera: {app.state.acquisition_camera}")
+            print(f"🛑 app.state.acquisition_camera: {app.state.acquisition_camera}")
             # Stop thread mode - use same approach as calibration: directly release camera
             if task_thread and task_thread.is_alive():
                 # Directly release camera (like calibration_finish does)
@@ -301,8 +292,7 @@ def execute_command(command: dict, backend_url: str):
                         traceback.print_exc()
                         # Stop flag already set, so loop will exit on next check
                 else:
-                    print(
-                        "⚠️  No acquisition_camera in app.state, using stop flag only")
+                    print("⚠️  No acquisition_camera in app.state, using stop flag only")
 
                 result = {"status": "acquisition_stopped", "mode": "thread"}
 
@@ -318,15 +308,13 @@ def execute_command(command: dict, backend_url: str):
                         task_proc.kill()
                 finally:
                     task_proc = None
-                result = {"status": "acquisition_stopped",
-                          "mode": "subprocess"}
+                result = {"status": "acquisition_stopped", "mode": "subprocess"}
             else:
                 # Acquisition already stopped or never started - this is fine, just return success
                 print(
                     "ℹ️  Stop command received but no acquisition is running (already stopped)"
                 )
-                result = {"status": "acquisition_stopped",
-                          "mode": "already_stopped"}
+                result = {"status": "acquisition_stopped", "mode": "already_stopped"}
 
             # Clear session UID when acquisition stops
             current_session_uid = None
@@ -429,8 +417,7 @@ app.state.acquisition_camera = None
 class StartRequest(BaseModel):
     session_uid: str
     api_url: str = (
-        os.getenv("BACKEND_URL", "http://20.74.82.26:8000") +
-        "/acquisition/batch"
+        os.getenv("BACKEND_URL", "http://20.74.82.26:8000") + "/acquisition/batch"
     )
     fps: float = 20.0
 
@@ -484,11 +471,9 @@ def start_acquisition(req: StartRequest):
 
     # Check if already running (either subprocess or thread)
     if task_thread and task_thread.is_alive():
-        raise HTTPException(
-            status_code=400, detail="Acquisition already running.")
+        raise HTTPException(status_code=400, detail="Acquisition already running.")
     if task_proc and task_proc.poll() is None:
-        raise HTTPException(
-            status_code=400, detail="Acquisition already running.")
+        raise HTTPException(status_code=400, detail="Acquisition already running.")
 
     # Check if we're running as a standalone executable (PyInstaller)
     if getattr(sys, "frozen", False) or not os.path.exists(
