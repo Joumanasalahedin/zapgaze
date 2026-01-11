@@ -66,6 +66,7 @@ const TestPage: FC = () => {
   const [calibrationError, setCalibrationError] = useState<string | null>(null);
   const [acquisitionStarted, setAcquisitionStarted] = useState(false);
   const [isStartingTest, setIsStartingTest] = useState(false);
+  const [isInitializingCamera, setIsInitializingCamera] = useState(false);
 
   // Agent status state
   const [agentConnected, setAgentConnected] = useState(false);
@@ -118,15 +119,23 @@ const TestPage: FC = () => {
       return;
     }
 
+    // Immediately navigate to calibration page
+    setPhase("calibration");
+    setCalibrationStep(0);
+    setIsInitializingCamera(true);
+    setCalibrationError(null);
+
+    // Start calibration in the background (non-blocking)
     try {
       setIsCalibrating(true);
-      setCalibrationError(null);
       await apiCall(`${CONFIG.API_BASE_URL}/agent/calibrate/start`, {
         method: "POST",
       });
       console.log("Calibration started successfully");
+      setIsInitializingCamera(false);
     } catch (error: any) {
       console.error("Failed to start calibration:", error);
+      setIsInitializingCamera(false);
       const errorMessage = error?.message || "";
       if (
         errorMessage.includes("CORS") ||
@@ -825,7 +834,6 @@ const TestPage: FC = () => {
                 return;
               }
               await startCalibration();
-              setPhase("calibration");
             }}
           />
         </div>
@@ -897,24 +905,36 @@ const TestPage: FC = () => {
         {calibrationStep === 0 && (
           <div className={styles.calibrationInstructions}>
             <h2>Calibration</h2>
-            <p>We need to calibrate your gaze. Please follow the dots as they appear.</p>
-            <p>
-              Press <strong>[Space]</strong> or <strong>[Enter]</strong> to start.
-            </p>
+            {isInitializingCamera ? (
+              <>
+                <div className={styles.loadingMessage}>
+                  <p>Agent connected and initializing camera...</p>
+                  <p>This may take a minute. Please wait.</p>
+                </div>
+                {calibrationError && <div className={styles.errorMessage}>{calibrationError}</div>}
+              </>
+            ) : (
+              <>
+                <p>We need to calibrate your gaze. Please follow the dots as they appear.</p>
+                <p>
+                  Press <strong>[Space]</strong> or <strong>[Enter]</strong> to start.
+                </p>
 
-            {calibrationError && <div className={styles.errorMessage}>{calibrationError}</div>}
+                {calibrationError && <div className={styles.errorMessage}>{calibrationError}</div>}
 
-            <p>Tips:</p>
-            <ul>
-              <li>
-                Please make sure the monitor with the webcam is in the center of your field of view,
-                {"\u00A0"}
-                and is the same as the one you are looking at.
-              </li>
-              <li>
-                Press <strong>[Escape]</strong> at any time to stop the process.
-              </li>
-            </ul>
+                <p>Tips:</p>
+                <ul>
+                  <li>
+                    Please make sure the monitor with the webcam is in the center of your field of view,
+                    {"\u00A0"}
+                    and is the same as the one you are looking at.
+                  </li>
+                  <li>
+                    Press <strong>[Escape]</strong> at any time to stop the process.
+                  </li>
+                </ul>
+              </>
+            )}
           </div>
         )}
 
