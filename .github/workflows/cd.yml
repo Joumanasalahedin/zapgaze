@@ -1,0 +1,71 @@
+name: CD
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+    branches:
+      - master
+
+jobs:
+  deploy:
+    name: Deploy to Azure VM
+    runs-on: ubuntu-latest
+    if: |
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'master'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VM_SSH_PRIVATE_KEY }}
+      
+      - name: Add VM to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts
+      
+      - name: Deploy to VM
+        env:
+          VM_HOST: ${{ secrets.VM_HOST }}
+          VM_USER: ${{ secrets.VM_USER }}
+          VM_DEPLOY_PATH: ${{ secrets.VM_DEPLOY_PATH }}
+        run: |
+          DEPLOY_PATH="${VM_DEPLOY_PATH:-/home/azureuser/zapgaze}"
+          ssh -o StrictHostKeyChecking=no ${VM_USER}@${VM_HOST} "DEPLOY_PATH='${DEPLOY_PATH}' bash -s" << 'EOF'
+            set -e
+            cd "$DEPLOY_PATH"
+            
+            echo "🔄 Pulling latest code..."
+            git fetch origin
+            git reset --hard origin/master
+            git clean -fd
+            
+            compose() {
+              if command -v docker-compose >/dev/null 2>&1; then
+                docker-compose "$@"
+              else
+                docker compose "$@"
+              fi
+            }
+            
+            echo "🐳 Stopping existing containers..."
+            compose down || true
+            
+            echo "🔨 Building and starting containers..."
+            compose up -d --build
+            
+            echo "✅ Deployment complete!"
+            
+            # Show running containers
+            compose ps
+            
+            # Show recent logs
+            echo "📋 Recent container logs:"
+            compose logs --tail=20
+          EOF
