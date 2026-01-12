@@ -90,15 +90,15 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
   const getDownloadUrl = (platform: string): string => {
     // GitHub Releases URL - Direct link to your release
     // Update this URL after you create the GitHub release
-    const baseUrl = "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.2";
+    const baseUrl = "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.3";
 
     switch (platform) {
       case "windows":
         return `${baseUrl}/ZapGazeAgent.exe`;
       case "mac":
-        return `${baseUrl}/ZapGazeAgent`; // macOS executable
+        return `${baseUrl}/ZapGazeAgent.app.zip`; // macOS app bundle (opens Terminal automatically)
       default:
-        return `${baseUrl}/ZapGazeAgent`;
+        return `${baseUrl}/ZapGazeAgent.app.zip`;
     }
   };
 

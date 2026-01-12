@@ -88,17 +88,17 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
   const getDownloadUrl = (): string => {
     // GitHub Releases URL - Direct link to your release
     // Update this URL after you create the GitHub release
-    const baseUrl = "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.2";
+    const baseUrl = "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.3";
 
     switch (platform) {
       case "windows":
         return `${baseUrl}/ZapGazeAgent.exe`;
       case "mac":
-        return `${baseUrl}/ZapGazeAgent`;
+        return `${baseUrl}/ZapGazeAgent.app.zip`; // macOS app bundle (opens Terminal automatically)
       case "linux":
         return `${baseUrl}/ZapGazeAgent-linux`;
       default:
-        return `${baseUrl}/ZapGazeAgent`;
+        return `${baseUrl}/ZapGazeAgent.app.zip`;
     }
   };
 
@@ -107,11 +107,11 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
       case "windows":
         return "ZapGazeAgent.exe";
       case "mac":
-        return "ZapGazeAgent";
+        return "ZapGazeAgent.app.zip";
       case "linux":
         return "ZapGazeAgent";
       default:
-        return "ZapGazeAgent";
+        return "ZapGazeAgent.app.zip";
     }
   };
 
@@ -158,7 +158,7 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
                     startIcon={<DownloadIcon />}
                     onClick={() => {
                       const baseUrl =
-                        "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.2";
+                        "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.3";
                       window.open(`${baseUrl}/ZapGazeAgent.exe`, "_blank");
                       setActiveStep(1);
                     }}
@@ -170,8 +170,8 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
                     startIcon={<DownloadIcon />}
                     onClick={() => {
                       const baseUrl =
-                        "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.2";
-                      window.open(`${baseUrl}/ZapGazeAgent`, "_blank");
+                        "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.3";
+                      window.open(`${baseUrl}/ZapGazeAgent.app.zip`, "_blank");
                       setActiveStep(1);
                     }}
                   >
@@ -182,7 +182,7 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
                     startIcon={<DownloadIcon />}
                     onClick={() => {
                       const baseUrl =
-                        "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.2";
+                        "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.3";
                       window.open(`${baseUrl}/ZapGazeAgent-linux`, "_blank");
                       setActiveStep(1);
                     }}
@@ -215,19 +215,35 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
                     <Typography variant="body2">Double-click the .exe file to run it</Typography>
                   ) : platform === "mac" ? (
                     <Box>
+                      <Typography variant="body2" sx={{ mb: 2 }}>
+                        <strong>Step 1:</strong> Unzip the downloaded file
+                      </Typography>
+                      <Box component="ol" sx={{ marginTop: 1, paddingLeft: 3, mb: 2 }}>
+                        <li>
+                          <Typography variant="body2">
+                            Double-click <strong>ZapGazeAgent.app.zip</strong> to unzip it
+                          </Typography>
+                        </li>
+                        <li>
+                          <Typography variant="body2">
+                            This will create <strong>ZapGazeAgent.app</strong> in your Downloads
+                            folder
+                          </Typography>
+                        </li>
+                      </Box>
+                      <Typography variant="body2" sx={{ mb: 1, fontWeight: "bold" }}>
+                        <strong>Step 2:</strong> Run the app
+                      </Typography>
                       <Alert severity="warning" sx={{ mb: 2 }}>
                         <Typography variant="body2" sx={{ mb: 1 }}>
                           <strong>macOS Security Warning:</strong> You'll see a warning saying
                           "ZapGazeAgent" cannot be verified. This is normal for unsigned apps.
                         </Typography>
                       </Alert>
-                      <Typography variant="body2" sx={{ mb: 1, fontWeight: "bold" }}>
-                        Method 1 (Recommended): Right-click to open
-                      </Typography>
                       <Box component="ol" sx={{ marginTop: 1, paddingLeft: 3, mb: 2 }}>
                         <li>
                           <Typography variant="body2">
-                            Right-click (or Control+click) on the downloaded "ZapGazeAgent" file
+                            Right-click (or Control+click) on <strong>ZapGazeAgent.app</strong>
                           </Typography>
                         </li>
                         <li>
@@ -237,62 +253,20 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
                         </li>
                         <li>
                           <Typography variant="body2">
-                            In the security dialog that appears, click <strong>"Open"</strong> (not
-                            "Move to Trash")
-                          </Typography>
-                        </li>
-                      </Box>
-                      <Typography variant="body2" sx={{ mb: 1, fontWeight: "bold" }}>
-                        Method 2 (If file opens in TextEdit): Use Terminal
-                      </Typography>
-                      <Box component="ol" sx={{ marginTop: 1, paddingLeft: 3, mb: 1 }}>
-                        <li>
-                          <Typography variant="body2">
-                            Open Terminal (Applications → Utilities → Terminal)
+                            In the security dialog, click <strong>"Open"</strong>
                           </Typography>
                         </li>
                         <li>
                           <Typography variant="body2">
-                            Navigate to your Downloads folder:
+                            A Terminal window will open automatically with the agent running
                           </Typography>
-                          <Box
-                            component="pre"
-                            sx={{
-                              bgcolor: "grey.100",
-                              p: 1,
-                              borderRadius: 1,
-                              fontSize: "0.875rem",
-                              mt: 0.5,
-                              mb: 0.5,
-                            }}
-                          >
-                            cd ~/Downloads
-                          </Box>
-                        </li>
-                        <li>
-                          <Typography variant="body2">
-                            Make the file executable and run it:
-                          </Typography>
-                          <Box
-                            component="pre"
-                            sx={{
-                              bgcolor: "grey.100",
-                              p: 1,
-                              borderRadius: 1,
-                              fontSize: "0.875rem",
-                              mt: 0.5,
-                              mb: 0.5,
-                            }}
-                          >
-                            chmod +x ZapGazeAgent{"\n"}./ZapGazeAgent
-                          </Box>
                         </li>
                       </Box>
                       <Alert severity="info" sx={{ mt: 2 }}>
                         <Typography variant="body2" sx={{ fontSize: "0.875rem" }}>
-                          <strong>Note:</strong> After using Method 1 the first time, you can
-                          double-click the file normally. If the file opens in TextEdit, use Method
-                          2 instead.
+                          <strong>Note:</strong> The app bundle preserves execute permissions and
+                          automatically opens Terminal. After the first time, you can double-click
+                          ZapGazeAgent.app directly.
                         </Typography>
                       </Alert>
                     </Box>

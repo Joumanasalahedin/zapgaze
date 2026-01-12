@@ -46,21 +46,60 @@ if [ -f "dist/ZapGazeAgent" ] || [ -f "dist/ZapGazeAgent.exe" ]; then
     echo "✅ Build successful!"
     echo "=========================================="
     echo ""
-    echo "Executable location:"
-    if [ -f "dist/ZapGazeAgent" ]; then
-        echo "  dist/ZapGazeAgent"
-        chmod +x dist/ZapGazeAgent
+    
+    # For macOS, create a zip file with execute permissions preserved
+    if [ -f "dist/ZapGazeAgent" ] && [[ "$OSTYPE" == "darwin"* ]]; then
+        echo "Creating zip file with execute permissions..."
+        
+        # Ensure executable has permissions
+        chmod +x "dist/ZapGazeAgent"
+        
+        # Create a temporary directory with the executable
+        TEMP_DIR=$(mktemp -d)
+        cp "dist/ZapGazeAgent" "$TEMP_DIR/"
+        chmod +x "$TEMP_DIR/ZapGazeAgent"
+        
+        # Create zip file for GitHub Releases (preserves permissions)
+        ZIP_NAME="ZapGazeAgent.zip"
+        cd "$TEMP_DIR"
+        # Use zip -X to exclude extra attributes, but keep permissions
+        zip -X "$PROJECT_ROOT/dist/$ZIP_NAME" ZapGazeAgent > /dev/null
+        cd "$PROJECT_ROOT"
+        
+        # Clean up temp directory
+        rm -rf "$TEMP_DIR"
+        
+        echo "✅ Created zip file: dist/$ZIP_NAME"
+        echo ""
+        echo "Executable locations:"
+        echo "  dist/ZapGazeAgent (standalone)"
+        echo "  dist/$ZIP_NAME (for GitHub release)"
+        echo ""
+        echo "File sizes:"
+        ls -lh dist/ZapGazeAgent "dist/$ZIP_NAME"
+        echo ""
+        echo "To test standalone:"
+        echo "  ./dist/ZapGazeAgent"
+        echo ""
+        echo "For GitHub release, upload: dist/$ZIP_NAME"
+        echo "   Users should unzip it and run: ./ZapGazeAgent"
+    else
+        echo "Executable location:"
+        if [ -f "dist/ZapGazeAgent" ]; then
+            echo "  dist/ZapGazeAgent"
+            chmod +x dist/ZapGazeAgent
+        fi
+        if [ -f "dist/ZapGazeAgent.exe" ]; then
+            echo "  dist/ZapGazeAgent.exe"
+        fi
+        echo ""
+        echo "File size:"
+        ls -lh dist/ZapGazeAgent* 2>/dev/null || ls -lh dist/ZapGazeAgent.exe
+        echo ""
+        echo "To test:"
+        echo "  ./dist/ZapGazeAgent"
+        echo ""
     fi
-    if [ -f "dist/ZapGazeAgent.exe" ]; then
-        echo "  dist/ZapGazeAgent.exe"
-    fi
-    echo ""
-    echo "File size:"
-    ls -lh dist/ZapGazeAgent* 2>/dev/null || ls -lh dist/ZapGazeAgent.exe
-    echo ""
-    echo "To test:"
-    echo "  ./dist/ZapGazeAgent"
-    echo ""
 else
     echo ""
     echo "❌ Build failed. Check the output above for errors."
