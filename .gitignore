@@ -16,3 +16,6 @@ zapgaze-vm_key.pem
 build/
 dist/
 *.spec.bak
+
+# Development database viewer config
+.devdbrc

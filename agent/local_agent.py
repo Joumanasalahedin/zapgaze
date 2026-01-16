@@ -501,15 +501,15 @@ def start_acquisition(req: StartRequest):
             "--fps",
             str(req.fps),
         ]
-        env = os.environ.copy()
-        current_dir = os.getcwd()
-        env["PYTHONPATH"] = current_dir + ":" + env.get("PYTHONPATH", "")
-        task_proc = subprocess.Popen(cmd, env=env, cwd=current_dir)
-        return {
-            "status": "acquisition_started",
-            "pid": task_proc.pid,
-            "mode": "subprocess",
-        }
+    env = os.environ.copy()
+    current_dir = os.getcwd()
+    env["PYTHONPATH"] = current_dir + ":" + env.get("PYTHONPATH", "")
+    task_proc = subprocess.Popen(cmd, env=env, cwd=current_dir)
+    return {
+        "status": "acquisition_started",
+        "pid": task_proc.pid,
+        "mode": "subprocess",
+    }
 
 
 @app.post("/stop")
@@ -529,13 +529,13 @@ def stop_acquisition():
     # Stop subprocess mode
     if task_proc and task_proc.poll() is None:
         task_proc.terminate()
-        try:
-            task_proc.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            if task_proc:
-                task_proc.kill()
-        finally:
-            task_proc = None
+    try:
+        task_proc.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        if task_proc:
+            task_proc.kill()
+    finally:
+        task_proc = None
         return {"status": "acquisition_stopped", "mode": "subprocess"}
 
     raise HTTPException(status_code=400, detail="No acquisition in progress.")
