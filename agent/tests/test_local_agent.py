@@ -27,7 +27,7 @@ def client(mock_requests):
         mock_response.json.return_value = {"status": "ok", "commands": []}
         mock_req.post.return_value = mock_response
         mock_req.delete.return_value = mock_response
-        
+
         # Import after setting up mocks
         from agent.local_agent import app
 
@@ -60,7 +60,9 @@ def test_status_endpoint_stopped(client):
 
 def test_calibrate_start(client, mock_camera, mock_adapter):
     """Test calibration start endpoint"""
-    with patch("app.acquisition.camera_manager.CameraManager", return_value=mock_camera), patch(
+    with patch(
+        "app.acquisition.camera_manager.CameraManager", return_value=mock_camera
+    ), patch(
         "app.acquisition.mediapipe_adapter.MediaPipeAdapter", return_value=mock_adapter
     ):
         response = client.post("/calibrate/start")
@@ -153,9 +155,13 @@ def test_execute_command_calibrate_start(mock_camera, mock_adapter):
     """Test execute_command with calibrate_start"""
     from agent.local_agent import app, execute_command
 
-    with patch("app.acquisition.camera_manager.CameraManager", return_value=mock_camera), patch(
+    with patch(
+        "app.acquisition.camera_manager.CameraManager", return_value=mock_camera
+    ), patch(
         "app.acquisition.mediapipe_adapter.MediaPipeAdapter", return_value=mock_adapter
-    ), patch("agent.local_agent.requests.post") as mock_post:
+    ), patch(
+        "agent.local_agent.requests.post"
+    ) as mock_post:
         command = {
             "command_id": "test-command-1",
             "type": "calibrate_start",

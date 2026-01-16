@@ -46,6 +46,7 @@ def test_main_with_autostart_flag():
         # Patch the module import path
         with patch("agent.setup_autostart.main") as mock_setup:
             from agent.launcher import main
+
             try:
                 main()
             except SystemExit:
