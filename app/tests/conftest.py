@@ -7,9 +7,10 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
+from unittest.mock import patch
 
 from app.main import app
-from app.db.database import Base
+from app.db.database import Base, SessionLocal
 
 # Use in-memory SQLite database for testing
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
@@ -34,9 +35,31 @@ def db_session():
         Base.metadata.drop_all(bind=engine)
 
 
+def override_get_db():
+    """Override get_db dependency to use test database."""
+    db = TestingSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
 @pytest.fixture
-def client():
-    """Create a test client for API testing."""
-    # For simple tests that don't need database, we can use the client directly
-    # For database-dependent tests, we'll override get_db in those specific tests
-    return TestClient(app)
+def client(db_session):
+    """Create a test client for API testing with database dependency override."""
+    # Override get_db dependency in all routers
+    from app.api import intake, session, users, acquisition, features, calibration
+    
+    # Patch get_db for all routers
+    app.dependency_overrides[intake.get_db] = override_get_db
+    app.dependency_overrides[session.get_db] = override_get_db
+    app.dependency_overrides[users.get_db] = override_get_db
+    app.dependency_overrides[acquisition.get_db] = override_get_db
+    app.dependency_overrides[features.get_db] = override_get_db
+    if hasattr(calibration, 'get_db'):
+        app.dependency_overrides[calibration.get_db] = override_get_db
+    
+    yield TestClient(app)
+    
+    # Clean up overrides after test
+    app.dependency_overrides.clear()

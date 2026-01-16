@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import List, Optional
 import uuid
 import json
@@ -27,31 +27,18 @@ class IntakeData(BaseModel):
     # Required for both
     birthdate: datetime.date
     # ASRS-5 has 6 items (0=Never to 4=Very Often)
-    answers: List[int] = Field(..., min_items=6, max_items=6)
+    answers: List[int] = Field(..., min_length=6, max_length=6)
 
-    @validator("name", "user_id")
-    def validate_user_identification(cls, v, values):
+    @model_validator(mode="after")
+    def validate_user_identification(self):
         """Ensure either name (new user) or user_id (existing user) is provided, but not both."""
-        if "name" in values and "user_id" in values:
-            if values["name"] is not None and values["user_id"] is not None:
-                raise ValueError(
-                    "Cannot provide both name and user_id. Use name for new users, user_id for existing users."
-                )
-        return v
-
-    @validator("name")
-    def validate_name_for_new_user(cls, v, values):
-        """Ensure name is provided when user_id is not provided."""
-        if "user_id" in values and values["user_id"] is None and v is None:
-            raise ValueError("Name is required for new users.")
-        return v
-
-    @validator("user_id")
-    def validate_user_id_for_existing_user(cls, v, values):
-        """Ensure user_id is provided when name is not provided."""
-        if "name" in values and values["name"] is None and v is None:
-            raise ValueError("User ID is required for existing users.")
-        return v
+        if self.name is not None and self.user_id is not None:
+            raise ValueError(
+                "Cannot provide both name and user_id. Use name for new users, user_id for existing users."
+            )
+        if self.name is None and self.user_id is None:
+            raise ValueError("Either name (for new users) or user_id (for existing users) must be provided.")
+        return self
 
 
 class IntakeResponse(BaseModel):
