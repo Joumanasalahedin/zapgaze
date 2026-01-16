@@ -153,7 +153,7 @@ def test_get_user_intake(client: TestClient, db_session: Session):
     intake = models.Intake(
         user_id=user.id,
         session_uid="test-session-uid",
-        answers_json='[0,1,2,3,4,0]',
+        answers_json="[0,1,2,3,4,0]",
         total_score=10,
         symptom_group="Low",
     )
@@ -191,7 +191,7 @@ def test_get_session_intake(client: TestClient, db_session: Session):
     intake = models.Intake(
         user_id=user.id,
         session_uid=session_uid,
-        answers_json='[0,1,2,3,4,0]',
+        answers_json="[0,1,2,3,4,0]",
         total_score=10,
         symptom_group="Low",
     )
@@ -215,7 +215,7 @@ def test_get_session_intake_not_found(client: TestClient):
 def test_get_user_intake_history(client: TestClient, db_session: Session):
     """Test getting all intake records for a user."""
     import time
-    
+
     # Create user
     user = models.User(name="John Doe", birthdate=date(1990, 1, 1))
     db_session.add(user)
@@ -226,9 +226,7 @@ def test_get_user_intake_history(client: TestClient, db_session: Session):
     # Store the created_at timestamps to verify ordering
     created_times = []
     for i in range(3):
-        session = models.Session(
-            user_id=user.id, session_uid=f"test-session-uid-{i}"
-        )
+        session = models.Session(user_id=user.id, session_uid=f"test-session-uid-{i}")
         db_session.add(session)
         db_session.commit()
         db_session.refresh(session)
@@ -240,7 +238,7 @@ def test_get_user_intake_history(client: TestClient, db_session: Session):
         intake = models.Intake(
             user_id=user.id,
             session_uid=f"test-session-uid-{i}",
-            answers_json='[0,1,2,3,4,0]',
+            answers_json="[0,1,2,3,4,0]",
             total_score=10 + i,
             symptom_group="Low",
         )
@@ -254,25 +252,31 @@ def test_get_user_intake_history(client: TestClient, db_session: Session):
 
     data = response.json()
     assert len(data) == 3
-    
+
     # Verify all scores are present
     scores = [item["total_score"] for item in data]
     assert 10 in scores
     assert 11 in scores
     assert 12 in scores
-    
+
     # Verify ordering is descending (newest first) by checking created_at timestamps
     # The API orders by created_at.desc(), so most recent should be first
     created_at_timestamps = [item["created_at"] for item in data]
-    
+
     # Parse timestamps and verify they're in descending order
     from datetime import datetime
-    parsed_times = [datetime.fromisoformat(ts.replace('Z', '+00:00')) for ts in created_at_timestamps]
-    
+
+    parsed_times = [
+        datetime.fromisoformat(ts.replace("Z", "+00:00"))
+        for ts in created_at_timestamps
+    ]
+
     # Verify descending order (newest first)
     for i in range(len(parsed_times) - 1):
-        assert parsed_times[i] >= parsed_times[i + 1], f"Timestamps not in descending order: {parsed_times}"
-    
+        assert (
+            parsed_times[i] >= parsed_times[i + 1]
+        ), f"Timestamps not in descending order: {parsed_times}"
+
     # Since we created them sequentially with delays, the last created (i=2, score=12) should be first
     # But if timestamps are identical, we can't guarantee exact order, so just verify descending
     assert data[0]["created_at"] >= data[1]["created_at"]

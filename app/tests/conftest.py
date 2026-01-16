@@ -49,17 +49,17 @@ def client(db_session):
     """Create a test client for API testing with database dependency override."""
     # Override get_db dependency in all routers
     from app.api import intake, session, users, acquisition, features, calibration
-    
+
     # Patch get_db for all routers
     app.dependency_overrides[intake.get_db] = override_get_db
     app.dependency_overrides[session.get_db] = override_get_db
     app.dependency_overrides[users.get_db] = override_get_db
     app.dependency_overrides[acquisition.get_db] = override_get_db
     app.dependency_overrides[features.get_db] = override_get_db
-    if hasattr(calibration, 'get_db'):
+    if hasattr(calibration, "get_db"):
         app.dependency_overrides[calibration.get_db] = override_get_db
-    
+
     yield TestClient(app)
-    
+
     # Clean up overrides after test
     app.dependency_overrides.clear()

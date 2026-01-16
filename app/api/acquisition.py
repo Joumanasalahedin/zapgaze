@@ -26,7 +26,9 @@ def receive_acquisition(data: AcquisitionData, db: Session = Depends(get_db)):
     if not session_entry:
         raise HTTPException(status_code=404, detail="Session not found.")
     # Persist single record
-    record = models.Results(session_id=session_entry.id, data=json.dumps(data.model_dump()))
+    record = models.Results(
+        session_id=session_entry.id, data=json.dumps(data.model_dump())
+    )
     db.add(record)
     db.commit()
     return {"status": "success"}
@@ -46,7 +48,9 @@ def receive_acquisition_batch(
                 status_code=404, detail=f"Session not found for uid {item.session_uid}"
             )
         entries.append(
-            models.Results(session_id=session_entry.id, data=json.dumps(item.model_dump()))
+            models.Results(
+                session_id=session_entry.id, data=json.dumps(item.model_dump())
+            )
         )
     # Bulk insert for performance
     db.bulk_save_objects(entries)

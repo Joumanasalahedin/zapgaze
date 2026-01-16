@@ -37,7 +37,9 @@ class IntakeData(BaseModel):
                 "Cannot provide both name and user_id. Use name for new users, user_id for existing users."
             )
         if self.name is None and self.user_id is None:
-            raise ValueError("Either name (for new users) or user_id (for existing users) must be provided.")
+            raise ValueError(
+                "Either name (for new users) or user_id (for existing users) must be provided."
+            )
         return self
 
 

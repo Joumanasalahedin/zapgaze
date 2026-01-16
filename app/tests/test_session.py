@@ -47,9 +47,7 @@ def test_session_start_with_existing_uid(client: TestClient, db_session: Session
 
 def test_session_start_with_nonexistent_uid(client: TestClient):
     """Test starting a session with a non-existent session_uid."""
-    response = client.post(
-        "/session/start", json={"session_uid": "non-existent-uid"}
-    )
+    response = client.post("/session/start", json={"session_uid": "non-existent-uid"})
     assert response.status_code == 404
     assert "Session UID not found" in response.json()["detail"]
 

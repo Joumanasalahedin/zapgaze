@@ -107,7 +107,7 @@ def test_get_user_results(client: TestClient, db_session: Session):
     intake1 = models.Intake(
         user_id=user.id,
         session_uid="session-1",
-        answers_json='[0,1,2,3,4,0]',
+        answers_json="[0,1,2,3,4,0]",
         total_score=10,
         symptom_group="Low",
     )
@@ -125,9 +125,7 @@ def test_get_user_results(client: TestClient, db_session: Session):
     db_session.add(features1)
     db_session.commit()
 
-    response = client.get(
-        f"/users/results?user_id={user.id}&birthdate=1990-01-01"
-    )
+    response = client.get(f"/users/results?user_id={user.id}&birthdate=1990-01-01")
     assert response.status_code == 200
 
     data = response.json()
@@ -150,9 +148,7 @@ def test_get_user_results_wrong_birthdate(client: TestClient, db_session: Sessio
     db_session.commit()
     db_session.refresh(user)
 
-    response = client.get(
-        f"/users/results?user_id={user.id}&birthdate=1995-01-01"
-    )
+    response = client.get(f"/users/results?user_id={user.id}&birthdate=1995-01-01")
     assert response.status_code == 404
     assert "birthdate does not match" in response.json()["detail"]
 
@@ -171,9 +167,7 @@ def test_get_user_results_no_sessions(client: TestClient, db_session: Session):
     db_session.commit()
     db_session.refresh(user)
 
-    response = client.get(
-        f"/users/results?user_id={user.id}&birthdate=1990-01-01"
-    )
+    response = client.get(f"/users/results?user_id={user.id}&birthdate=1990-01-01")
     assert response.status_code == 200
 
     data = response.json()

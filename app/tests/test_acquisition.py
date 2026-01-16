@@ -78,13 +78,13 @@ def test_receive_acquisition_batch(client: TestClient, db_session: Session):
     assert response.json()["count"] == 5
 
     # Verify all records were stored
-    results = (
-        db_session.query(models.Results).filter_by(session_id=session.id).all()
-    )
+    results = db_session.query(models.Results).filter_by(session_id=session.id).all()
     assert len(results) == 5
 
 
-def test_receive_acquisition_batch_mixed_sessions(client: TestClient, db_session: Session):
+def test_receive_acquisition_batch_mixed_sessions(
+    client: TestClient, db_session: Session
+):
     """Test receiving batch with mixed sessions."""
     # Create two sessions
     session1 = models.Session(session_uid="session-1", user_id=None)
@@ -116,17 +116,15 @@ def test_receive_acquisition_batch_mixed_sessions(client: TestClient, db_session
     assert response.json()["count"] == 2
 
     # Verify records were stored for both sessions
-    results1 = (
-        db_session.query(models.Results).filter_by(session_id=session1.id).all()
-    )
-    results2 = (
-        db_session.query(models.Results).filter_by(session_id=session2.id).all()
-    )
+    results1 = db_session.query(models.Results).filter_by(session_id=session1.id).all()
+    results2 = db_session.query(models.Results).filter_by(session_id=session2.id).all()
     assert len(results1) == 1
     assert len(results2) == 1
 
 
-def test_receive_acquisition_batch_invalid_session(client: TestClient, db_session: Session):
+def test_receive_acquisition_batch_invalid_session(
+    client: TestClient, db_session: Session
+):
     """Test receiving batch with invalid session."""
     # Create one session
     session = models.Session(session_uid="session-1", user_id=None)
