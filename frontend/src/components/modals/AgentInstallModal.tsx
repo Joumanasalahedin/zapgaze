@@ -94,11 +94,11 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
       case "windows":
         return `${baseUrl}/ZapGazeAgent.exe`;
       case "mac":
-        return `${baseUrl}/ZapGazeAgent.app.zip`; // macOS app bundle (opens Terminal automatically)
+        return `${baseUrl}/ZapGazeAgent.zip`; // macOS app bundle (opens Terminal automatically)
       case "linux":
         return `${baseUrl}/ZapGazeAgent-linux`;
       default:
-        return `${baseUrl}/ZapGazeAgent.app.zip`;
+        return `${baseUrl}/ZapGazeAgent.zip`;
     }
   };
 
@@ -107,11 +107,11 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
       case "windows":
         return "ZapGazeAgent.exe";
       case "mac":
-        return "ZapGazeAgent.app.zip";
+        return "ZapGazeAgent.zip";
       case "linux":
         return "ZapGazeAgent";
       default:
-        return "ZapGazeAgent.app.zip";
+        return "ZapGazeAgent.zip";
     }
   };
 
@@ -171,7 +171,7 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
                     onClick={() => {
                       const baseUrl =
                         "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.3";
-                      window.open(`${baseUrl}/ZapGazeAgent.app.zip`, "_blank");
+                      window.open(`${baseUrl}/ZapGazeAgent.zip`, "_blank");
                       setActiveStep(1);
                     }}
                   >
@@ -221,7 +221,7 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
                       <Box component="ol" sx={{ marginTop: 1, paddingLeft: 3, mb: 2 }}>
                         <li>
                           <Typography variant="body2">
-                            Double-click <strong>ZapGazeAgent.app.zip</strong> to unzip it
+                            Double-click <strong>ZapGazeAgent.zip</strong> to unzip it
                           </Typography>
                         </li>
                         <li>

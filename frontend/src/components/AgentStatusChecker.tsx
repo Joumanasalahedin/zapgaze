@@ -96,9 +96,9 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
       case "windows":
         return `${baseUrl}/ZapGazeAgent.exe`;
       case "mac":
-        return `${baseUrl}/ZapGazeAgent.app.zip`; // macOS app bundle (opens Terminal automatically)
+        return `${baseUrl}/ZapGazeAgent.zip`;
       default:
-        return `${baseUrl}/ZapGazeAgent.app.zip`;
+        return `${baseUrl}/ZapGazeAgent.zip`;
     }
   };
 
