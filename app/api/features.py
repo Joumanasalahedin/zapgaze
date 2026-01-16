@@ -335,10 +335,15 @@ def get_session_features(session_uid: str, db: Session = Depends(get_db)):
     sf = session.features
 
     # Calculate Go and No-Go trial counts from task events
+    # Only count events that occurred after session start (main test trials, not practice)
+    # Practice trials are not logged to the database, but this ensures we only count main test
+    session_start_time = session.started_at.timestamp() if session.started_at else 0
+
     events = (
         db.query(models.TaskEvent)
         .filter_by(session_id=session.id)
         .filter(models.TaskEvent.event_type == "stimulus_onset")
+        .filter(models.TaskEvent.timestamp >= session_start_time)
         .all()
     )
     go_trial_count = len([e for e in events if e.stimulus != "X"])

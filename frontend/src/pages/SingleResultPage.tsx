@@ -32,6 +32,11 @@ interface SessionFeatureData {
   stopped_at?: string | null;
   name?: string;
   birthdate?: string;
+  intake?: {
+    total_score: number;
+    symptom_group: string;
+    answers: number[];
+  } | null;
 }
 
 const METRICS = [
@@ -212,6 +217,28 @@ const SingleResultPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Intake Questionnaire Score Section */}
+      {data?.intake && data.intake.total_score !== undefined && (
+        <div style={{ marginBottom: "24px" }}>
+          <Paper
+            elevation={2}
+            style={{
+              padding: "20px",
+              backgroundColor: "#f5f5f5",
+            }}
+          >
+            <h2 style={{ marginTop: 0, marginBottom: "12px" }}>ASRS-5 Questionnaire Score</h2>
+            <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+              <strong style={{ fontSize: "18px" }}>Total Score: {data.intake.total_score}</strong>
+              <span style={{ fontSize: "14px", color: "#666" }}>
+                <strong>Normative Range:</strong> &lt; 14
+              </span>
+            </div>
+          </Paper>
+        </div>
+      )}
+
       <TableContainer component={Paper} className={styles.tableContainer}>
         <Table>
           <TableHead className={styles.tableHead}>
