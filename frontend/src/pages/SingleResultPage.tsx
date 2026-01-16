@@ -105,12 +105,18 @@ const METRICS = [
     flag: (v: number, d: any) => {
       // d is the data object
       if (d && d.go_trial_count !== undefined) {
-        return v !== null && v >= 0 && v <= 4;
+        const errorCount = v !== null ? v : 0;
+        return errorCount >= 0 && errorCount <= 4;
       }
       return null;
     },
-    format: (v: number | null, d: any) =>
-      v !== null && d && d.go_trial_count !== undefined ? `${v} / ${d.go_trial_count}` : "-",
+    format: (v: number | null, d: any) => {
+      const errorCount = v !== null ? v : 0;
+      if (d && d.go_trial_count !== undefined) {
+        return `${errorCount} / ${d.go_trial_count}`;
+      }
+      return errorCount.toString();
+    },
   },
   {
     key: "commission_errors",
@@ -118,12 +124,19 @@ const METRICS = [
     norm: "0 – 1 commissions (0–5 % of No-Go)",
     flag: (v: number, d: any) => {
       if (d && d.nogo_trial_count !== undefined) {
-        return v !== null && v <= 1;
+        const errorCount = v !== null ? v : 0;
+        return errorCount <= 1;
       }
       return null;
     },
-    format: (v: number | null, d: any) =>
-      v !== null && d && d.nogo_trial_count !== undefined ? `${v} / ${d.nogo_trial_count}` : "-",
+    format: (v: number | null, d: any) => {
+      const errorCount = v !== null ? v : 0;
+      if (d && d.nogo_trial_count !== undefined) {
+        return `${errorCount} / ${d.nogo_trial_count}`;
+      }
+      // If trial count is missing, just show the error count
+      return errorCount.toString();
+    },
   },
 ];
 

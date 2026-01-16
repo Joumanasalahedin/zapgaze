@@ -334,6 +334,16 @@ def get_session_features(session_uid: str, db: Session = Depends(get_db)):
 
     sf = session.features
 
+    # Calculate Go and No-Go trial counts from task events
+    events = (
+        db.query(models.TaskEvent)
+        .filter_by(session_id=session.id)
+        .filter(models.TaskEvent.event_type == "stimulus_onset")
+        .all()
+    )
+    go_trial_count = len([e for e in events if e.stimulus != "X"])
+    nogo_trial_count = len([e for e in events if e.stimulus == "X"])
+
     # Prepare intake data
     intake_data = None
     if intake:
@@ -359,6 +369,8 @@ def get_session_features(session_uid: str, db: Session = Depends(get_db)):
         "go_reaction_time_sd": sf.go_reaction_time_sd,
         "omission_errors": sf.omission_errors,
         "commission_errors": sf.commission_errors,
+        "go_trial_count": go_trial_count,
+        "nogo_trial_count": nogo_trial_count,
         "started_at": sf.started_at.isoformat() if sf.started_at else None,
         "stopped_at": sf.stopped_at.isoformat() if sf.stopped_at else None,
         "intake": intake_data,
