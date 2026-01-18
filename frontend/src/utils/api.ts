@@ -19,9 +19,9 @@ export const getApiKey = (): string => {
  */
 export const apiCall = async (url: string, options: RequestInit = {}): Promise<any> => {
   const apiKey = getApiKey();
-  const headers: HeadersInit = {
+  const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    ...(options.headers as HeadersInit),
+    ...(options.headers as Record<string, string>),
   };
 
   // Add API key if available
