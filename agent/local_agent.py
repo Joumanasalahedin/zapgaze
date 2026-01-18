@@ -1,17 +1,18 @@
-import subprocess
-import threading
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
-from pydantic import BaseModel, Field
-from typing import Dict, Any
+import json
 import os
+import subprocess
+import sys
+import threading
+import time
+import uuid
+from contextlib import asynccontextmanager
+from typing import Any, Dict
+
 import numpy as np
 import requests
-import json
-import time
-import sys
-import uuid
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
 
 # Global variables
 task_proc = None
@@ -20,12 +21,8 @@ heartbeat_thread = None
 agent_id = str(uuid.uuid4())  # Unique agent identifier
 current_session_uid = None  # Track the current session UID for heartbeats
 acquisition_stop_flag = threading.Event()  # Flag to signal acquisition to stop
-# Store camera instance for direct release (like calibration)
 acquisition_camera = None
 
-# API Key for backend authentication
-# Try to import from agent_config (embedded at build time)
-# Fall back to environment variable, then default for development
 try:
     from agent.agent_config import AGENT_API_KEY as EMBEDDED_API_KEY
 
@@ -83,11 +80,9 @@ def send_heartbeat():
             # Log error for debugging
             print(f"⚠️  Heartbeat error: {e}")
             pass  # Silently fail - backend might be down
-        # Send heartbeat every 1 second for faster command processing
         time.sleep(1)
 
 
-# Define lifespan function AFTER send_heartbeat to avoid PyInstaller bundling issues
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup and shutdown events"""
