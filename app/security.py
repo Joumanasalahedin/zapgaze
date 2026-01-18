@@ -72,11 +72,29 @@ def verify_agent_or_frontend_api_key(
     Raises HTTPException if key is invalid or missing.
     """
     if api_key is None:
+        print("❌ API key missing in request")
         raise HTTPException(
             status_code=401, detail="API key required. Please provide X-API-Key header."
         )
 
-    if api_key == AGENT_API_KEY or api_key == FRONTEND_API_KEY:
+    # Debug logging
+    print(
+        f"🔑 Received API key (first 10 chars): {api_key[:10] if len(api_key) > 10 else api_key}..."
+    )
+    print(
+        f"🔑 Expected AGENT_API_KEY (first 10 chars): {AGENT_API_KEY[:10] if len(AGENT_API_KEY) > 10 else AGENT_API_KEY}..."
+    )
+    print(
+        f"🔑 Expected FRONTEND_API_KEY (first 10 chars): {FRONTEND_API_KEY[:10] if len(FRONTEND_API_KEY) > 10 else FRONTEND_API_KEY}..."
+    )
+
+    if api_key == AGENT_API_KEY:
+        print("✅ API key matches AGENT_API_KEY")
         return api_key
 
+    if api_key == FRONTEND_API_KEY:
+        print("✅ API key matches FRONTEND_API_KEY")
+        return api_key
+
+    print(f"❌ API key does not match either AGENT_API_KEY or FRONTEND_API_KEY")
     raise HTTPException(status_code=403, detail="Invalid API key. Access denied.")
