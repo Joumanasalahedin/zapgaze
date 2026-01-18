@@ -60,8 +60,11 @@ jobs:
             echo "🧹 Cleaning Docker build cache..."
             docker builder prune -f || true
             
-            echo "🔨 Building and starting containers..."
-            compose up -d --build --no-cache
+            echo "🔨 Building containers (no cache)..."
+            compose build --no-cache || true
+            
+            echo "🚀 Starting containers..."
+            compose up -d
             
             echo "✅ Deployment complete!"
             
