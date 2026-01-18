@@ -34,6 +34,11 @@ except Exception as e:
 if (project_root / 'agent' / 'calibration.json').exists():
     datas_list.append((str(project_root / 'agent' / 'calibration.json'), 'agent'))
 
+# Add agent_config.py if it exists (contains embedded API key)
+if (project_root / 'agent' / 'agent_config.py').exists():
+    datas_list.append((str(project_root / 'agent' / 'agent_config.py'), 'agent'))
+    print(f"Added agent_config.py with embedded API key")
+
 # Collect all agent Python files explicitly
 agent_py_files = []
 agent_dir = project_root / 'agent'

@@ -34,10 +34,18 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
   const checkAgentStatus = async () => {
     // Use backend API if provided, otherwise fall back to direct agent URL
     const statusUrl = apiBaseUrl ? `${apiBaseUrl}/agent/status` : `${agentUrl}/status`;
+    const apiKey = import.meta.env.VITE_FRONTEND_API_KEY;
 
     try {
+      const headers: HeadersInit = {};
+      // Add API key if available (only for backend API, not direct agent URL)
+      if (apiBaseUrl && apiKey) {
+        headers["X-API-Key"] = apiKey;
+      }
+
       const response = await fetch(statusUrl, {
         method: "GET",
+        headers,
         // Add timeout
         signal: AbortSignal.timeout(2000),
       });

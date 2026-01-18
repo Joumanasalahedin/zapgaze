@@ -23,6 +23,21 @@ acquisition_stop_flag = threading.Event()  # Flag to signal acquisition to stop
 # Store camera instance for direct release (like calibration)
 acquisition_camera = None
 
+# API Key for backend authentication
+# Try to import from agent_config (embedded at build time)
+# Fall back to environment variable, then default for development
+try:
+    from agent.agent_config import AGENT_API_KEY as EMBEDDED_API_KEY
+
+    # Use embedded key, but allow override via environment variable for testing
+    AGENT_API_KEY = os.getenv("AGENT_API_KEY", EMBEDDED_API_KEY)
+except ImportError:
+    # agent_config.py doesn't exist (development mode)
+    # Use environment variable or default development key
+    AGENT_API_KEY = os.getenv(
+        "AGENT_API_KEY", "zapgaze-agent-secret-key-change-in-production"
+    )
+
 
 def send_heartbeat():
     """Send periodic heartbeat to backend and execute any pending commands"""
@@ -37,6 +52,7 @@ def send_heartbeat():
             response = requests.post(
                 f"{backend_url}/agent/heartbeat",
                 json=heartbeat_data,
+                headers={"X-API-Key": AGENT_API_KEY},
                 timeout=5,
             )
             if response.status_code == 200:
@@ -81,6 +97,7 @@ async def lifespan(app: FastAPI):
         requests.post(
             f"{backend_url}/agent/register",
             json={"agent_id": agent_id},
+            headers={"X-API-Key": AGENT_API_KEY},
             timeout=5,
         )
         print(f"✅ Registered with backend: {backend_url}")
@@ -100,6 +117,7 @@ async def lifespan(app: FastAPI):
         requests.delete(
             f"{backend_url}/agent/unregister",
             params={"agent_id": agent_id},
+            headers={"X-API-Key": AGENT_API_KEY},
             timeout=2,
         )
     except requests.RequestException:
@@ -370,6 +388,7 @@ def execute_command(command: dict, backend_url: str):
                         "success": True,
                     },
                 },
+                headers={"X-API-Key": AGENT_API_KEY},
                 timeout=2,
             )
             print(f"📤 Reported success for command {command_id}")
@@ -389,6 +408,7 @@ def execute_command(command: dict, backend_url: str):
                         "error": str(e),
                     },
                 },
+                headers={"X-API-Key": AGENT_API_KEY},
                 timeout=2,
             )
         except:
@@ -637,6 +657,7 @@ def calibrate_point(req: CalPointRequest) -> Dict[str, Any]:
         requests.post(
             f"{backend_url}/session/{req.session_uid}/calibration/point",
             json=result,
+            headers={"X-API-Key": AGENT_API_KEY},
             timeout=1,
         )
     except requests.RequestException:

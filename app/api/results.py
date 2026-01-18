@@ -1,10 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy.orm import Session
 import json
 
 from app.db import models, database
+from app.security import verify_frontend_api_key
 
 router = APIRouter()
+
+# Initialize rate limiter for results endpoints
+limiter = Limiter(key_func=get_remote_address)
 
 
 def get_db():
@@ -16,7 +22,13 @@ def get_db():
 
 
 @router.get("/{session_uid}")
-def get_results(session_uid: str, db: Session = Depends(get_db)):
+@limiter.limit("60/minute")  # Allow 60 requests per minute per IP
+def get_results(
+    request: Request,
+    session_uid: str,
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_frontend_api_key),
+):
     session_entry = db.query(models.Session).filter_by(session_uid=session_uid).first()
     if not session_entry:
         raise HTTPException(status_code=404, detail="Session not found.")
@@ -33,7 +45,13 @@ def get_results(session_uid: str, db: Session = Depends(get_db)):
 
 
 @router.delete("/{session_uid}")
-def delete_results(session_uid: str, db: Session = Depends(get_db)):
+@limiter.limit("30/minute")  # Allow 30 deletions per minute per IP
+def delete_results(
+    request: Request,
+    session_uid: str,
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_frontend_api_key),
+):
     session_entry = db.query(models.Session).filter_by(session_uid=session_uid).first()
     if not session_entry:
         raise HTTPException(status_code=404, detail="Session not found.")

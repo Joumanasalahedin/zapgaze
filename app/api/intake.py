@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import List, Optional
@@ -7,8 +9,12 @@ import json
 import datetime
 
 from app.db import models, database
+from app.security import verify_frontend_api_key
 
 router = APIRouter()
+
+# Initialize rate limiter for intake endpoints
+limiter = Limiter(key_func=get_remote_address)
 
 
 def get_db():
@@ -54,7 +60,13 @@ class IntakeResponse(BaseModel):
 
 
 @router.post("/", summary="Create user intake and compute ASRS-5 total score")
-def intake(data: IntakeData, db: Session = Depends(get_db)):
+@limiter.limit("30/minute")  # Allow 30 intake submissions per minute per IP
+def intake(
+    request: Request,
+    data: IntakeData,
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_frontend_api_key),
+):
     # Compute total ASRS-5 score (0-24)
     total_score = sum(data.answers)
 
@@ -122,7 +134,13 @@ def intake(data: IntakeData, db: Session = Depends(get_db)):
 
 
 @router.get("/user/{user_id}", summary="Get intake data for a specific user")
-def get_user_intake(user_id: int, db: Session = Depends(get_db)):
+@limiter.limit("60/minute")  # Allow 60 requests per minute per IP
+def get_user_intake(
+    request: Request,
+    user_id: int,
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_frontend_api_key),
+):
     """Get the latest intake record for a user."""
 
     # Check if user exists
@@ -155,7 +173,13 @@ def get_user_intake(user_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/session/{session_uid}", summary="Get intake data for a specific session")
-def get_session_intake(session_uid: str, db: Session = Depends(get_db)):
+@limiter.limit("60/minute")  # Allow 60 requests per minute per IP
+def get_session_intake(
+    request: Request,
+    session_uid: str,
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_frontend_api_key),
+):
     """Get the intake record for a specific session."""
 
     # Check if session exists
@@ -189,7 +213,13 @@ def get_session_intake(session_uid: str, db: Session = Depends(get_db)):
 
 
 @router.get("/user/{user_id}/history", summary="Get all intake records for a user")
-def get_user_intake_history(user_id: int, db: Session = Depends(get_db)):
+@limiter.limit("60/minute")  # Allow 60 requests per minute per IP
+def get_user_intake_history(
+    request: Request,
+    user_id: int,
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_frontend_api_key),
+):
     """Get all intake records for a user (if they have multiple)."""
 
     # Check if user exists

@@ -10,6 +10,20 @@ import os
 # Add parent directory to Python path to find app module
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# API Key for backend authentication
+# Try to import from agent_config (embedded at build time)
+# Fall back to environment variable, then default for development
+try:
+    from agent.agent_config import AGENT_API_KEY as EMBEDDED_API_KEY
+
+    # Use embedded key, but allow override via environment variable for testing
+    AGENT_API_KEY = os.getenv("AGENT_API_KEY", EMBEDDED_API_KEY)
+except ImportError:
+    # agent_config.py doesn't exist (development mode)
+    # Use environment variable or default development key
+    AGENT_API_KEY = os.getenv(
+        "AGENT_API_KEY", "zapgaze-agent-secret-key-change-in-production"
+    )
 
 # Configure logging
 template = "%(asctime)s [%(levelname)s] %(message)s"
@@ -142,7 +156,12 @@ def run_acquisition(
 
                 logging.info(f"Sending batch of {len(buffer)} records to backend")
                 try:
-                    resp = requests.post(batch_url, json=buffer, timeout=5)
+                    resp = requests.post(
+                        batch_url,
+                        json=buffer,
+                        headers={"X-API-Key": AGENT_API_KEY},
+                        timeout=5,
+                    )
                     resp.raise_for_status()
                     logging.debug("Batch response: {resp.json()}")
                 except requests.RequestException as e:
@@ -179,7 +198,12 @@ def run_acquisition(
         # Flush remaining buffer before stopping
         if buffer:
             try:
-                resp = requests.post(batch_url, json=buffer, timeout=5)
+                resp = requests.post(
+                    batch_url,
+                    json=buffer,
+                    headers={"X-API-Key": AGENT_API_KEY},
+                    timeout=5,
+                )
                 resp.raise_for_status()
                 logging.info(f"Sent final batch of {len(buffer)} records")
             except Exception as e:

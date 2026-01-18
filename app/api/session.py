@@ -1,13 +1,19 @@
 import uuid
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
 from app.db import models, database
+from app.security import verify_frontend_api_key
 import time
 
 router = APIRouter()
+
+# Initialize rate limiter for session endpoints
+limiter = Limiter(key_func=get_remote_address)
 
 
 def get_db():
@@ -27,7 +33,13 @@ class SessionStopRequest(BaseModel):
 
 
 @router.post("/start")
-def session_start(req: SessionStartRequest, db: Session = Depends(get_db)):
+@limiter.limit("30/minute")  # Allow 30 session starts per minute per IP
+def session_start(
+    request: Request,
+    req: SessionStartRequest,
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_frontend_api_key),
+):
     if req.session_uid:
         sess = db.query(models.Session).filter_by(session_uid=req.session_uid).first()
         if not sess:
@@ -130,7 +142,13 @@ def _stop_agent_acquisition(agent_id_to_stop: str):
 
 
 @router.post("/stop")
-def session_stop(req: SessionStopRequest, db: Session = Depends(get_db)):
+@limiter.limit("30/minute")  # Allow 30 session stops per minute per IP
+def session_stop(
+    request: Request,
+    req: SessionStopRequest,
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_frontend_api_key),
+):
     sess = (
         db.query(models.Session)
         .filter_by(session_uid=req.session_uid, status="active")

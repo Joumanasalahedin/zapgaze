@@ -5,6 +5,7 @@ import EscapeConfirmationModal from "../components/modals/EscapeConfirmationModa
 import AgentInstallModal from "../components/modals/AgentInstallModal";
 import AgentStatusChecker from "../components/AgentStatusChecker";
 import { ASRS_QUESTIONS, ASRS_OPTIONS } from "./IntakeQuestionnairePage";
+import { apiCall, getApiBaseUrl } from "../utils/api";
 
 const CONFIG = {
   RESPONSE_TIME_LIMIT: 2000,
@@ -16,7 +17,7 @@ const CONFIG = {
   GO_TRIAL_PERCENTAGE: 0.8,
   ESCAPE_CONFIRMATION_TIME: 5000,
   CALIBRATION_POINT_DURATION: 1000,
-  API_BASE_URL: import.meta.env.VITE_API_URL || "http://20.74.82.26:8000",
+  API_BASE_URL: getApiBaseUrl(),
   AGENT_BASE_URL: import.meta.env.VITE_AGENT_URL || "http://localhost:9000", // Still used for direct agent calls
   // Agent status is now checked through backend to avoid CORS issues
 } as const;
@@ -88,29 +89,7 @@ const TestPage: FC = () => {
     { x: 10, y: 50 }, // Left-center
   ];
 
-  // API helper functions
-  const apiCall = async (url: string, options: RequestInit = {}) => {
-    try {
-      const response = await fetch(url, {
-        headers: {
-          "Content-Type": "application/json",
-          ...options.headers,
-        },
-        ...options,
-      });
-
-      if (!response.ok) {
-        throw new Error(`
-                    API call failed: ${response.status} ${response.statusText}
-                `);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error("API call error:", error);
-      throw error;
-    }
-  };
+  // Use the shared apiCall utility (includes API key automatically)
 
   const startCalibration = async () => {
     // Check if agent is connected first
@@ -343,14 +322,11 @@ const TestPage: FC = () => {
     // Check agent status on page load through backend
     const checkAgent = async () => {
       try {
-        const response = await fetch(`${CONFIG.API_BASE_URL}/agent/status`, {
+        const data = await apiCall(`${CONFIG.API_BASE_URL}/agent/status`, {
           signal: AbortSignal.timeout(2000),
         });
-        if (response.ok) {
-          const data = await response.json();
-          if (data.status === "connected") {
-            setAgentConnected(true);
-          }
+        if (data.status === "connected") {
+          setAgentConnected(true);
         }
       } catch (error) {
         // Agent not running

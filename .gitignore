@@ -19,3 +19,7 @@ dist/
 
 # Development database viewer config
 .devdbrc
+
+# API Keys and configuration (DO NOT COMMIT)
+.env
+agent/agent_config.py

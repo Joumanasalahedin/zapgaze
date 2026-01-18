@@ -69,7 +69,12 @@ const IntakeQuestionnairePage: FC = () => {
         `${import.meta.env.VITE_API_URL || "http://20.74.82.26:8000"}/intake/`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(import.meta.env.VITE_FRONTEND_API_KEY
+              ? { "X-API-Key": import.meta.env.VITE_FRONTEND_API_KEY }
+              : {}),
+          },
           body: JSON.stringify(payload),
         }
       );

@@ -1,10 +1,16 @@
 # app/api/calibration.py
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from app.db import models, database
+from app.security import verify_frontend_api_key
 
 router = APIRouter()
+
+# Initialize rate limiter for calibration endpoints
+limiter = Limiter(key_func=get_remote_address)
 
 
 def get_db():
@@ -23,8 +29,13 @@ class CalibrationPointIn(BaseModel):
 
 
 @router.post("/session/{session_uid}/calibration/point", tags=["calibration"])
+@limiter.limit("60/minute")  # Allow 60 calibration points per minute per IP
 def add_calibration_point(
-    session_uid: str, data: CalibrationPointIn, db: Session = Depends(get_db)
+    request: Request,
+    session_uid: str,
+    data: CalibrationPointIn,
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_frontend_api_key),
 ):
     # verify session
     sess = db.query(models.Session).filter_by(session_uid=session_uid).first()
@@ -44,7 +55,13 @@ def add_calibration_point(
 
 
 @router.get("/session/{session_uid}/calibration", tags=["calibration"])
-def get_calibration_points(session_uid: str, db: Session = Depends(get_db)):
+@limiter.limit("60/minute")  # Allow 60 requests per minute per IP
+def get_calibration_points(
+    request: Request,
+    session_uid: str,
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_frontend_api_key),
+):
     sess = db.query(models.Session).filter_by(session_uid=session_uid).first()
     if not sess:
         raise HTTPException(404, "Session not found")

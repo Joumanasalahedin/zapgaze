@@ -1,12 +1,18 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy.orm import Session
 import json
 import statistics
 import numpy as np
 
 from app.db import models, database
+from app.security import verify_frontend_api_key
 
 router = APIRouter()
+
+# Initialize rate limiter for features endpoints
+limiter = Limiter(key_func=get_remote_address)
 
 
 def get_db():
@@ -176,7 +182,13 @@ def calculate_gaze_features(samples):
 
 
 @router.post("/compute/{session_uid}")
-def compute_session_features(session_uid: str, db: Session = Depends(get_db)):
+@limiter.limit("30/minute")  # Allow 30 feature computations per minute per IP
+def compute_session_features(
+    request: Request,
+    session_uid: str,
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_frontend_api_key),
+):
     # Validate session
     session = db.query(models.Session).filter_by(session_uid=session_uid).first()
     if not session:
@@ -315,7 +327,13 @@ def compute_session_features(session_uid: str, db: Session = Depends(get_db)):
 
 
 @router.get("/sessions/{session_uid}")
-def get_session_features(session_uid: str, db: Session = Depends(get_db)):
+@limiter.limit("60/minute")  # Allow 60 requests per minute per IP
+def get_session_features(
+    request: Request,
+    session_uid: str,
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_frontend_api_key),
+):
     session = db.query(models.Session).filter_by(session_uid=session_uid).first()
     if not session or not session.features:
         raise HTTPException(

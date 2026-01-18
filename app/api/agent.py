@@ -3,14 +3,20 @@ Agent registration and status API
 Allows agents to register with the backend and frontend to check agent status
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request, Depends
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from pydantic import BaseModel, Field
 from datetime import datetime, timedelta
 from typing import Dict, Optional, Any
 import time
 import uuid
+from app.security import verify_agent_api_key
 
 router = APIRouter()
+
+# Initialize rate limiter for agent endpoints
+limiter = Limiter(key_func=get_remote_address)
 
 # In-memory store for registered agents
 # Key: session_uid or user identifier, Value: last heartbeat timestamp
@@ -76,8 +82,13 @@ class StartAcquisitionRequest(BaseModel):
 
 
 @router.post("/register")
-def register_agent(registration: AgentRegistration) -> Dict[str, Any]:
-    """Register an agent with the backend"""
+@limiter.limit("10/minute")  # Allow 10 registrations per minute per IP
+def register_agent(
+    request: Request,
+    registration: AgentRegistration,
+    api_key: str = Depends(verify_agent_api_key),
+) -> Dict[str, Any]:
+    """Register an agent with the backend (requires API key)"""
     # Use session_uid or agent_id as the key
     agent_key = registration.session_uid or registration.agent_id or "default"
     registered_agents[agent_key] = datetime.now()
@@ -89,8 +100,14 @@ def register_agent(registration: AgentRegistration) -> Dict[str, Any]:
 
 
 @router.post("/heartbeat")
-def agent_heartbeat(heartbeat: AgentHeartbeat) -> Dict[str, Any]:
-    """Update agent heartbeat and return pending commands"""
+# Allow 60 heartbeats per minute per IP (1 per second)
+@limiter.limit("60/minute")
+def agent_heartbeat(
+    request: Request,
+    heartbeat: AgentHeartbeat,
+    api_key: str = Depends(verify_agent_api_key),
+) -> Dict[str, Any]:
+    """Update agent heartbeat and return pending commands (requires API key)"""
     session_uid = heartbeat.session_uid
     agent_id = heartbeat.agent_id
     agent_key = session_uid or agent_id or "default"
@@ -151,8 +168,11 @@ def agent_heartbeat(heartbeat: AgentHeartbeat) -> Dict[str, Any]:
 
 
 @router.get("/status")
-def get_agent_status(session_uid: Optional[str] = None) -> Dict[str, Any]:
-    """Check if an agent is registered and active"""
+@limiter.limit("30/minute")  # Allow 30 status checks per minute per IP
+def get_agent_status(
+    request: Request, session_uid: Optional[str] = None
+) -> Dict[str, Any]:
+    """Check if an agent is registered and active (public endpoint, no API key required)"""
     # Clean up stale agents
     now = datetime.now()
     stale_keys = [
@@ -191,10 +211,14 @@ def get_agent_status(session_uid: Optional[str] = None) -> Dict[str, Any]:
 
 
 @router.delete("/unregister")
+@limiter.limit("10/minute")  # Allow 10 unregistrations per minute per IP
 def unregister_agent(
-    session_uid: Optional[str] = None, agent_id: Optional[str] = None
+    request: Request,
+    session_uid: Optional[str] = None,
+    agent_id: Optional[str] = None,
+    api_key: str = Depends(verify_agent_api_key),
 ) -> Dict[str, Any]:
-    """Unregister an agent"""
+    """Unregister an agent (requires API key)"""
     agent_key = session_uid or agent_id or "default"
     if agent_key in registered_agents:
         del registered_agents[agent_key]
@@ -207,8 +231,11 @@ def unregister_agent(
 
 # Calibration proxy endpoints
 @router.post("/calibrate/start")
-def proxy_calibrate_start() -> Dict[str, Any]:
-    """Queue calibration start command for agent"""
+@limiter.limit("10/minute")  # Allow 10 calibration starts per minute per IP
+def proxy_calibrate_start(
+    request: Request, api_key: str = Depends(verify_agent_api_key)
+) -> Dict[str, Any]:
+    """Queue calibration start command for agent (requires API key)"""
     # Get any active agent
     now = datetime.now()
     active_agents = [
@@ -262,8 +289,13 @@ def proxy_calibrate_start() -> Dict[str, Any]:
 
 
 @router.post("/calibrate/point")
-def proxy_calibrate_point(data: CalibrationPointRequest) -> Dict[str, Any]:
-    """Queue calibration point command for agent"""
+@limiter.limit("60/minute")  # Allow 60 calibration points per minute per IP
+def proxy_calibrate_point(
+    request: Request,
+    data: CalibrationPointRequest,
+    api_key: str = Depends(verify_agent_api_key),
+) -> Dict[str, Any]:
+    """Queue calibration point command for agent (requires API key)"""
     now = datetime.now()
     active_agents = [
         key
@@ -309,8 +341,11 @@ def proxy_calibrate_point(data: CalibrationPointRequest) -> Dict[str, Any]:
 
 
 @router.post("/calibrate/finish")
-def proxy_calibrate_finish() -> Dict[str, Any]:
-    """Queue calibration finish command for agent"""
+@limiter.limit("10/minute")  # Allow 10 calibration finishes per minute per IP
+def proxy_calibrate_finish(
+    request: Request, api_key: str = Depends(verify_agent_api_key)
+) -> Dict[str, Any]:
+    """Queue calibration finish command for agent (requires API key)"""
     now = datetime.now()
     active_agents = [
         key
@@ -349,8 +384,13 @@ def proxy_calibrate_finish() -> Dict[str, Any]:
 
 
 @router.post("/start")
-def proxy_start_acquisition(data: StartAcquisitionRequest) -> Dict[str, Any]:
-    """Queue start acquisition command for agent"""
+@limiter.limit("10/minute")  # Allow 10 acquisition starts per minute per IP
+def proxy_start_acquisition(
+    request: Request,
+    data: StartAcquisitionRequest,
+    api_key: str = Depends(verify_agent_api_key),
+) -> Dict[str, Any]:
+    """Queue start acquisition command for agent (requires API key)"""
     now = datetime.now()
     active_agents = [
         key
@@ -396,8 +436,11 @@ def proxy_start_acquisition(data: StartAcquisitionRequest) -> Dict[str, Any]:
 
 
 @router.post("/stop")
-def proxy_stop_acquisition() -> Dict[str, Any]:
-    """Queue stop acquisition command for agent"""
+@limiter.limit("10/minute")  # Allow 10 acquisition stops per minute per IP
+def proxy_stop_acquisition(
+    request: Request, api_key: str = Depends(verify_agent_api_key)
+) -> Dict[str, Any]:
+    """Queue stop acquisition command for agent (requires API key)"""
     now = datetime.now()
     active_agents = [
         key

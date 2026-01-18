@@ -154,8 +154,14 @@ const SingleResultPage = () => {
   useEffect(() => {
     if (!sessionUid) return;
     setLoading(true);
+    const apiKey = import.meta.env.VITE_FRONTEND_API_KEY;
     fetch(
-      `${import.meta.env.VITE_API_URL || "http://20.74.82.26:8000"}/features/sessions/${sessionUid}`
+      `${import.meta.env.VITE_API_URL || "http://20.74.82.26:8000"}/features/sessions/${sessionUid}`,
+      {
+        headers: {
+          ...(apiKey ? { "X-API-Key": apiKey } : {}),
+        },
+      }
     )
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch result");

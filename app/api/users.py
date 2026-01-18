@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List, Optional
@@ -6,8 +8,12 @@ import datetime
 import json
 
 from app.db import models, database
+from app.security import verify_frontend_api_key
 
 router = APIRouter()
+
+# Initialize rate limiter for users endpoints
+limiter = Limiter(key_func=get_remote_address)
 
 
 def get_db():
@@ -41,11 +47,14 @@ class UserResultsResponse(BaseModel):
 
 
 @router.get("/search", summary="Search for users by name")
+@limiter.limit("60/minute")  # Allow 60 searches per minute per IP
 def search_users(
+    request: Request,
     name: str = Query(
         ..., min_length=1, description="Name to search for (partial match)"
     ),
     db: Session = Depends(get_db),
+    api_key: str = Depends(verify_frontend_api_key),
 ):
     """Search for users by name (case-insensitive partial match)."""
 
@@ -72,12 +81,15 @@ def search_users(
 
 
 @router.get("/results", summary="Get all results for a user grouped by session")
+@limiter.limit("60/minute")  # Allow 60 requests per minute per IP
 def get_user_results(
+    request: Request,
     user_id: int = Query(..., description="User ID"),
     birthdate: datetime.date = Query(
         ..., description="User birthdate for verification"
     ),
     db: Session = Depends(get_db),
+    api_key: str = Depends(verify_frontend_api_key),
 ):
     """Get all results for a user, grouped by session. Requires birthdate verification."""
 
