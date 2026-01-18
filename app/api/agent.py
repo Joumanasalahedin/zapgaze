@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from typing import Dict, Optional, Any
 import time
 import uuid
-from app.security import verify_agent_api_key
+from app.security import verify_agent_api_key, verify_frontend_api_key
 
 router = APIRouter()
 
@@ -233,7 +233,7 @@ def unregister_agent(
 @router.post("/calibrate/start")
 @limiter.limit("10/minute")  # Allow 10 calibration starts per minute per IP
 def proxy_calibrate_start(
-    request: Request, api_key: str = Depends(verify_agent_api_key)
+    request: Request, api_key: str = Depends(verify_frontend_api_key)
 ) -> Dict[str, Any]:
     """Queue calibration start command for agent (requires API key)"""
     # Get any active agent
@@ -293,7 +293,7 @@ def proxy_calibrate_start(
 def proxy_calibrate_point(
     request: Request,
     data: CalibrationPointRequest,
-    api_key: str = Depends(verify_agent_api_key),
+    api_key: str = Depends(verify_frontend_api_key),
 ) -> Dict[str, Any]:
     """Queue calibration point command for agent (requires API key)"""
     now = datetime.now()
@@ -343,7 +343,7 @@ def proxy_calibrate_point(
 @router.post("/calibrate/finish")
 @limiter.limit("10/minute")  # Allow 10 calibration finishes per minute per IP
 def proxy_calibrate_finish(
-    request: Request, api_key: str = Depends(verify_agent_api_key)
+    request: Request, api_key: str = Depends(verify_frontend_api_key)
 ) -> Dict[str, Any]:
     """Queue calibration finish command for agent (requires API key)"""
     now = datetime.now()
@@ -388,7 +388,7 @@ def proxy_calibrate_finish(
 def proxy_start_acquisition(
     request: Request,
     data: StartAcquisitionRequest,
-    api_key: str = Depends(verify_agent_api_key),
+    api_key: str = Depends(verify_frontend_api_key),
 ) -> Dict[str, Any]:
     """Queue start acquisition command for agent (requires API key)"""
     now = datetime.now()
@@ -438,7 +438,7 @@ def proxy_start_acquisition(
 @router.post("/stop")
 @limiter.limit("10/minute")  # Allow 10 acquisition stops per minute per IP
 def proxy_stop_acquisition(
-    request: Request, api_key: str = Depends(verify_agent_api_key)
+    request: Request, api_key: str = Depends(verify_frontend_api_key)
 ) -> Dict[str, Any]:
     """Queue stop acquisition command for agent (requires API key)"""
     now = datetime.now()
