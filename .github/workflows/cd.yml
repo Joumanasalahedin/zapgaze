@@ -57,8 +57,11 @@ jobs:
             echo "🐳 Stopping existing containers..."
             compose down || true
             
+            echo "🧹 Cleaning Docker build cache..."
+            docker builder prune -f || true
+            
             echo "🔨 Building and starting containers..."
-            compose up -d --build
+            compose up -d --build --no-cache
             
             echo "✅ Deployment complete!"
             
