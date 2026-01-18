@@ -95,7 +95,7 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
   const getDownloadUrl = (): string => {
     // GitHub Releases URL - Direct link to your release
     // Update this URL after you create the GitHub release
-    const baseUrl = "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.3";
+    const baseUrl = "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.4";
 
     switch (platform) {
       case "windows":
@@ -165,7 +165,7 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
                     startIcon={<DownloadIcon />}
                     onClick={() => {
                       const baseUrl =
-                        "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.3";
+                        "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.4";
                       window.open(`${baseUrl}/ZapGazeAgent.exe`, "_blank");
                       setActiveStep(1);
                     }}
@@ -177,7 +177,7 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
                     startIcon={<DownloadIcon />}
                     onClick={() => {
                       const baseUrl =
-                        "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.3";
+                        "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.4";
                       window.open(`${baseUrl}/ZapGazeAgent.zip`, "_blank");
                       setActiveStep(1);
                     }}
@@ -189,7 +189,7 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
                     startIcon={<DownloadIcon />}
                     onClick={() => {
                       const baseUrl =
-                        "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.3";
+                        "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.4";
                       window.open(`${baseUrl}/ZapGazeAgent-linux`, "_blank");
                       setActiveStep(1);
                     }}

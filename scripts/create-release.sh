@@ -4,7 +4,7 @@
 
 set -e
 
-VERSION=${1:-v1.0.4}
+VERSION=${1:-v1.0.5}
 REPO="Joumanasalahedin/zapgaze"
 
 echo "=========================================="
@@ -33,15 +33,18 @@ echo ""
 # Generate release notes
 RELEASE_NOTES="## ZapGaze Agent $VERSION
 
-### 🔒 What's New - Enhanced API Validation & Type Safety
+### 🔒 What's New - Security & Authentication
 
-- ✅ **Comprehensive Pydantic validation** for all API endpoints
-- ✅ **Field constraints** on request parameters (FPS limits, coordinate validation, sample counts)
-- ✅ **Type checking** with return type hints for better IDE support
-- ✅ **Business logic validation** (calibration state checks, session validation)
-- ✅ **Improved error messages** with clear validation feedback
-- ✅ **Structured request models** for agent heartbeat, calibration, and acquisition endpoints
-- ✅ **Automatic validation** of API request formats to prevent failures from malformed data
+- ✅ **API Key Authentication** - Agent uses embedded API key for secure backend communication
+- ✅ **Rate Limiting** - All endpoints protected against abuse with request rate limits
+- ✅ **Frontend API Key Support** - Frontend requests now authenticated with API keys
+- ✅ **Automatic Authentication** - API key embedded in executable, no user configuration needed
+
+### 🐛 Bug Fixes
+
+- ✅ **Fixed calibration endpoint authentication** - Calibration points now save correctly
+- ✅ **Fixed results page** - Session features now load properly
+- ✅ **Fixed API key handling** - Agent correctly sends API key in all requests
 
 ### Installation
 
@@ -69,6 +72,8 @@ RELEASE_NOTES="## ZapGaze Agent $VERSION
 
 The agent will connect to the backend at: \`http://20.74.82.26:8000\`
 
+**No API key configuration needed!** The API key is embedded in the executable for secure, automatic authentication.
+
 To change the backend URL, set the \`BACKEND_URL\` environment variable before running:
 \`\`\`bash
 export BACKEND_URL=http://your-backend-url:8000
@@ -77,11 +82,17 @@ export BACKEND_URL=http://your-backend-url:8000
 
 ### Technical Details
 
-**Validation Improvements:**
-- Agent Local API: Validates session UID, API URL patterns, FPS ranges (0-120), calibration coordinates, duration (0-10s), and sample counts (1-1000)
-- Backend Agent API: Structured Pydantic models for all endpoints with automatic validation
-- Business logic: Checks calibration state before processing points
-- Type hints: All endpoints now have return type annotations
+**Security Improvements:**
+- API Key Authentication: Agent API key embedded at build time, backend validates all requests
+- Rate Limiting: 10-1000 requests/minute per IP depending on endpoint
+- Frontend API Key: All frontend endpoints now require authentication
+- Calibration endpoints accept both agent and frontend API keys
+
+**Bug Fixes:**
+- Fixed calibration endpoint authentication (401 errors resolved)
+- Fixed results page feature loading (404 errors resolved)
+- Fixed API key header in agent requests
+- Improved session features database query reliability
 
 **Breaking Changes:** None - All changes are backward compatible.
 
