@@ -60,7 +60,7 @@ def get_calibration_points(
     request: Request,
     session_uid: str,
     db: Session = Depends(get_db),
-    api_key: str = Depends(verify_frontend_api_key),
+    api_key: str = Depends(verify_agent_or_frontend_api_key),
 ):
     sess = db.query(models.Session).filter_by(session_uid=session_uid).first()
     if not sess:
