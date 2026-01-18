@@ -50,16 +50,28 @@ class AgentHeartbeat(BaseModel):
 
 
 class CalibrationPointRequest(BaseModel):
-    session_uid: str = Field(..., min_length=1, description="Session UID for calibration")
-    x: float = Field(..., ge=0, description="X coordinate (percentage 0-100 or normalized 0-1)")
-    y: float = Field(..., ge=0, description="Y coordinate (percentage 0-100 or normalized 0-1)")
+    session_uid: str = Field(
+        ..., min_length=1, description="Session UID for calibration"
+    )
+    x: float = Field(
+        ..., ge=0, description="X coordinate (percentage 0-100 or normalized 0-1)"
+    )
+    y: float = Field(
+        ..., ge=0, description="Y coordinate (percentage 0-100 or normalized 0-1)"
+    )
     duration: float = Field(1.0, gt=0, le=10, description="Duration in seconds (0-10)")
-    samples: int = Field(30, gt=0, le=1000, description="Number of samples to collect (1-1000)")
+    samples: int = Field(
+        30, gt=0, le=1000, description="Number of samples to collect (1-1000)"
+    )
 
 
 class StartAcquisitionRequest(BaseModel):
-    session_uid: str = Field(..., min_length=1, description="Session UID for acquisition")
-    api_url: str = Field(..., pattern=r'^https?://', description="Backend API URL for data submission")
+    session_uid: str = Field(
+        ..., min_length=1, description="Session UID for acquisition"
+    )
+    api_url: str = Field(
+        ..., pattern=r"^https?://", description="Backend API URL for data submission"
+    )
     fps: float = Field(20.0, gt=0, le=120, description="Frames per second (0-120)")
 
 
@@ -179,7 +191,9 @@ def get_agent_status(session_uid: Optional[str] = None) -> Dict[str, Any]:
 
 
 @router.delete("/unregister")
-def unregister_agent(session_uid: Optional[str] = None, agent_id: Optional[str] = None) -> Dict[str, Any]:
+def unregister_agent(
+    session_uid: Optional[str] = None, agent_id: Optional[str] = None
+) -> Dict[str, Any]:
     """Unregister an agent"""
     agent_key = session_uid or agent_id or "default"
     if agent_key in registered_agents:
