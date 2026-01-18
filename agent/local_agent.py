@@ -227,7 +227,7 @@ def execute_command(command: dict, backend_url: str):
                     json=result,
                     timeout=1,
                 )
-            except:
+            except Exception:
                 pass
 
         elif command_type == "calibrate_finish":
@@ -341,7 +341,9 @@ def execute_command(command: dict, backend_url: str):
                         traceback.print_exc()
                         # Stop flag already set, so loop will exit on next check
                 else:
-                    print("⚠️  No acquisition_camera in app.state, using stop flag only")
+                    print(
+                        "⚠️  No acquisition_camera in app.state, using stop flag only"
+                    )
 
                 result = {"status": "acquisition_stopped", "mode": "thread"}
 
@@ -406,7 +408,7 @@ def execute_command(command: dict, backend_url: str):
                 headers={"X-API-Key": AGENT_API_KEY},
                 timeout=2,
             )
-        except:
+        except Exception:
             pass
 
 
