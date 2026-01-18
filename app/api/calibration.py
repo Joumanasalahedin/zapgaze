@@ -5,7 +5,7 @@ from slowapi.util import get_remote_address
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from app.db import models, database
-from app.security import verify_frontend_api_key
+from app.security import verify_agent_or_frontend_api_key
 
 router = APIRouter()
 
@@ -35,7 +35,7 @@ def add_calibration_point(
     session_uid: str,
     data: CalibrationPointIn,
     db: Session = Depends(get_db),
-    api_key: str = Depends(verify_frontend_api_key),
+    api_key: str = Depends(verify_agent_or_frontend_api_key),
 ):
     # verify session
     sess = db.query(models.Session).filter_by(session_uid=session_uid).first()

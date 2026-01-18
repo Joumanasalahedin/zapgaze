@@ -225,6 +225,7 @@ def execute_command(command: dict, backend_url: str):
                 requests.post(
                     f"{backend_url}/session/{params.get('session_uid')}/calibration/point",
                     json=result,
+                    headers={"X-API-Key": AGENT_API_KEY},
                     timeout=1,
                 )
             except Exception:
