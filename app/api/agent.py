@@ -4,7 +4,7 @@ Allows agents to register with the backend and frontend to check agent status
 """
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime, timedelta
 from typing import Dict, Optional, Any
 import time
@@ -36,11 +36,6 @@ class AgentRegistration(BaseModel):
     agent_id: Optional[str] = None  # Optional unique agent identifier
 
 
-class AgentHeartbeat(BaseModel):
-    session_uid: Optional[str] = None
-    agent_id: Optional[str] = None
-
-
 class AgentCommandResult(BaseModel):
     command_id: str
     result: Any
@@ -48,8 +43,28 @@ class AgentCommandResult(BaseModel):
     error: Optional[str] = None
 
 
+class AgentHeartbeat(BaseModel):
+    session_uid: Optional[str] = None
+    agent_id: Optional[str] = None
+    command_result: Optional[AgentCommandResult] = None
+
+
+class CalibrationPointRequest(BaseModel):
+    session_uid: str = Field(..., min_length=1, description="Session UID for calibration")
+    x: float = Field(..., ge=0, description="X coordinate (percentage 0-100 or normalized 0-1)")
+    y: float = Field(..., ge=0, description="Y coordinate (percentage 0-100 or normalized 0-1)")
+    duration: float = Field(1.0, gt=0, le=10, description="Duration in seconds (0-10)")
+    samples: int = Field(30, gt=0, le=1000, description="Number of samples to collect (1-1000)")
+
+
+class StartAcquisitionRequest(BaseModel):
+    session_uid: str = Field(..., min_length=1, description="Session UID for acquisition")
+    api_url: str = Field(..., pattern=r'^https?://', description="Backend API URL for data submission")
+    fps: float = Field(20.0, gt=0, le=120, description="Frames per second (0-120)")
+
+
 @router.post("/register")
-def register_agent(registration: AgentRegistration):
+def register_agent(registration: AgentRegistration) -> Dict[str, Any]:
     """Register an agent with the backend"""
     # Use session_uid or agent_id as the key
     agent_key = registration.session_uid or registration.agent_id or "default"
@@ -62,10 +77,10 @@ def register_agent(registration: AgentRegistration):
 
 
 @router.post("/heartbeat")
-def agent_heartbeat(heartbeat: dict):
+def agent_heartbeat(heartbeat: AgentHeartbeat) -> Dict[str, Any]:
     """Update agent heartbeat and return pending commands"""
-    session_uid = heartbeat.get("session_uid")
-    agent_id = heartbeat.get("agent_id")
+    session_uid = heartbeat.session_uid
+    agent_id = heartbeat.agent_id
     agent_key = session_uid or agent_id or "default"
 
     # Check if agent was stopped (unregistered after session stop)
@@ -91,14 +106,14 @@ def agent_heartbeat(heartbeat: dict):
         registered_agents[agent_id] = datetime.now()
 
     # Store command result if provided
-    if "command_result" in heartbeat:
-        result = heartbeat["command_result"]
-        command_id = result.get("command_id")
+    if heartbeat.command_result:
+        result = heartbeat.command_result
+        command_id = result.command_id
         if command_id:
             command_results[command_id] = {
-                "result": result.get("result"),
-                "success": result.get("success", False),
-                "error": result.get("error"),
+                "result": result.result,
+                "success": result.success,
+                "error": result.error,
             }
 
     # Return pending commands for this agent
@@ -124,7 +139,7 @@ def agent_heartbeat(heartbeat: dict):
 
 
 @router.get("/status")
-def get_agent_status(session_uid: Optional[str] = None):
+def get_agent_status(session_uid: Optional[str] = None) -> Dict[str, Any]:
     """Check if an agent is registered and active"""
     # Clean up stale agents
     now = datetime.now()
@@ -164,7 +179,7 @@ def get_agent_status(session_uid: Optional[str] = None):
 
 
 @router.delete("/unregister")
-def unregister_agent(session_uid: Optional[str] = None, agent_id: Optional[str] = None):
+def unregister_agent(session_uid: Optional[str] = None, agent_id: Optional[str] = None) -> Dict[str, Any]:
     """Unregister an agent"""
     agent_key = session_uid or agent_id or "default"
     if agent_key in registered_agents:
@@ -178,7 +193,7 @@ def unregister_agent(session_uid: Optional[str] = None, agent_id: Optional[str] 
 
 # Calibration proxy endpoints
 @router.post("/calibrate/start")
-def proxy_calibrate_start():
+def proxy_calibrate_start() -> Dict[str, Any]:
     """Queue calibration start command for agent"""
     # Get any active agent
     now = datetime.now()
@@ -233,7 +248,7 @@ def proxy_calibrate_start():
 
 
 @router.post("/calibrate/point")
-def proxy_calibrate_point(data: dict):
+def proxy_calibrate_point(data: CalibrationPointRequest) -> Dict[str, Any]:
     """Queue calibration point command for agent"""
     now = datetime.now()
     active_agents = [
@@ -250,7 +265,7 @@ def proxy_calibrate_point(data: dict):
     command = {
         "command_id": command_id,
         "type": "calibrate_point",
-        "params": data,
+        "params": data.model_dump(),
     }
 
     if agent_key not in agent_commands:
@@ -280,7 +295,7 @@ def proxy_calibrate_point(data: dict):
 
 
 @router.post("/calibrate/finish")
-def proxy_calibrate_finish():
+def proxy_calibrate_finish() -> Dict[str, Any]:
     """Queue calibration finish command for agent"""
     now = datetime.now()
     active_agents = [
@@ -320,7 +335,7 @@ def proxy_calibrate_finish():
 
 
 @router.post("/start")
-def proxy_start_acquisition(data: dict):
+def proxy_start_acquisition(data: StartAcquisitionRequest) -> Dict[str, Any]:
     """Queue start acquisition command for agent"""
     now = datetime.now()
     active_agents = [
@@ -337,7 +352,7 @@ def proxy_start_acquisition(data: dict):
     command = {
         "command_id": command_id,
         "type": "start_acquisition",
-        "params": data,
+        "params": data.model_dump(),
     }
 
     if agent_key not in agent_commands:
@@ -367,7 +382,7 @@ def proxy_start_acquisition(data: dict):
 
 
 @router.post("/stop")
-def proxy_stop_acquisition():
+def proxy_stop_acquisition() -> Dict[str, Any]:
     """Queue stop acquisition command for agent"""
     now = datetime.now()
     active_agents = [
