@@ -410,8 +410,6 @@ def execute_command(command: dict, backend_url: str):
             pass
 
 
-# Create FastAPI app with lifespan
-# lifespan is defined at the top of the file to avoid PyInstaller issues
 app = FastAPI(title="Local Acquisition Agent", lifespan=lifespan)
 
 app.add_middleware(
@@ -425,7 +423,6 @@ app.add_middleware(
 app.state.cal_data = []
 app.state.cal_camera = None
 app.state.cal_adapter = None
-# Store acquisition camera for direct release (like calibration)
 app.state.acquisition_camera = None
 
 
@@ -665,7 +662,6 @@ def calibrate_finish() -> Dict[str, Any]:
     """Finish calibration and compute transformation matrix"""
     data = app.state.cal_data
     cam = app.state.cal_camera
-    # Stop calibration camera
     if cam:
         cam.release_camera()
         app.state.cal_camera = None
@@ -676,13 +672,13 @@ def calibrate_finish() -> Dict[str, Any]:
             detail="At least 3 calibration points required. Current points: "
             + str(len(data) if data else 0),
         )
-    raw = np.array([[d[2], d[3]] for d in data])  # measured
-    scr = np.array([[d[0], d[1]] for d in data])  # screen
+    raw = np.array([[d[2], d[3]] for d in data])
+    scr = np.array([[d[0], d[1]] for d in data])
     ones = np.ones((raw.shape[0], 1))
-    X = np.hstack([raw, ones])  # Nx3
+    X = np.hstack([raw, ones])
     params_x, _, _, _ = np.linalg.lstsq(X, scr[:, 0], rcond=None)
     params_y, _, _, _ = np.linalg.lstsq(X, scr[:, 1], rcond=None)
-    A = [[params_x[0], params_x[1]], [params_y[0], params_y[1]]]  # 2x2
+    A = [[params_x[0], params_x[1]], [params_y[0], params_y[1]]]
     b = [params_x[2], params_y[2]]
     transform = {"A": A, "b": b}
 
