@@ -2,6 +2,7 @@ fastapi
 uvicorn[standard]
 pydantic
 sqlalchemy
+psycopg2-binary>=2.9.9
 opencv-python
 requests
 numpy

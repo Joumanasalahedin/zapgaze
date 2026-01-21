@@ -92,35 +92,50 @@ def intake(
                 detail="User not found or birthdate does not match. Please check your user ID and birthdate.",
             )
 
-        print(f"Using existing user: {user.name} (ID: {user.id})")
-
     # Handle new user case
     elif data.name is not None:
         # Create new User (basic info only)
-        user = models.User(name=data.name, birthdate=data.birthdate)
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-
-        print(f"Created new user: {user.name} (ID: {user.id})")
+        try:
+            user = models.User(name=data.name, birthdate=data.birthdate)
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        except Exception as e:
+            db.rollback()
+            raise HTTPException(
+                status_code=500, detail=f"Failed to create user: {str(e)}"
+            )
 
     # Create new session for the user
-    session_uid = str(uuid.uuid4())
-    session_entry = models.Session(user_id=user.id, session_uid=session_uid)
-    db.add(session_entry)
-    db.commit()
+    try:
+        session_uid = str(uuid.uuid4())
+        session_entry = models.Session(user_id=user.id, session_uid=session_uid)
+        db.add(session_entry)
+        db.commit()
+        db.refresh(session_entry)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500, detail=f"Failed to create session: {str(e)}"
+        )
 
     # Create Intake record linked to the user and session
-    intake_record = models.Intake(
-        user_id=user.id,
-        session_uid=session_uid,
-        answers_json=json.dumps(data.answers),
-        total_score=total_score,
-        symptom_group=symptom_group,
-    )
-    db.add(intake_record)
-    db.commit()
-    db.refresh(intake_record)
+    try:
+        intake_record = models.Intake(
+            user_id=user.id,
+            session_uid=session_uid,
+            answers_json=json.dumps(data.answers),
+            total_score=total_score,
+            symptom_group=symptom_group,
+        )
+        db.add(intake_record)
+        db.commit()
+        db.refresh(intake_record)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500, detail=f"Failed to create intake: {str(e)}"
+        )
 
     return IntakeResponse(
         id=intake_record.id,

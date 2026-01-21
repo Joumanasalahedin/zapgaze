@@ -20,14 +20,11 @@ from app.db.database import engine
 
 app = FastAPI(title="ZapGaze Backend")
 
-# Initialize rate limiter
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# Allow CORS for frontend - read from environment variable or use defaults
 cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
-# Clean up any whitespace
 cors_origins = [origin.strip() for origin in cors_origins]
 
 app.add_middleware(
@@ -58,9 +55,21 @@ app.include_router(features.router, prefix="/features", tags=["features"])
 app.include_router(agent.router, prefix="/agent", tags=["agent"])
 
 
+@app.on_event("startup")
+async def create_tables():
+    """
+    Create database tables on application startup.
+
+    This is idempotent - it only creates tables that don't exist.
+    Existing tables and data are preserved. Safe to call on every startup.
+    """
+    try:
+        models.Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        print(f"Warning: Could not create database tables: {e}")
+        print("  Tables may already exist or database connection issue.")
+
+
 @app.get("/")
 def read_root():
     return {"message": "ZapGaze API is running."}
-
-
-models.Base.metadata.create_all(bind=engine)
