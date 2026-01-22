@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
@@ -8,7 +8,14 @@ import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
 import CircularProgress from "@mui/material/CircularProgress";
+import Button from "@mui/material/Button";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
+import DialogActions from "@mui/material/DialogActions";
 import CheckIcon from "@mui/icons-material/Check";
+import DeleteIcon from "@mui/icons-material/Delete";
 import GenericIcon from "../components/GenericIcon";
 import styles from "./SingleResultPage.module.css";
 
@@ -147,9 +154,13 @@ const METRICS = [
 
 const SingleResultPage = () => {
   const { sessionUid } = useParams();
+  const navigate = useNavigate();
   const [data, setData] = useState<SessionFeatureData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!sessionUid) return;
@@ -189,6 +200,59 @@ const SingleResultPage = () => {
     return age;
   };
 
+  const handleDeleteClick = () => {
+    setDeleteDialogOpen(true);
+    setDeleteError(null);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!data || !data.user_id || !data.birthdate) {
+      setDeleteError("Missing user information. Cannot delete.");
+      return;
+    }
+
+    setDeleting(true);
+    setDeleteError(null);
+
+    try {
+      const apiKey = import.meta.env.VITE_FRONTEND_API_KEY;
+      const apiUrl = import.meta.env.VITE_API_URL || "http://20.74.82.26:8000";
+
+      // Format birthdate as YYYY-MM-DD
+      const birthdateStr = data.birthdate.split("T")[0]; // Handle ISO format
+
+      const response = await fetch(
+        `${apiUrl}/gdpr/delete-user?user_id=${data.user_id}&birthdate=${birthdateStr}`,
+        {
+          method: "DELETE",
+          headers: {
+            ...(apiKey ? { "X-API-Key": apiKey } : {}),
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ detail: "Unknown error" }));
+        throw new Error(errorData.detail || `HTTP ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      // Close dialog and navigate away
+      setDeleteDialogOpen(false);
+      navigate("/results", { replace: true });
+    } catch (err: any) {
+      setDeleteError(err.message || "Failed to delete user data. Please try again.");
+      setDeleting(false);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+    setDeleteError(null);
+  };
+
   return (
     <div className={styles.root}>
       <div className={styles.headerInfo}>
@@ -222,6 +286,19 @@ const SingleResultPage = () => {
               : "—"}
           </div>
         </div>
+        {data && (
+          <div style={{ marginTop: "16px", display: "flex", justifyContent: "flex-end" }}>
+            <Button
+              variant="outlined"
+              color="error"
+              startIcon={<DeleteIcon />}
+              onClick={handleDeleteClick}
+              disabled={loading || deleting}
+            >
+              Delete All My Data (GDPR)
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Intake Questionnaire Score Section */}
@@ -361,6 +438,54 @@ const SingleResultPage = () => {
           </TableBody>
         </Table>
       </TableContainer>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleDeleteCancel}
+        aria-labelledby="delete-dialog-title"
+        aria-describedby="delete-dialog-description"
+      >
+        <DialogTitle id="delete-dialog-title">
+          Delete All My Data (GDPR Right to Deletion)
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="delete-dialog-description">
+            <strong>Warning: This action cannot be undone.</strong>
+            <br />
+            <br />
+            This will permanently delete:
+            <ul style={{ marginTop: "8px", marginBottom: "8px" }}>
+              <li>Your user account</li>
+              <li>All test sessions and results</li>
+              <li>All eye-tracking data</li>
+              <li>All questionnaire responses</li>
+              <li>All associated data</li>
+            </ul>
+            Are you sure you want to delete all your data? This action is permanent and cannot be
+            reversed.
+          </DialogContentText>
+          {deleteError && (
+            <DialogContentText style={{ color: "red", marginTop: "16px" }}>
+              Error: {deleteError}
+            </DialogContentText>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDeleteCancel} disabled={deleting}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            color="error"
+            variant="contained"
+            disabled={deleting}
+            startIcon={deleting ? <CircularProgress size={16} /> : <DeleteIcon />}
+          >
+            {deleting ? "Deleting..." : "Yes, Delete All My Data"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 };
