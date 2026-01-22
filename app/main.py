@@ -14,6 +14,7 @@ from app.api import (
     calibration,
     users,
     agent,
+    gdpr,
 )
 from app.db import models
 from app.db.database import engine
@@ -53,6 +54,9 @@ app.include_router(features.router, prefix="/features", tags=["features"])
 
 # Agent registration and status
 app.include_router(agent.router, prefix="/agent", tags=["agent"])
+
+# GDPR compliance endpoints
+app.include_router(gdpr.router, prefix="/gdpr", tags=["gdpr"])
 
 
 @app.on_event("startup")
