@@ -164,28 +164,88 @@ const SingleResultPage = () => {
 
   useEffect(() => {
     if (!sessionUid) return;
-    setLoading(true);
-    const apiKey = import.meta.env.VITE_FRONTEND_API_KEY;
-    fetch(
-      `${import.meta.env.VITE_API_URL || "http://20.74.82.26:8000"}/features/sessions/${sessionUid}`,
-      {
-        headers: {
-          ...(apiKey ? { "X-API-Key": apiKey } : {}),
-        },
+
+    const fetchOrComputeFeatures = async () => {
+      setLoading(true);
+      setError(null);
+      const apiKey = import.meta.env.VITE_FRONTEND_API_KEY;
+      const apiUrl = import.meta.env.VITE_API_URL || "http://20.74.82.26:8000";
+
+      try {
+        // First, try to fetch existing features
+        const fetchResponse = await fetch(`${apiUrl}/features/sessions/${sessionUid}`, {
+          headers: {
+            ...(apiKey ? { "X-API-Key": apiKey } : {}),
+          },
+        });
+
+        if (fetchResponse.ok) {
+          // Features exist, use them
+          const d = await fetchResponse.json();
+          setData(d);
+          setLoading(false);
+          return;
+        }
+
+        // If features don't exist (404), compute them
+        if (fetchResponse.status === 404) {
+          console.log("Features not found, computing...");
+
+          // Compute features
+          const computeResponse = await fetch(`${apiUrl}/features/compute/${sessionUid}`, {
+            method: "POST",
+            headers: {
+              ...(apiKey ? { "X-API-Key": apiKey } : {}),
+              "Content-Type": "application/json",
+            },
+          });
+
+          if (!computeResponse.ok) {
+            const errorData = await computeResponse
+              .json()
+              .catch(() => ({ detail: "Unknown error" }));
+            throw new Error(errorData.detail || "Failed to compute features");
+          }
+
+          // Retry fetching features with exponential backoff (max 3 retries)
+          let retries = 0;
+          const maxRetries = 3;
+          let retryResponse;
+
+          while (retries < maxRetries) {
+            // Wait before retrying (exponential backoff: 500ms, 1000ms, 2000ms)
+            await new Promise((resolve) => setTimeout(resolve, 500 * Math.pow(2, retries)));
+
+            retryResponse = await fetch(`${apiUrl}/features/sessions/${sessionUid}`, {
+              headers: {
+                ...(apiKey ? { "X-API-Key": apiKey } : {}),
+              },
+            });
+
+            if (retryResponse.ok) {
+              break;
+            }
+
+            retries++;
+          }
+
+          if (!retryResponse || !retryResponse.ok) {
+            throw new Error("Features computed but failed to fetch after retries");
+          }
+
+          const d = await retryResponse.json();
+          setData(d);
+          setLoading(false);
+        } else {
+          throw new Error(`Failed to fetch result: ${fetchResponse.status}`);
+        }
+      } catch (e: any) {
+        setError(e.message || "Failed to load results");
+        setLoading(false);
       }
-    )
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch result");
-        return res.json();
-      })
-      .then((d) => {
-        setData(d);
-        setLoading(false);
-      })
-      .catch((e) => {
-        setError(e.message);
-        setLoading(false);
-      });
+    };
+
+    fetchOrComputeFeatures();
   }, [sessionUid]);
 
   const getAge = (dobString: string) => {
