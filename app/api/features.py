@@ -196,12 +196,16 @@ def compute_session_features(
 
     # Load gaze/blink samples
     raw_recs = db.query(models.Results).filter_by(session_id=session.id).all()
-    samples = [json.loads(r.data) for r in raw_recs]
-    timestamps = [s["timestamp"] for s in samples]
-    blinks = [s["timestamp"] for s in samples if s.get("blink")]
+    samples = [json.loads(r.data) for r in raw_recs] if raw_recs else []
+    timestamps = [s["timestamp"] for s in samples] if samples else []
+    blinks = [s["timestamp"] for s in samples if s.get("blink")] if samples else []
 
     # Duration in minutes
-    duration = (max(timestamps) - min(timestamps)) / 60.0 if timestamps else 0
+    duration = (
+        (max(timestamps) - min(timestamps)) / 60.0
+        if timestamps and len(timestamps) > 1
+        else 0
+    )
 
     # Load task events
     events = (
