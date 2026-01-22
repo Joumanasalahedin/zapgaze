@@ -9,6 +9,7 @@ import json
 
 from app.db import models, database
 from app.security import verify_frontend_api_key
+from app.utils.encryption import encrypt
 
 router = APIRouter()
 
@@ -64,12 +65,13 @@ def search_users(
         )
 
     # Search for users with case-insensitive partial name match
-    users = (
-        db.query(models.User)
-        .filter(models.User.name.ilike(f"%{name.strip()}%"))
-        .order_by(models.User.name)
-        .all()
-    )
+    # Note: With encrypted data, we can't search directly on encrypted columns
+    # For now, fetch all users and filter in memory (acceptable for small datasets)
+    # TODO: Consider implementing searchable encryption or tokenization for larger datasets
+    all_users = db.query(models.User).all()
+    search_term = name.strip().lower()
+    users = [u for u in all_users if search_term in u.name.lower()]
+    users.sort(key=lambda u: u.name)
 
     if not users:
         return []
@@ -94,11 +96,12 @@ def get_user_results(
     """Get all results for a user, grouped by session. Requires birthdate verification."""
 
     # Verify user exists and birthdate matches
-    user = (
-        db.query(models.User)
-        .filter(models.User.id == user_id, models.User.birthdate == birthdate)
-        .first()
-    )
+    # For encrypted data, we need to compare encrypted values or decrypt
+    # Since we can't query encrypted data directly, fetch user first then verify
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+
+    if not user or user.birthdate != birthdate:
+        user = None
 
     if not user:
         raise HTTPException(
