@@ -224,7 +224,10 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
                           </Typography>
                         </li>
                       </Box>
-                      <Typography variant="body2" className={`${styles.mb1} ${styles.fontWeightBold}`}>
+                      <Typography
+                        variant="body2"
+                        className={`${styles.mb1} ${styles.fontWeightBold}`}
+                      >
                         <strong>Step 2:</strong> Run the app
                       </Typography>
                       <Alert severity="warning" className={styles.mb2}>

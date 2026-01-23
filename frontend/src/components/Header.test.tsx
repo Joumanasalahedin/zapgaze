@@ -34,10 +34,7 @@ describe("Unit Testing Header", () => {
     renderHeader();
 
     fireEvent.click(screen.getByRole("button", { name: "GitHub" }));
-    expect(openSpy).toHaveBeenCalledWith(
-      "https://github.com/Joumanasalahedin/zapgaze",
-      "_blank"
-    );
+    expect(openSpy).toHaveBeenCalledWith("https://github.com/Joumanasalahedin/zapgaze", "_blank");
   });
 
   it("should keep the active link on /test", () => {
