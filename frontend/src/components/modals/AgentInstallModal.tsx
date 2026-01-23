@@ -20,15 +20,15 @@ import styles from "./AgentInstallModal.module.css";
 interface AgentInstallModalProps {
   open: boolean;
   onClose: () => void;
-  agentUrl: string; // Deprecated - kept for backward compatibility
-  apiBaseUrl?: string; // Backend API URL to check agent status
+  agentUrl: string;
+  apiBaseUrl?: string;
   onAgentReady?: () => void;
 }
 
 const AgentInstallModal: FC<AgentInstallModalProps> = ({
   open,
   onClose,
-  agentUrl, // Deprecated
+  agentUrl,
   apiBaseUrl,
   onAgentReady,
 }) => {
@@ -40,13 +40,11 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
   const [downloadError, setDownloadError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Detect platform
     const userAgent = navigator.userAgent.toLowerCase();
     if (userAgent.includes("win")) setPlatform("windows");
     else if (userAgent.includes("mac")) setPlatform("mac");
     else if (userAgent.includes("linux")) setPlatform("linux");
 
-    // Check agent status periodically through backend
     if (activeStep >= 2 && apiBaseUrl) {
       const interval = setInterval(async () => {
         try {
@@ -72,7 +70,6 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
             }
           }
         } catch (error) {
-          // Agent not ready yet
           console.error("Error checking agent status: ", error);
         }
       }, 2000);

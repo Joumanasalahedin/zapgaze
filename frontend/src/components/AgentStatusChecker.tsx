@@ -5,8 +5,8 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorIcon from "@mui/icons-material/Error";
 
 interface AgentStatusCheckerProps {
-  agentUrl: string; // Deprecated - kept for backward compatibility
-  apiBaseUrl?: string; // Backend API URL to check agent status
+  agentUrl: string;
+  apiBaseUrl?: string;
   onAgentReady?: () => void;
   showDownloadButton?: boolean;
 }
@@ -14,7 +14,7 @@ interface AgentStatusCheckerProps {
 type AgentStatus = "checking" | "connected" | "disconnected" | "error";
 
 const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
-  agentUrl, // Deprecated
+  agentUrl,
   apiBaseUrl,
   onAgentReady,
   showDownloadButton = true,
@@ -25,19 +25,16 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
 
   useEffect(() => {
     checkAgentStatus();
-    // Check every 3 seconds
     const interval = setInterval(checkAgentStatus, 3000);
     return () => clearInterval(interval);
   }, [agentUrl, apiBaseUrl]);
 
   const checkAgentStatus = async () => {
-    // Use backend API if provided, otherwise fall back to direct agent URL
     const statusUrl = apiBaseUrl ? `${apiBaseUrl}/agent/status` : `${agentUrl}/status`;
     const apiKey = import.meta.env?.VITE_FRONTEND_API_KEY;
 
     try {
       const headers: HeadersInit = {};
-      // Add API key if available (only for backend API, not direct agent URL)
       if (apiBaseUrl && apiKey) {
         headers["X-API-Key"] = apiKey;
       }
@@ -45,16 +42,14 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
       const response = await fetch(statusUrl, {
         method: "GET",
         headers,
-        // Add timeout
         signal: AbortSignal.timeout(2000),
       });
 
       if (response.ok) {
         const data = await response.json();
-        // Backend returns {status: "connected"} or {status: "disconnected"}
         if (data.status === "connected") {
           setStatus("connected");
-          setWaitingForAgent(false); // Agent connected, stop waiting
+          setWaitingForAgent(false);
           if (onAgentReady) {
             onAgentReady();
           }
@@ -65,7 +60,6 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
         setStatus("disconnected");
       }
     } catch (error: any) {
-      // Check for CORS/Private Network Access error (only for direct agent URL)
       if (!apiBaseUrl) {
         const errorMessage = error?.message || "";
         if (
@@ -77,7 +71,6 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
           return;
         }
       }
-      // Network error or timeout - agent not running
       setStatus("disconnected");
     }
   };
@@ -90,8 +83,6 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
   };
 
   const getDownloadUrl = (platform: string): string => {
-    // GitHub Releases URL - Direct link to your release
-    // Update this URL after you create the GitHub release
     const baseUrl = "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.4";
 
     switch (platform) {
@@ -108,12 +99,10 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
     const platform = getPlatform();
 
     if (platform === "unknown") {
-      // Show all platform options
       setShowDownload(true);
       return;
     }
 
-    // Show download options
     setShowDownload(true);
   };
 
@@ -138,7 +127,6 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
     );
   }
 
-  // If waiting for agent after download, show waiting message
   if (waitingForAgent) {
     return (
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -148,7 +136,6 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
     );
   }
 
-  // Disconnected - show download option
   return (
     <Box>
       <Alert severity="warning" icon={<ErrorIcon />} sx={{ mb: 2 }}>

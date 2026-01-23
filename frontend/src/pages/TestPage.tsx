@@ -12,14 +12,12 @@ const CONFIG = {
   STIMULUS_DISPLAY_TIME: 2000,
   FEEDBACK_DISPLAY_TIME: 1000,
   PRACTICE_TRIALS: 10,
-  MAIN_TEST_TRIALS: 10,
-  //#NOTE: change back to 100
+  MAIN_TEST_TRIALS: 100,
   GO_TRIAL_PERCENTAGE: 0.8,
   ESCAPE_CONFIRMATION_TIME: 5000,
   CALIBRATION_POINT_DURATION: 1000,
   API_BASE_URL: getApiBaseUrl(),
-  AGENT_BASE_URL: import.meta.env?.VITE_AGENT_URL || "http://localhost:9000", // Still used for direct agent calls
-  // Agent status is now checked through backend to avoid CORS issues
+  AGENT_BASE_URL: import.meta.env?.VITE_AGENT_URL || "http://localhost:9000",
 } as const;
 
 type TestPhase =
@@ -88,23 +86,17 @@ const TestPage: FC = () => {
     { x: 10, y: 50 }, // Left-center
   ];
 
-  // Use the shared apiCall utility (includes API key automatically)
-
   const startCalibration = async () => {
-    // Check if agent is connected first
     if (!agentConnected) {
       setShowAgentInstallModal(true);
       return;
     }
 
-    // Immediately navigate to calibration page
     setPhase("calibration");
     setCalibrationStep(0);
     setIsInitializingCamera(true);
     setCalibrationError(null);
 
-    // Start calibration in the background with retry logic
-    // Keep showing "initializing" until it succeeds
     const maxRetries = 30; // 30 attempts = ~30 seconds max
     let retryCount = 0;
 
@@ -120,7 +112,6 @@ const TestPage: FC = () => {
         console.log(`Calibration start attempt ${retryCount}/${maxRetries} failed, retrying...`);
 
         if (retryCount >= maxRetries) {
-          // Only show error after max retries
           console.error("Failed to start calibration after max retries:", error);
           setIsInitializingCamera(false);
           const errorMessage = error?.message || "";
@@ -140,7 +131,6 @@ const TestPage: FC = () => {
             );
           }
         } else {
-          // Retry after 1 second
           setTimeout(() => {
             tryStartCalibration();
           }, 1000);
@@ -148,7 +138,6 @@ const TestPage: FC = () => {
       }
     };
 
-    // Start the retry loop
     tryStartCalibration();
   };
 
@@ -315,7 +304,6 @@ const TestPage: FC = () => {
       setSessionUid(parsed.session_uid);
     }
 
-    // Check agent status on page load through backend
     const checkAgent = async () => {
       try {
         const data = await apiCall(`${CONFIG.API_BASE_URL}/agent/status`, {
@@ -325,7 +313,6 @@ const TestPage: FC = () => {
           setAgentConnected(true);
         }
       } catch (error) {
-        // Agent not running
         setAgentConnected(false);
         console.error("Error checking agent status: ", error);
       }
@@ -546,7 +533,6 @@ const TestPage: FC = () => {
       try {
         const currentPoint = calibrationDots[calibrationStep - 1];
         await recordCalibrationPoint(currentPoint);
-        // Clear any previous errors on success
         setCalibrationError(null);
         if (calibrationStep < 8) {
           setTimeout(
@@ -566,10 +552,8 @@ const TestPage: FC = () => {
         setCalibrationError(
           `Point ${calibrationStep} failed: ${errorMessage}. The system will retry automatically in a moment...`
         );
-        // Auto-retry after 2 seconds
         setTimeout(() => {
           setCalibrationError(null);
-          // Retry the same point
           const doRetry = async () => {
             try {
               const currentPoint = calibrationDots[calibrationStep - 1];
@@ -601,14 +585,6 @@ const TestPage: FC = () => {
     doStep();
     return undefined;
   }, [phase, calibrationStep]);
-
-  // NOTE: Only for development purposes
-  // useEffect(() => {
-  //     if (phase === 'calibration' && calibrationStep === 0) {
-  //         setCalibrationStep(9);
-  //         finishCalibration();
-  //     }
-  // }, [phase, calibrationStep]);
 
   const startTrial = useCallback(async () => {
     if (trialIndex < trials.length) {
@@ -742,16 +718,13 @@ const TestPage: FC = () => {
   const cleanupTest = useCallback(async () => {
     let stopSessionError = null;
     try {
-      // Always try to stop acquisition first (even if acquisitionStarted flag is wrong)
       try {
         await stopAcquisition();
         setAcquisitionStarted(false);
       } catch (error) {
         console.error("Failed to stop acquisition:", error);
-        // Continue anyway - try to stop session
       }
 
-      // Stop the session
       if (sessionUid) {
         try {
           await stopSession();
@@ -763,13 +736,11 @@ const TestPage: FC = () => {
         console.warn("No session UID available to stop session");
       }
 
-      // Compute features if session was stopped successfully
       if (!stopSessionError && sessionUid) {
         await computeSessionFeatures();
       }
     } catch (error) {
       console.error("Failed to cleanup test:", error);
-      // Still try to compute features if session was stopped
       if (!stopSessionError && sessionUid) {
         try {
           await computeSessionFeatures();
@@ -809,7 +780,6 @@ const TestPage: FC = () => {
         <div className={styles.modal}>
           <h1>Go/No-Go Test Instructions</h1>
 
-          {/* Agent Status Checker */}
           <div style={{ marginBottom: "20px" }}>
             <AgentStatusChecker
               agentUrl={CONFIG.AGENT_BASE_URL}
@@ -833,7 +803,6 @@ const TestPage: FC = () => {
           />
         </div>
 
-        {/* Agent Install Modal */}
         <AgentInstallModal
           open={showAgentInstallModal}
           onClose={() => setShowAgentInstallModal(false)}
