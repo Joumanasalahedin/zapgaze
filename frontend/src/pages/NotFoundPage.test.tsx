@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import NotFoundPage from "./NotFoundPage";
 
@@ -9,11 +9,10 @@ jest.mock("lottie-react", () => ({
 
 describe("Unit Testing NotFoundPage", () => {
   beforeEach(() => {
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({}),
-    }) as jest.Mock;
+    global.fetch = jest.fn(() => new Promise(() => { })) as jest.Mock;
   });
+
+  const flushPromises = () => new Promise((resolve) => setTimeout(resolve, 0));
 
   const renderNotFound = () => {
     return render(
@@ -21,6 +20,13 @@ describe("Unit Testing NotFoundPage", () => {
         <NotFoundPage />
       </MemoryRouter>
     );
+  };
+
+  const renderNotFoundAndFlush = async () => {
+    await act(async () => {
+      renderNotFound();
+      await flushPromises();
+    });
   };
 
   it("should render the 404 heading and message", () => {
@@ -37,7 +43,11 @@ describe("Unit Testing NotFoundPage", () => {
   });
 
   it("should load the lottie animation on mount", async () => {
-    renderNotFound();
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({}),
+    });
+    await renderNotFoundAndFlush();
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith("/lottie/alert-lottie.json");
     });
