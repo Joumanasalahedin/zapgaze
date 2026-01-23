@@ -82,6 +82,59 @@ def search_users(
     ]
 
 
+@router.get(
+    "/results/by-credentials",
+    summary="Get all results for a user by name and birthdate",
+)
+@limiter.limit("60/minute")  # Allow 60 requests per minute per IP
+def get_user_results_by_credentials(
+    request: Request,
+    name: str = Query(..., description="User name"),
+    birthdate: datetime.date = Query(..., description="User birthdate"),
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_frontend_api_key),
+):
+    """Get all results for a user by name and birthdate. Used for retrieving previous results."""
+
+    # Find user by name and birthdate
+    # Since data is encrypted, we need to fetch all users and compare decrypted values
+    all_users = db.query(models.User).all()
+    user = None
+
+    # Normalize the search name
+    search_name = name.lower().strip()
+
+    for u in all_users:
+        # Get decrypted values
+        user_name = u.name.lower().strip() if u.name else ""
+        user_birthdate = u.birthdate
+
+        # Compare name (case-insensitive)
+        name_match = user_name == search_name
+
+        # Compare birthdate (handle None cases)
+        birthdate_match = False
+        if user_birthdate is not None and birthdate is not None:
+            # Ensure both are date objects for comparison
+            if isinstance(user_birthdate, datetime.date) and isinstance(
+                birthdate, datetime.date
+            ):
+                birthdate_match = user_birthdate == birthdate
+
+        if name_match and birthdate_match:
+            user = u
+            break
+
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No results found for name '{name}' and birthdate '{birthdate}'. Please check that the name and birthdate match exactly what you used in the intake form.",
+        )
+
+    user_id = user.id
+    return _get_user_results_internal(user_id, user, db)
+
+
 @router.get("/results", summary="Get all results for a user grouped by session")
 @limiter.limit("60/minute")  # Allow 60 requests per minute per IP
 def get_user_results(
@@ -108,6 +161,12 @@ def get_user_results(
             status_code=404,
             detail="User not found or birthdate does not match. Please check your user ID and birthdate.",
         )
+
+    return _get_user_results_internal(user_id, user, db)
+
+
+def _get_user_results_internal(user_id: int, user: models.User, db: Session):
+    """Internal function to get user results. Used by both endpoints."""
 
     # Get all sessions for this user
     sessions = (
