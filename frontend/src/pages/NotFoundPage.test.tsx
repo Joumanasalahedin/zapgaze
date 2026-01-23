@@ -9,7 +9,7 @@ jest.mock("lottie-react", () => ({
 
 describe("Unit Testing NotFoundPage", () => {
   beforeEach(() => {
-    global.fetch = jest.fn(() => new Promise(() => { })) as jest.Mock;
+    global.fetch = jest.fn(() => new Promise(() => {})) as jest.Mock;
   });
 
   const flushPromises = () => new Promise((resolve) => setTimeout(resolve, 0));

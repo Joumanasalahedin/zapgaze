@@ -324,10 +324,10 @@ const SingleResultPage = () => {
             <strong>Date of Birth:</strong>{" "}
             {data?.birthdate
               ? new Date(data.birthdate).toLocaleDateString("de-DE", {
-                day: "2-digit",
-                month: "2-digit",
-                year: "numeric",
-              })
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "numeric",
+                })
               : "—"}
           </div>
           <div>
