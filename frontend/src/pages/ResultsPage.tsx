@@ -9,6 +9,7 @@ import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
+import styles from "./ResultsPage.module.css";
 
 interface SessionResult {
   session_uid: string;
@@ -80,23 +81,23 @@ const ResultsPage: FC = () => {
   };
 
   return (
-    <div style={{ margin: "3.2rem auto", padding: "32px 24px 24px 24px", maxWidth: "1200px" }}>
+    <div className={styles.page}>
       <h1>View Your Results</h1>
-      <p style={{ marginBottom: "24px", color: "#666" }}>
+      <p className={styles.introText}>
         Enter your name and birthdate (as used in the intake form) to view your previous test
         results.
       </p>
 
-      <Paper elevation={2} style={{ padding: "24px", marginBottom: "24px" }}>
+      <Paper elevation={2} className={styles.formPaper}>
         <form onSubmit={handleSubmit}>
-          <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "flex-end" }}>
+          <Box className={styles.formRow}>
             <TextField
               label="Name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
               fullWidth
-              sx={{ flex: "1 1 300px" }}
+              className={styles.nameField}
               placeholder="Enter your name"
             />
             <TextField
@@ -106,13 +107,13 @@ const ResultsPage: FC = () => {
               onChange={(e) => setBirthdate(e.target.value)}
               required
               InputLabelProps={{ shrink: true }}
-              sx={{ flex: "1 1 200px" }}
+              className={styles.birthdateField}
             />
             <Button
               type="submit"
               variant="contained"
               disabled={loading || !name.trim() || !birthdate}
-              sx={{ minWidth: "120px" }}
+              className={styles.submitButton}
             >
               {loading ? <CircularProgress size={20} /> : "Search"}
             </Button>
@@ -121,17 +122,14 @@ const ResultsPage: FC = () => {
       </Paper>
 
       {error && (
-        <Alert severity="error" style={{ marginBottom: "24px" }}>
+        <Alert severity="error" className={styles.alertSpacing}>
           {error}
         </Alert>
       )}
 
       {results && (
         <div>
-          <Paper
-            elevation={2}
-            style={{ padding: "20px", marginBottom: "24px", backgroundColor: "#f5f5f5" }}
-          >
+          <Paper elevation={2} className={styles.summaryPaper}>
             <Typography variant="h5" gutterBottom>
               Results for: {results.user_name}
             </Typography>
@@ -148,18 +146,11 @@ const ResultsPage: FC = () => {
               No test sessions found. Complete a test to see your results here.
             </Alert>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <div className={styles.sessionsList}>
               {results.sessions.map((session) => (
                 <Card key={session.session_uid} elevation={2}>
                   <CardContent>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        marginBottom: 2,
-                      }}
-                    >
+                    <Box className={styles.sessionHeader}>
                       <div>
                         <Typography variant="h6">
                           Session: {new Date(session.started_at || "").toLocaleDateString("de-DE")}
@@ -172,7 +163,7 @@ const ResultsPage: FC = () => {
                           <Typography
                             variant="body2"
                             color="textSecondary"
-                            style={{ marginTop: "4px" }}
+                            className={styles.intakeMeta}
                           >
                             ASRS-5 Score: {session.intake.total_score} (
                             {session.intake.symptom_group})
@@ -187,18 +178,11 @@ const ResultsPage: FC = () => {
                       </Button>
                     </Box>
                     {session.features && (
-                      <Box
-                        sx={{
-                          marginTop: 2,
-                          padding: 2,
-                          backgroundColor: "#fafafa",
-                          borderRadius: 1,
-                        }}
-                      >
+                      <Box className={styles.sessionFeatures}>
                         <Typography variant="subtitle2" gutterBottom>
                           Quick Summary:
                         </Typography>
-                        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, marginTop: 1 }}>
+                        <Box className={styles.featureList}>
                           {session.features.fixation_count !== null && (
                             <Typography variant="body2">
                               <strong>Fixations:</strong> {session.features.fixation_count}

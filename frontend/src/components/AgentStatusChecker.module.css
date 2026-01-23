@@ -1,0 +1,35 @@
+.statusRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.alertConnected {
+  display: flex;
+  align-items: center;
+}
+
+.warningAlert {
+  margin-bottom: 16px;
+}
+
+.warningText {
+  margin-bottom: 8px;
+}
+
+.downloadPanel {
+  margin-top: 16px;
+  padding: 16px;
+  background-color: var(--mui-palette-background-paper, #fff);
+  border-radius: 8px;
+}
+
+.downloadTitle {
+  margin-bottom: 8px;
+}
+
+.downloadButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}

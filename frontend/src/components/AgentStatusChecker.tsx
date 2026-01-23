@@ -3,6 +3,7 @@ import { Button, Box, Typography, Alert, CircularProgress } from "@mui/material"
 import DownloadIcon from "@mui/icons-material/Download";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorIcon from "@mui/icons-material/Error";
+import styles from "./AgentStatusChecker.module.css";
 
 interface AgentStatusCheckerProps {
   agentUrl: string;
@@ -108,7 +109,7 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
 
   if (status === "checking") {
     return (
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+      <Box className={styles.statusRow}>
         <CircularProgress size={20} />
         <Typography variant="body2">Checking agent connection...</Typography>
       </Box>
@@ -120,7 +121,7 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
       <Alert
         severity="success"
         icon={<CheckCircleIcon />}
-        sx={{ display: "flex", alignItems: "center" }}
+        className={styles.alertConnected}
       >
         <Typography variant="body2">Agent connected and ready</Typography>
       </Alert>
@@ -129,7 +130,7 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
 
   if (waitingForAgent) {
     return (
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+      <Box className={styles.statusRow}>
         <CircularProgress size={20} />
         <Typography variant="body2">Waiting for agent to connect...</Typography>
       </Box>
@@ -138,8 +139,8 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
 
   return (
     <Box>
-      <Alert severity="warning" icon={<ErrorIcon />} sx={{ mb: 2 }}>
-        <Typography variant="body2" sx={{ mb: 1 }}>
+      <Alert severity="warning" icon={<ErrorIcon />} className={styles.warningAlert}>
+        <Typography variant="body2" className={styles.warningText}>
           ZapGaze Agent is not running. Please download and install it to continue.
         </Typography>
         {showDownloadButton && (
@@ -155,11 +156,11 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
       </Alert>
 
       {showDownload && (
-        <Box sx={{ mt: 2, p: 2, bgcolor: "background.paper", borderRadius: 1 }}>
-          <Typography variant="subtitle2" sx={{ mb: 1 }}>
+        <Box className={styles.downloadPanel}>
+          <Typography variant="subtitle2" className={styles.downloadTitle}>
             Download for your platform:
           </Typography>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+          <Box className={styles.downloadButtons}>
             <Button
               variant="outlined"
               onClick={() => {

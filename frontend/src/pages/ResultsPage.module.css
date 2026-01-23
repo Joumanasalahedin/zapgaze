@@ -1,0 +1,75 @@
+.page {
+  margin: 3.2rem auto;
+  padding: 32px 24px 24px 24px;
+  max-width: 1200px;
+}
+
+.introText {
+  margin-bottom: 24px;
+  color: #666;
+}
+
+.formPaper {
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.formRow {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.nameField {
+  flex: 1 1 300px;
+}
+
+.birthdateField {
+  flex: 1 1 200px;
+}
+
+.submitButton {
+  min-width: 120px;
+}
+
+.alertSpacing {
+  margin-bottom: 24px;
+}
+
+.summaryPaper {
+  padding: 20px;
+  margin-bottom: 24px;
+  background-color: #f5f5f5;
+}
+
+.sessionsList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sessionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.intakeMeta {
+  margin-top: 4px;
+}
+
+.sessionFeatures {
+  margin-top: 16px;
+  padding: 16px;
+  background-color: #fafafa;
+  border-radius: 8px;
+}
+
+.featureList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 8px;
+}
