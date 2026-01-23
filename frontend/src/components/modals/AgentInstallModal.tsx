@@ -35,7 +35,10 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
 }) => {
   const [activeStep, setActiveStep] = useState(0);
   const [agentConnected, setAgentConnected] = useState(false);
-  const [platform, setPlatform] = useState<"windows" | "mac" | "linux" | "unknown">("unknown");
+  type Platform = "windows" | "mac" | "linux" | "unknown";
+  const [platform, setPlatform] = useState<Platform>("unknown");
+  const [downloadUrls, setDownloadUrls] = useState<Partial<Record<Platform, string>> | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
 
   useEffect(() => {
     // Detect platform
@@ -78,21 +81,58 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
     }
   }, [activeStep, agentUrl, apiBaseUrl, onAgentReady]);
 
-  const getDownloadUrl = (): string => {
-    // GitHub Releases URL - Direct link to your release
-    // Update this URL after you create the GitHub release
-    const baseUrl = "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.4";
+  useEffect(() => {
+    if (!open) return;
+    let isMounted = true;
 
-    switch (platform) {
-      case "windows":
-        return `${baseUrl}/ZapGazeAgent.exe`;
-      case "mac":
-        return `${baseUrl}/ZapGazeAgent.zip`; // macOS app bundle (opens Terminal automatically)
-      case "linux":
-        return `${baseUrl}/ZapGazeAgent-linux`;
-      default:
-        return `${baseUrl}/ZapGazeAgent.zip`;
-    }
+    const fetchLatestRelease = async () => {
+      try {
+        const response = await fetch(
+          "https://api.github.com/repos/Joumanasalahedin/zapgaze/releases/latest"
+        );
+        if (!response.ok) {
+          throw new Error("Failed to fetch latest release");
+        }
+        const data = await response.json();
+        const assets = data?.assets || [];
+        const buildUrlMap = (name: string) =>
+          assets.find((asset: { name?: string }) => asset.name === name)?.browser_download_url;
+
+        const latestUrls: Partial<Record<Platform, string>> = {
+          windows: buildUrlMap("ZapGazeAgent.exe"),
+          mac: buildUrlMap("ZapGazeAgent.zip"),
+          linux: buildUrlMap("ZapGazeAgent-linux"),
+        };
+
+        if (isMounted) {
+          const missingPlatforms: Platform[] = [];
+          if (!latestUrls.windows) missingPlatforms.push("windows");
+          if (!latestUrls.mac) missingPlatforms.push("mac");
+          if (!latestUrls.linux) missingPlatforms.push("linux");
+
+          setDownloadUrls(latestUrls);
+          setDownloadError(
+            missingPlatforms.length
+              ? `Latest release is missing assets for: ${missingPlatforms.join(", ")}`
+              : null
+          );
+        }
+      } catch (error) {
+        if (isMounted) {
+          setDownloadError("Failed to load the latest release. Please try again later.");
+        }
+      }
+    };
+
+    fetchLatestRelease();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [open]);
+
+  const getDownloadUrl = (targetPlatform: Platform = platform): string | null => {
+    return downloadUrls?.[targetPlatform] || null;
   };
 
   const getFileName = (): string => {
@@ -108,8 +148,12 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
     }
   };
 
-  const handleDownload = () => {
-    const url = getDownloadUrl();
+  const handleDownload = (targetPlatform: typeof platform = platform) => {
+    const url = getDownloadUrl(targetPlatform);
+    if (!url) {
+      setDownloadError("Latest download URL is unavailable. Please try again later.");
+      return;
+    }
     window.open(url, "_blank");
     setActiveStep(1);
   };
@@ -149,44 +193,38 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
                   <Button
                     variant="outlined"
                     startIcon={<DownloadIcon />}
-                    onClick={() => {
-                      const baseUrl =
-                        "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.4";
-                      window.open(`${baseUrl}/ZapGazeAgent.exe`, "_blank");
-                      setActiveStep(1);
-                    }}
+                    onClick={() => handleDownload("windows")}
                   >
                     Windows (.exe)
                   </Button>
                   <Button
                     variant="outlined"
                     startIcon={<DownloadIcon />}
-                    onClick={() => {
-                      const baseUrl =
-                        "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.4";
-                      window.open(`${baseUrl}/ZapGazeAgent.zip`, "_blank");
-                      setActiveStep(1);
-                    }}
+                    onClick={() => handleDownload("mac")}
                   >
                     macOS
                   </Button>
                   <Button
                     variant="outlined"
                     startIcon={<DownloadIcon />}
-                    onClick={() => {
-                      const baseUrl =
-                        "https://github.com/Joumanasalahedin/zapgaze/releases/download/v1.0.4";
-                      window.open(`${baseUrl}/ZapGazeAgent-linux`, "_blank");
-                      setActiveStep(1);
-                    }}
+                    onClick={() => handleDownload("linux")}
                   >
                     Linux
                   </Button>
                 </Box>
               ) : (
-                <Button variant="contained" startIcon={<DownloadIcon />} onClick={handleDownload}>
+                <Button
+                  variant="contained"
+                  startIcon={<DownloadIcon />}
+                  onClick={() => handleDownload()}
+                >
                   Download for {platform}
                 </Button>
+              )}
+              {downloadError && (
+                <Alert severity="error" className={styles.mt2}>
+                  <Typography variant="body2">{downloadError}</Typography>
+                </Alert>
               )}
             </StepContent>
           </Step>
