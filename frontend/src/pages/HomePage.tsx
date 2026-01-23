@@ -112,8 +112,8 @@ const HomePage: FC = () => {
         <div className={styles.heroContent}>
           <h1 className={styles.heroTitle}>{greeting}!</h1>
           <p className={styles.heroSubtitle}>
-            Welcome to zapgaze™ — A revolutionary ADHD evaluation tool through advanced pupillometry
-            technology
+            Welcome to zapgaze™ — A revolutionary ADHD evaluation tool through advanced
+            pupillometry technology
           </p>
           <div className={styles.heroAction}>
             <Link to="/test" className={styles.primaryButton}>

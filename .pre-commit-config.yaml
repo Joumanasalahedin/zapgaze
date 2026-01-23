@@ -4,12 +4,21 @@ repos:
     hooks:
       - id: ruff
         name: ruff-lint
-        files: ^(app|agent|scripts)/.*\.py$
-      - id: ruff-format
-        name: ruff-format
-        files: ^(app|agent|scripts)/.*\.py$
+        files: ^(app|agent)/.*\.py$
   - repo: local
     hooks:
+      - id: backend-format-app
+        name: backend-format-app
+        entry: black app
+        language: system
+        files: ^app/
+        pass_filenames: false
+      - id: backend-format-agent
+        name: backend-format-agent
+        entry: black agent
+        language: system
+        files: ^agent/
+        pass_filenames: false
       - id: frontend-lint
         name: frontend-lint
         entry: yarn --cwd frontend lint
