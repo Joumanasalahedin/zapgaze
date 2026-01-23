@@ -31,6 +31,10 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
       
+      - name: Audit dependencies
+        run: yarn audit
+        continue-on-error: true
+      
       - name: Run linter
         run: yarn lint
       
