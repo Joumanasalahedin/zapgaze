@@ -168,8 +168,8 @@ const SingleResultPage = () => {
     const fetchOrComputeFeatures = async () => {
       setLoading(true);
       setError(null);
-      const apiKey = import.meta.env.VITE_FRONTEND_API_KEY;
-      const apiUrl = import.meta.env.VITE_API_URL || "http://20.74.82.26:8000";
+      const apiKey = import.meta.env?.VITE_FRONTEND_API_KEY;
+      const apiUrl = import.meta.env?.VITE_API_URL || "http://20.74.82.26:8000";
 
       try {
         // First, try to fetch existing features
@@ -275,8 +275,8 @@ const SingleResultPage = () => {
     setDeleteError(null);
 
     try {
-      const apiKey = import.meta.env.VITE_FRONTEND_API_KEY;
-      const apiUrl = import.meta.env.VITE_API_URL || "http://20.74.82.26:8000";
+      const apiKey = import.meta.env?.VITE_FRONTEND_API_KEY;
+      const apiUrl = import.meta.env?.VITE_API_URL || "http://20.74.82.26:8000";
 
       // Format birthdate as YYYY-MM-DD
       const birthdateStr = data.birthdate.split("T")[0]; // Handle ISO format

@@ -2,8 +2,8 @@
  * API utility functions for making authenticated requests to the backend
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://20.74.82.26:8000";
-const FRONTEND_API_KEY = import.meta.env.VITE_FRONTEND_API_KEY || "";
+const API_BASE_URL = import.meta.env?.VITE_API_URL || "http://20.74.82.26:8000";
+const FRONTEND_API_KEY = import.meta.env?.VITE_FRONTEND_API_KEY || "";
 
 /**
  * Get the API key from environment variable

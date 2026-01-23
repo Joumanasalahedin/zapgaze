@@ -66,13 +66,13 @@ const IntakeQuestionnairePage: FC = () => {
         answers: scoredAnswers,
       };
       const res = await fetch(
-        `${import.meta.env.VITE_API_URL || "http://20.74.82.26:8000"}/intake/`,
+        `${import.meta.env?.VITE_API_URL || "http://20.74.82.26:8000"}/intake/`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            ...(import.meta.env.VITE_FRONTEND_API_KEY
-              ? { "X-API-Key": import.meta.env.VITE_FRONTEND_API_KEY }
+            ...(import.meta.env?.VITE_FRONTEND_API_KEY
+              ? { "X-API-Key": import.meta.env?.VITE_FRONTEND_API_KEY }
               : {}),
           },
           body: JSON.stringify(payload),

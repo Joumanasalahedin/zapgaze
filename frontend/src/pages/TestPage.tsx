@@ -18,7 +18,7 @@ const CONFIG = {
   ESCAPE_CONFIRMATION_TIME: 5000,
   CALIBRATION_POINT_DURATION: 1000,
   API_BASE_URL: getApiBaseUrl(),
-  AGENT_BASE_URL: import.meta.env.VITE_AGENT_URL || "http://localhost:9000", // Still used for direct agent calls
+  AGENT_BASE_URL: import.meta.env?.VITE_AGENT_URL || "http://localhost:9000", // Still used for direct agent calls
   // Agent status is now checked through backend to avoid CORS issues
 } as const;
 

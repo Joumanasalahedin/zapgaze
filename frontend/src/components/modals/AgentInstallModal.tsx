@@ -62,7 +62,7 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
     if (activeStep >= 2 && apiBaseUrl) {
       const interval = setInterval(async () => {
         try {
-          const apiKey = import.meta.env.VITE_FRONTEND_API_KEY;
+          const apiKey = import.meta.env?.VITE_FRONTEND_API_KEY;
           const headers: HeadersInit = {};
           if (apiKey) {
             headers["X-API-Key"] = apiKey;
