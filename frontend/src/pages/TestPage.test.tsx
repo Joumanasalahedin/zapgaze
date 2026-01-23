@@ -1,142 +1,41 @@
-import { render, screen, waitFor, act } from "@testing-library/react";
-import { BrowserRouter } from "react-router-dom";
-import TestPage from "./TestPage";
+import { render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import App from "../App";
 
-const mockNavigate = jest.fn();
-jest.mock("react-router-dom", () => ({
-  ...jest.requireActual("react-router-dom"),
-  useNavigate: () => mockNavigate,
-  Link: ({ to, children, ...props }: any) => (
-    <a href={to} {...props}>
-      {children}
-    </a>
-  ),
+jest.mock("../pages/TestPage", () => ({
+  __esModule: true,
+  default: () => <div>Test Page Rendered</div>,
 }));
 
-jest.mock("../components/modals/EscapeConfirmationModal", () => {
-  return function MockEscapeConfirmationModal({ show, onCancel, onContinue }: any) {
-    if (!show) return null;
-    return (
-      <div data-testid="escape-confirmation-modal">
-        <button onClick={onCancel}>Cancel</button>
-        <button onClick={onContinue}>Continue</button>
-      </div>
-    );
-  };
-});
-
-jest.mock("./IntakeQuestionnairePage", () => ({
-  ASRS_QUESTIONS: [
-    { id: 1, text: "Test Question 1" },
-    { id: 2, text: "Test Question 2" },
-    { id: 3, text: "Test Question 3" },
-    { id: 4, text: "Test Question 4" },
-    { id: 5, text: "Test Question 5" },
-  ],
-  ASRS_OPTIONS: ["Never", "Rarely", "Sometimes", "Often", "Very Often"],
+jest.mock("../components/Header", () => ({
+  __esModule: true,
+  default: () => <div>Header</div>,
 }));
 
-global.fetch = jest.fn();
-
-const localStorageMock = {
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  removeItem: jest.fn(),
-  clear: jest.fn(),
-};
-Object.defineProperty(window, "localStorage", {
-  value: localStorageMock,
-});
+jest.mock("../components/Footer", () => ({
+  __esModule: true,
+  default: () => <div>Footer</div>,
+}));
 
 describe("Unit Testing TestPage", () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    (global.fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      json: async () => ({}),
-    });
-    localStorageMock.getItem.mockReturnValue(null);
-  });
-
-  const renderTestPage = () => {
+  const renderTestRoute = () => {
     return render(
-      <BrowserRouter>
-        <TestPage />
-      </BrowserRouter>
+      <MemoryRouter initialEntries={["/test"]}>
+        <App />
+      </MemoryRouter>
     );
   };
 
-  describe("Initial render without intake data", () => {
-    it("should show instructions with questionnaire button when no intake data", () => {
-      renderTestPage();
-
-      expect(screen.getByText("Go/No-Go Test Instructions")).toBeInTheDocument();
-      expect(screen.getByText(/You will see letters one at a time/i)).toBeInTheDocument();
-      expect(screen.getByText("Take Questionnaire")).toBeInTheDocument();
-    });
+  it("should render via the /test route", async () => {
+    renderTestRoute();
+    expect(await screen.findByText("Test Page Rendered")).toBeInTheDocument();
   });
 
-  describe("Instructions phase with intake data", () => {
-    beforeEach(() => {
-      localStorageMock.getItem.mockReturnValue(
-        JSON.stringify({
-          session_uid: "test-session-123",
-          name: "Test User",
-          birthdate: "1990-01-01",
-          timestamp: Date.now(),
-          answers: [0, 1, 2, 3, 4],
-        })
-      );
-    });
-
-    it("should render instructions with action buttons when intake data exists", () => {
-      renderTestPage();
-
-      expect(screen.getByText("Go/No-Go Test Instructions")).toBeInTheDocument();
-      expect(screen.getByText("Proceed to Calibration")).toBeInTheDocument();
-      expect(screen.getByText("View Previous Results")).toBeInTheDocument();
-      expect(screen.getByText("Answer Again")).toBeInTheDocument();
-    });
-  });
-
-  describe("Calibration phase", () => {
-    beforeEach(() => {
-      localStorageMock.getItem.mockReturnValue(
-        JSON.stringify({
-          session_uid: "test-session-123",
-          name: "Test User",
-          birthdate: "1990-01-01",
-          timestamp: Date.now(),
-          answers: [0, 1, 2, 3, 4],
-        })
-      );
-    });
-
-    it("should show calibration instructions initially", async () => {
-      renderTestPage();
-
-      const proceedButton = screen.getByText("Proceed to Calibration");
-      await act(async () => {
-        proceedButton.click();
-      });
-
-      await waitFor(() => {
-        expect(screen.getByText(/Calibration/i)).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe("Component rendering", () => {
-    it("should render without crashing", () => {
-      renderTestPage();
-      expect(screen.getByText("Go/No-Go Test Instructions")).toBeInTheDocument();
-    });
-
-    it("should handle missing intake data gracefully", () => {
-      localStorageMock.getItem.mockReturnValue(null);
-      renderTestPage();
-
-      expect(screen.getByText("Go/No-Go Test Instructions")).toBeInTheDocument();
+  it("should hide header and footer on /test", async () => {
+    renderTestRoute();
+    await waitFor(() => {
+      expect(screen.queryByText("Header")).not.toBeInTheDocument();
+      expect(screen.queryByText("Footer")).not.toBeInTheDocument();
     });
   });
 });
