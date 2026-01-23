@@ -309,9 +309,7 @@ def execute_command(command: dict, backend_url: str):
 
                         traceback.print_exc()
                 else:
-                    print(
-                        "⚠️  No acquisition_camera in app.state, using stop flag only"
-                    )
+                    print("⚠️  No acquisition_camera in app.state, using stop flag only")
 
                 result = {"status": "acquisition_stopped", "mode": "thread"}
 

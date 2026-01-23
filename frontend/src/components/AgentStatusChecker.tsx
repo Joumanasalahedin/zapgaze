@@ -118,11 +118,7 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
 
   if (status === "connected") {
     return (
-      <Alert
-        severity="success"
-        icon={<CheckCircleIcon />}
-        className={styles.alertConnected}
-      >
+      <Alert severity="success" icon={<CheckCircleIcon />} className={styles.alertConnected}>
         <Typography variant="body2">Agent connected and ready</Typography>
       </Alert>
     );
