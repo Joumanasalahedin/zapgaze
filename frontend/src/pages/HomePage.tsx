@@ -6,7 +6,7 @@ const HomePage: FC = () => {
   const [currentFactIndex, setCurrentFactIndex] = useState(0);
   const [greeting, setGreeting] = useState("");
   const [isManualControl, setIsManualControl] = useState(false);
-  const autoResumeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const autoResumeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const adhdFacts = [
     {
@@ -99,7 +99,7 @@ const HomePage: FC = () => {
       startAutoResumeTimer();
     }
   };
-  jhvbjscdkhjb;
+
   useEffect(() => {
     return () => {
       clearAutoResumeTimeout();
