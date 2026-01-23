@@ -324,10 +324,10 @@ const SingleResultPage = () => {
             <strong>Date of Birth:</strong>{" "}
             {data?.birthdate
               ? new Date(data.birthdate).toLocaleDateString("de-DE", {
-                  day: "2-digit",
-                  month: "2-digit",
-                  year: "numeric",
-                })
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+              })
               : "—"}
           </div>
           <div>
@@ -355,7 +355,7 @@ const SingleResultPage = () => {
               onClick={handleDeleteClick}
               disabled={loading || deleting}
             >
-              Delete All My Data (GDPR)
+              Delete All My Data
             </Button>
           </div>
         )}
@@ -516,7 +516,6 @@ const SingleResultPage = () => {
             <br />
             This will permanently delete:
             <ul style={{ marginTop: "8px", marginBottom: "8px" }}>
-              <li>Your user account</li>
               <li>All test sessions and results</li>
               <li>All eye-tracking data</li>
               <li>All questionnaire responses</li>
