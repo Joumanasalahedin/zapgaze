@@ -48,6 +48,17 @@ jobs:
         run: yarn test --passWithNoTests || echo "No tests found or test command not configured"
         continue-on-error: true
 
+      - name: Run e2e tests
+        uses: cypress-io/github-action@v6
+        with:
+          working-directory: frontend
+          install: false
+          start: yarn dev --host 0.0.0.0 --port 5173
+          wait-on: http://localhost:5173
+          wait-on-timeout: 120000
+          command: yarn cypress:run
+        continue-on-error: true
+
   backend:
     name: Backend
     runs-on: ubuntu-latest
