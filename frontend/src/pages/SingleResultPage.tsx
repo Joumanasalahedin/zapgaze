@@ -297,7 +297,7 @@ const SingleResultPage = () => {
         throw new Error(errorData.detail || `HTTP ${response.status}`);
       }
 
-      const result = await response.json();
+      await response.json();
 
       // Close dialog and navigate away
       setDeleteDialogOpen(false);

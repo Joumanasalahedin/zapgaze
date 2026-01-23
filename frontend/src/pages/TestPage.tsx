@@ -63,7 +63,6 @@ const TestPage: FC = () => {
 
   // Backend integration state
   const [sessionUid, setSessionUid] = useState<string | null>(null);
-  const [isCalibrating, setIsCalibrating] = useState(false);
   const [calibrationError, setCalibrationError] = useState<string | null>(null);
   const [acquisitionStarted, setAcquisitionStarted] = useState(false);
   const [isStartingTest, setIsStartingTest] = useState(false);
@@ -111,13 +110,11 @@ const TestPage: FC = () => {
 
     const tryStartCalibration = async (): Promise<void> => {
       try {
-        setIsCalibrating(true);
         await apiCall(`${CONFIG.API_BASE_URL}/agent/calibrate/start`, {
           method: "POST",
         });
         console.log("Calibration started successfully");
         setIsInitializingCamera(false);
-        setIsCalibrating(false);
       } catch (error: any) {
         retryCount++;
         console.log(`Calibration start attempt ${retryCount}/${maxRetries} failed, retrying...`);
@@ -126,7 +123,6 @@ const TestPage: FC = () => {
           // Only show error after max retries
           console.error("Failed to start calibration after max retries:", error);
           setIsInitializingCamera(false);
-          setIsCalibrating(false);
           const errorMessage = error?.message || "";
           if (
             errorMessage.includes("CORS") ||
@@ -331,6 +327,7 @@ const TestPage: FC = () => {
       } catch (error) {
         // Agent not running
         setAgentConnected(false);
+        console.error("Error checking agent status: ", error);
       }
     };
     checkAgent();
@@ -415,6 +412,7 @@ const TestPage: FC = () => {
       await finishCalibration();
     } catch (e) {
       // no-op
+      console.error("Error finishing calibration: ", e);
     }
     window.location.href = "/";
   }, []);
@@ -593,6 +591,7 @@ const TestPage: FC = () => {
               setCalibrationError(
                 `Point ${calibrationStep} failed after retry. Please check your camera connection and try again.`
               );
+              console.error("Error finishing calibration: ", retryError);
             }
           };
           doRetry();
@@ -663,7 +662,7 @@ const TestPage: FC = () => {
 
       // Step 3: Start acquisition with verification
       console.log("Starting acquisition...");
-      const acquisitionResponse = await startAcquisition(newSessionUid);
+      await startAcquisition(newSessionUid);
 
       // Step 4: Additional pause to ensure acquisition is stable
       console.log("Stabilizing acquisition...");

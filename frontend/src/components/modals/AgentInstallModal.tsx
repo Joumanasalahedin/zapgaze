@@ -12,7 +12,6 @@ import {
   StepLabel,
   StepContent,
   Alert,
-  Link,
 } from "@mui/material";
 import DownloadIcon from "@mui/icons-material/Download";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -74,6 +73,7 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
           }
         } catch (error) {
           // Agent not ready yet
+          console.error("Error checking agent status: ", error);
         }
       }, 2000);
 
@@ -118,6 +118,7 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
           );
         }
       } catch (error) {
+        console.error("Error fetching latest release: ", error);
         if (isMounted) {
           setDownloadError("Failed to load the latest release. Please try again later.");
         }
@@ -156,14 +157,6 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
     }
     window.open(url, "_blank");
     setActiveStep(1);
-  };
-
-  const handleNext = () => {
-    if (activeStep === 0) {
-      handleDownload();
-    } else {
-      setActiveStep((prev) => prev + 1);
-    }
   };
 
   const handleClose = () => {

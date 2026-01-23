@@ -21,7 +21,6 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
 }) => {
   const [status, setStatus] = useState<AgentStatus>("checking");
   const [showDownload, setShowDownload] = useState(false);
-  const [corsError, setCorsError] = useState(false);
   const [waitingForAgent, setWaitingForAgent] = useState(false);
 
   useEffect(() => {
@@ -55,18 +54,15 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
         // Backend returns {status: "connected"} or {status: "disconnected"}
         if (data.status === "connected") {
           setStatus("connected");
-          setCorsError(false);
           setWaitingForAgent(false); // Agent connected, stop waiting
           if (onAgentReady) {
             onAgentReady();
           }
         } else {
           setStatus("disconnected");
-          setCorsError(false);
         }
       } else {
         setStatus("disconnected");
-        setCorsError(false);
       }
     } catch (error: any) {
       // Check for CORS/Private Network Access error (only for direct agent URL)
@@ -77,13 +73,11 @@ const AgentStatusChecker: FC<AgentStatusCheckerProps> = ({
           errorMessage.includes("more-private address space") ||
           errorMessage.includes("loopback")
         ) {
-          setCorsError(true);
           setStatus("error");
           return;
         }
       }
       // Network error or timeout - agent not running
-      setCorsError(false);
       setStatus("disconnected");
     }
   };
