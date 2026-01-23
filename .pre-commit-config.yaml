@@ -1,0 +1,30 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.13
+    hooks:
+      - id: ruff
+        name: ruff-lint
+        files: ^(app|agent|scripts)/.*\.py$
+      - id: ruff-format
+        name: ruff-format
+        files: ^(app|agent|scripts)/.*\.py$
+  - repo: local
+    hooks:
+      - id: frontend-lint
+        name: frontend-lint
+        entry: yarn --cwd frontend lint
+        language: system
+        files: ^frontend/
+        pass_filenames: false
+      - id: frontend-format
+        name: frontend-format
+        entry: yarn --cwd frontend format
+        language: system
+        files: ^frontend/
+        pass_filenames: false
+      - id: frontend-type-check
+        name: frontend-type-check
+        entry: yarn --cwd frontend type-check
+        language: system
+        files: ^frontend/
+        pass_filenames: false

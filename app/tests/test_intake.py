@@ -273,9 +273,9 @@ def test_get_user_intake_history(client: TestClient, db_session: Session):
 
     # Verify descending order (newest first)
     for i in range(len(parsed_times) - 1):
-        assert (
-            parsed_times[i] >= parsed_times[i + 1]
-        ), f"Timestamps not in descending order: {parsed_times}"
+        assert parsed_times[i] >= parsed_times[i + 1], (
+            f"Timestamps not in descending order: {parsed_times}"
+        )
 
     # Since we created them sequentially with delays, the last created (i=2, score=12) should be first
     # But if timestamps are identical, we can't guarantee exact order, so just verify descending

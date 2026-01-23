@@ -94,9 +94,10 @@ def test_main_port_unavailable_continue():
         try:
             sock.bind(("localhost", 9000))
 
-            with patch("agent.launcher.input", return_value="y"), patch(
-                "agent.launcher.start_agent"
-            ) as mock_start:
+            with (
+                patch("agent.launcher.input", return_value="y"),
+                patch("agent.launcher.start_agent") as mock_start,
+            ):
                 try:
                     main()
                 except SystemExit:

@@ -3,6 +3,7 @@
 Generate secure API keys for ZapGaze
 Usage: python scripts/generate-api-keys.py
 """
+
 import secrets
 import sys
 import os
@@ -37,12 +38,12 @@ def main():
     # Check if .env already exists
     if os.path.exists(env_file):
         response = input(f"{env_file} already exists. Overwrite? (y/n): ")
-        if response.lower() != 'y':
+        if response.lower() != "y":
             print("Cancelled. Keys generated above but not saved.")
             return
 
     # Write .env file
-    with open(env_file, 'w') as f:
+    with open(env_file, "w") as f:
         f.write("# ZapGaze API Keys\n")
         f.write("# Generated automatically - DO NOT COMMIT TO GIT\n")
         f.write(f"AGENT_API_KEY={agent_key}\n")
@@ -52,7 +53,7 @@ def main():
     print()
 
     # Create .env.example file
-    with open(env_example_file, 'w') as f:
+    with open(env_example_file, "w") as f:
         f.write("# ZapGaze API Keys\n")
         f.write("# Copy this file to .env and set your keys\n")
         f.write("AGENT_API_KEY=your-agent-api-key-here\n")
@@ -63,19 +64,20 @@ def main():
 
     # Create agent_config.py for embedding in agent
     agent_config_file = "agent/agent_config.py"
-    with open(agent_config_file, 'w') as f:
+    with open(agent_config_file, "w") as f:
         f.write('"""\n')
-        f.write('Agent configuration - API key embedded at build time\n')
-        f.write('This file is generated automatically. DO NOT EDIT MANUALLY.\n')
+        f.write("Agent configuration - API key embedded at build time\n")
+        f.write("This file is generated automatically. DO NOT EDIT MANUALLY.\n")
         f.write('"""\n')
-        f.write('\n')
-        f.write('# API Key for backend authentication\n')
-        f.write('# This key is embedded in the agent executable at build time\n')
+        f.write("\n")
+        f.write("# API Key for backend authentication\n")
+        f.write("# This key is embedded in the agent executable at build time\n")
         f.write(f'AGENT_API_KEY = "{agent_key}"\n')
-        f.write('\n')
+        f.write("\n")
         f.write(
-            '# For development/testing, you can override with environment variable\n')
-        f.write('import os\n')
+            "# For development/testing, you can override with environment variable\n"
+        )
+        f.write("import os\n")
         f.write('AGENT_API_KEY = os.getenv("AGENT_API_KEY", AGENT_API_KEY)\n')
 
     print(f"✅ Created {agent_config_file} (embedded in agent executable)")

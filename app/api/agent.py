@@ -280,7 +280,7 @@ def proxy_calibrate_start(
                     status_code=500, detail=result.get("error", "Command failed")
                 )
         if i % 10 == 0:  # Log every second
-            print(f"⏳ Still waiting... ({i/10:.1f}s)")
+            print(f"⏳ Still waiting... ({i / 10:.1f}s)")
 
     print(f"❌ Timeout waiting for command {command_id}")
     raise HTTPException(
@@ -332,7 +332,7 @@ def proxy_calibrate_point(
                     status_code=500, detail=result.get("error", "Command failed")
                 )
         if i % 10 == 0:  # Log every second
-            print(f"⏳ Still waiting... ({i/10:.1f}s)")
+            print(f"⏳ Still waiting... ({i / 10:.1f}s)")
 
     print(f"❌ Timeout waiting for command {command_id}")
     raise HTTPException(
@@ -427,7 +427,7 @@ def proxy_start_acquisition(
                     status_code=500, detail=result.get("error", "Command failed")
                 )
         if i % 10 == 0:  # Log every second
-            print(f"⏳ Still waiting... ({i/10:.1f}s)")
+            print(f"⏳ Still waiting... ({i / 10:.1f}s)")
 
     print(f"❌ Timeout waiting for command {command_id}")
     raise HTTPException(
@@ -481,7 +481,7 @@ def proxy_stop_acquisition(
                     status_code=500, detail=result.get("error", "Command failed")
                 )
         if i % 10 == 0:  # Log every second
-            print(f"⏳ Still waiting... ({i/10:.1f}s)")
+            print(f"⏳ Still waiting... ({i / 10:.1f}s)")
 
     print(f"❌ Timeout waiting for command {command_id}")
     raise HTTPException(

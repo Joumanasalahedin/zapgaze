@@ -25,62 +25,69 @@ def fix_user_columns():
     print("=" * 60)
     print("Fixing User Table Columns")
     print("=" * 60)
-    
+
     try:
         with engine.connect() as conn:
             # Check current constraints
             print("\nStep 1: Checking current column constraints...")
-            result = conn.execute(text("""
+            result = conn.execute(
+                text("""
                 SELECT column_name, is_nullable, data_type
                 FROM information_schema.columns
                 WHERE table_name = 'users'
                 AND column_name IN ('name', 'birthdate', 'name_encrypted', 'birthdate_encrypted')
                 ORDER BY column_name
-            """))
-            
-            columns = {row[0]: {'nullable': row[1], 'type': row[2]} for row in result}
-            
+            """)
+            )
+
+            columns = {row[0]: {"nullable": row[1], "type": row[2]} for row in result}
+
             for col_name, info in columns.items():
-                status = "NULLABLE" if info['nullable'] == 'YES' else "NOT NULL"
+                status = "NULLABLE" if info["nullable"] == "YES" else "NOT NULL"
                 print(f"  {col_name}: {info['type']} ({status})")
-            
+
             # Make legacy columns nullable
             print("\nStep 2: Making legacy columns nullable...")
-            
-            if 'name' in columns and columns['name']['nullable'] == 'NO':
+
+            if "name" in columns and columns["name"]["nullable"] == "NO":
                 print("  Making 'name' column nullable...")
                 conn.execute(text("ALTER TABLE users ALTER COLUMN name DROP NOT NULL"))
                 conn.commit()
                 print("  ✓ 'name' column is now nullable")
-            
-            if 'birthdate' in columns and columns['birthdate']['nullable'] == 'NO':
+
+            if "birthdate" in columns and columns["birthdate"]["nullable"] == "NO":
                 print("  Making 'birthdate' column nullable...")
-                conn.execute(text("ALTER TABLE users ALTER COLUMN birthdate DROP NOT NULL"))
+                conn.execute(
+                    text("ALTER TABLE users ALTER COLUMN birthdate DROP NOT NULL")
+                )
                 conn.commit()
                 print("  ✓ 'birthdate' column is now nullable")
-            
+
             # Verify changes
             print("\nStep 3: Verifying changes...")
-            result = conn.execute(text("""
+            result = conn.execute(
+                text("""
                 SELECT column_name, is_nullable
                 FROM information_schema.columns
                 WHERE table_name = 'users'
                 AND column_name IN ('name', 'birthdate')
-            """))
-            
+            """)
+            )
+
             for row in result:
-                status = "NULLABLE" if row[1] == 'YES' else "NOT NULL"
+                status = "NULLABLE" if row[1] == "YES" else "NOT NULL"
                 print(f"  {row[0]}: {status}")
-        
+
         print("\n" + "=" * 60)
         print("✓ Columns fixed successfully!")
         print("=" * 60)
         print("\nYou can now create new users with encrypted data only.")
         return 0
-        
+
     except Exception as e:
         print(f"\n✗ Error: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 

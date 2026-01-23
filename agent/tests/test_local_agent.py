@@ -18,9 +18,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 def client(mock_requests):
     """Create test client for agent API"""
     # Mock the heartbeat thread and requests before importing
-    with patch("agent.local_agent.send_heartbeat"), patch(
-        "agent.local_agent.threading.Thread"
-    ), patch("agent.local_agent.requests") as mock_req:
+    with (
+        patch("agent.local_agent.send_heartbeat"),
+        patch("agent.local_agent.threading.Thread"),
+        patch("agent.local_agent.requests") as mock_req,
+    ):
         # Set up default mock response
         mock_response = Mock()
         mock_response.status_code = 200
@@ -60,10 +62,12 @@ def test_status_endpoint_stopped(client):
 
 def test_calibrate_start(client, mock_camera, mock_adapter):
     """Test calibration start endpoint"""
-    with patch(
-        "app.acquisition.camera_manager.CameraManager", return_value=mock_camera
-    ), patch(
-        "app.acquisition.mediapipe_adapter.MediaPipeAdapter", return_value=mock_adapter
+    with (
+        patch("app.acquisition.camera_manager.CameraManager", return_value=mock_camera),
+        patch(
+            "app.acquisition.mediapipe_adapter.MediaPipeAdapter",
+            return_value=mock_adapter,
+        ),
     ):
         response = client.post("/calibrate/start")
         assert response.status_code == 200
@@ -155,13 +159,14 @@ def test_execute_command_calibrate_start(mock_camera, mock_adapter):
     """Test execute_command with calibrate_start"""
     from agent.local_agent import app, execute_command
 
-    with patch(
-        "app.acquisition.camera_manager.CameraManager", return_value=mock_camera
-    ), patch(
-        "app.acquisition.mediapipe_adapter.MediaPipeAdapter", return_value=mock_adapter
-    ), patch(
-        "agent.local_agent.requests.post"
-    ) as mock_post:
+    with (
+        patch("app.acquisition.camera_manager.CameraManager", return_value=mock_camera),
+        patch(
+            "app.acquisition.mediapipe_adapter.MediaPipeAdapter",
+            return_value=mock_adapter,
+        ),
+        patch("agent.local_agent.requests.post") as mock_post,
+    ):
         command = {
             "command_id": "test-command-1",
             "type": "calibrate_start",
@@ -186,8 +191,9 @@ def test_execute_command_calibrate_point(mock_camera, mock_adapter):
     app.state.cal_camera = mock_camera
     app.state.cal_adapter = mock_adapter
 
-    with patch("agent.local_agent.requests.post") as mock_post, patch(
-        "agent.local_agent.time.sleep"
+    with (
+        patch("agent.local_agent.requests.post") as mock_post,
+        patch("agent.local_agent.time.sleep"),
     ):
         command = {
             "command_id": "test-command-2",
@@ -317,10 +323,11 @@ def test_lifespan_registration():
 
     app = FastAPI()
 
-    with patch("agent.local_agent.requests.post") as mock_post, patch(
-        "agent.local_agent.requests.delete"
-    ) as mock_delete, patch("agent.local_agent.send_heartbeat"), patch(
-        "agent.local_agent.threading.Thread"
+    with (
+        patch("agent.local_agent.requests.post") as mock_post,
+        patch("agent.local_agent.requests.delete") as mock_delete,
+        patch("agent.local_agent.send_heartbeat"),
+        patch("agent.local_agent.threading.Thread"),
     ):
         # Mock successful registration
         mock_response = Mock()
