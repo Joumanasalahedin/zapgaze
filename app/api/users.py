@@ -13,7 +13,6 @@ from app.utils.encryption import encrypt
 
 router = APIRouter()
 
-# Initialize rate limiter for users endpoints
 limiter = Limiter(key_func=get_remote_address)
 
 
@@ -48,7 +47,7 @@ class UserResultsResponse(BaseModel):
 
 
 @router.get("/search", summary="Search for users by name")
-@limiter.limit("60/minute")  # Allow 60 searches per minute per IP
+@limiter.limit("60/minute")
 def search_users(
     request: Request,
     name: str = Query(
@@ -64,10 +63,6 @@ def search_users(
             status_code=400, detail="Name parameter is required and cannot be empty"
         )
 
-    # Search for users with case-insensitive partial name match
-    # Note: With encrypted data, we can't search directly on encrypted columns
-    # For now, fetch all users and filter in memory (acceptable for small datasets)
-    # TODO: Consider implementing searchable encryption or tokenization for larger datasets
     all_users = db.query(models.User).all()
     search_term = name.strip().lower()
     users = [u for u in all_users if search_term in u.name.lower()]
@@ -86,7 +81,7 @@ def search_users(
     "/results/by-credentials",
     summary="Get all results for a user by name and birthdate",
 )
-@limiter.limit("60/minute")  # Allow 60 requests per minute per IP
+@limiter.limit("60/minute")
 def get_user_results_by_credentials(
     request: Request,
     name: str = Query(..., description="User name"),
@@ -96,26 +91,19 @@ def get_user_results_by_credentials(
 ):
     """Get all results for a user by name and birthdate. Used for retrieving previous results."""
 
-    # Find user by name and birthdate
-    # Since data is encrypted, we need to fetch all users and compare decrypted values
     all_users = db.query(models.User).all()
     user = None
 
-    # Normalize the search name
     search_name = name.lower().strip()
 
     for u in all_users:
-        # Get decrypted values
         user_name = u.name.lower().strip() if u.name else ""
         user_birthdate = u.birthdate
 
-        # Compare name (case-insensitive)
         name_match = user_name == search_name
 
-        # Compare birthdate (handle None cases)
         birthdate_match = False
         if user_birthdate is not None and birthdate is not None:
-            # Ensure both are date objects for comparison
             if isinstance(user_birthdate, datetime.date) and isinstance(
                 birthdate, datetime.date
             ):
@@ -136,7 +124,7 @@ def get_user_results_by_credentials(
 
 
 @router.get("/results", summary="Get all results for a user grouped by session")
-@limiter.limit("60/minute")  # Allow 60 requests per minute per IP
+@limiter.limit("60/minute")
 def get_user_results(
     request: Request,
     user_id: int = Query(..., description="User ID"),
@@ -148,9 +136,6 @@ def get_user_results(
 ):
     """Get all results for a user, grouped by session. Requires birthdate verification."""
 
-    # Verify user exists and birthdate matches
-    # For encrypted data, we need to compare encrypted values or decrypt
-    # Since we can't query encrypted data directly, fetch user first then verify
     user = db.query(models.User).filter(models.User.id == user_id).first()
 
     if not user or user.birthdate != birthdate:
@@ -168,7 +153,6 @@ def get_user_results(
 def _get_user_results_internal(user_id: int, user: models.User, db: Session):
     """Internal function to get user results. Used by both endpoints."""
 
-    # Get all sessions for this user
     sessions = (
         db.query(models.Session)
         .filter(models.Session.user_id == user_id)
@@ -179,21 +163,18 @@ def _get_user_results_internal(user_id: int, user: models.User, db: Session):
     session_results = []
 
     for session in sessions:
-        # Get features for this session
         features = (
             db.query(models.SessionFeatures)
             .filter(models.SessionFeatures.session_id == session.id)
             .first()
         )
 
-        # Get intake for this session
         intake = (
             db.query(models.Intake)
             .filter(models.Intake.session_uid == session.session_uid)
             .first()
         )
 
-        # Prepare features data
         features_data = None
         if features:
             features_data = {
@@ -210,7 +191,6 @@ def _get_user_results_internal(user_id: int, user: models.User, db: Session):
                 "commission_errors": features.commission_errors,
             }
 
-        # Prepare intake data
         intake_data = None
         if intake:
             intake_data = {

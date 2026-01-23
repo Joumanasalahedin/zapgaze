@@ -7,12 +7,9 @@ from fastapi.security import APIKeyHeader
 from typing import Optional
 import os
 
-# API Key configuration
 API_KEY_HEADER_NAME = "X-API-Key"
 api_key_header = APIKeyHeader(name=API_KEY_HEADER_NAME, auto_error=False)
 
-# Get API key from environment variable
-# For production, set this in your environment or Azure configuration
 AGENT_API_KEY = os.getenv(
     "AGENT_API_KEY", "zapgaze-agent-secret-key-change-in-production"
 )

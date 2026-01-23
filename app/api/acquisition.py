@@ -48,9 +48,7 @@ def receive_acquisition(
 
 
 @router.post("/batch")
-@limiter.limit(
-    "100/minute"
-)  # Allow 100 batches per minute per IP (each batch can contain many records)
+@limiter.limit("100/minute")
 def receive_acquisition_batch(
     request: Request,
     records: List[AcquisitionData],
@@ -58,7 +56,6 @@ def receive_acquisition_batch(
     api_key: str = Depends(verify_agent_api_key),
 ):
     """Receive batch acquisition data (requires API key)"""
-    # Additional validation: limit batch size to prevent abuse
     if len(records) > 1000:
         raise HTTPException(
             status_code=400,
@@ -79,7 +76,6 @@ def receive_acquisition_batch(
                 session_id=session_entry.id, data=json.dumps(item.model_dump())
             )
         )
-    # Bulk insert for performance
     db.bulk_save_objects(entries)
     db.commit()
     return {"status": "success", "count": len(entries)}

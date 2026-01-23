@@ -13,7 +13,6 @@ from app.security import verify_frontend_api_key
 
 router = APIRouter()
 
-# Initialize rate limiter for intake endpoints
 limiter = Limiter(key_func=get_remote_address)
 
 
@@ -26,13 +25,9 @@ def get_db():
 
 
 class IntakeData(BaseModel):
-    # For new users
     name: Optional[str] = None
-    # For existing users
     user_id: Optional[int] = None
-    # Required for both
     birthdate: datetime.date
-    # ASRS-5 has 6 items (0=Never to 4=Very Often)
     answers: List[int] = Field(..., min_length=6, max_length=6)
 
     @model_validator(mode="after")
@@ -67,18 +62,13 @@ def intake(
     db: Session = Depends(get_db),
     api_key: str = Depends(verify_frontend_api_key),
 ):
-    # Compute total ASRS-5 score (0-24)
     total_score = sum(data.answers)
 
-    # Classify symptom group: >=14 = High, else Low
     symptom_group = "High" if total_score >= 14 else "Low"
 
     user = None
 
-    # Handle existing user case
     if data.user_id is not None:
-        # Verify existing user exists and birthdate matches
-        # Can't filter by encrypted birthdate directly, so fetch user first then verify
         user = db.query(models.User).filter(models.User.id == data.user_id).first()
 
         if not user or user.birthdate != data.birthdate:
@@ -87,9 +77,7 @@ def intake(
                 detail="User not found or birthdate does not match. Please check your user ID and birthdate.",
             )
 
-    # Handle new user case
     elif data.name is not None:
-        # Create new User (basic info only)
         try:
             user = models.User(name=data.name, birthdate=data.birthdate)
             db.add(user)
@@ -101,7 +89,6 @@ def intake(
                 status_code=500, detail=f"Failed to create user: {str(e)}"
             )
 
-    # Create new session for the user
     try:
         session_uid = str(uuid.uuid4())
         session_entry = models.Session(user_id=user.id, session_uid=session_uid)
@@ -114,7 +101,6 @@ def intake(
             status_code=500, detail=f"Failed to create session: {str(e)}"
         )
 
-    # Create Intake record linked to the user and session
     try:
         intake_record = models.Intake(
             user_id=user.id,
@@ -144,7 +130,7 @@ def intake(
 
 
 @router.get("/user/{user_id}", summary="Get intake data for a specific user")
-@limiter.limit("60/minute")  # Allow 60 requests per minute per IP
+@limiter.limit("60/minute")
 def get_user_intake(
     request: Request,
     user_id: int,
@@ -153,12 +139,10 @@ def get_user_intake(
 ):
     """Get the latest intake record for a user."""
 
-    # Check if user exists
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # Get the latest intake record for this user
     intake_record = (
         db.query(models.Intake)
         .filter(models.Intake.user_id == user_id)
@@ -183,7 +167,7 @@ def get_user_intake(
 
 
 @router.get("/session/{session_uid}", summary="Get intake data for a specific session")
-@limiter.limit("60/minute")  # Allow 60 requests per minute per IP
+@limiter.limit("60/minute")
 def get_session_intake(
     request: Request,
     session_uid: str,
@@ -192,7 +176,6 @@ def get_session_intake(
 ):
     """Get the intake record for a specific session."""
 
-    # Check if session exists
     session = (
         db.query(models.Session)
         .filter(models.Session.session_uid == session_uid)
@@ -201,7 +184,6 @@ def get_session_intake(
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    # Get the intake record for this session
     intake_record = (
         db.query(models.Intake).filter(models.Intake.session_uid == session_uid).first()
     )
@@ -223,7 +205,7 @@ def get_session_intake(
 
 
 @router.get("/user/{user_id}/history", summary="Get all intake records for a user")
-@limiter.limit("60/minute")  # Allow 60 requests per minute per IP
+@limiter.limit("60/minute")
 def get_user_intake_history(
     request: Request,
     user_id: int,
@@ -232,12 +214,10 @@ def get_user_intake_history(
 ):
     """Get all intake records for a user (if they have multiple)."""
 
-    # Check if user exists
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # Get all intake records for this user
     intake_records = (
         db.query(models.Intake)
         .filter(models.Intake.user_id == user_id)

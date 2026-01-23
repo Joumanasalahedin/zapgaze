@@ -1,4 +1,3 @@
-# app/api/calibration.py
 from fastapi import APIRouter, Depends, HTTPException, Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -9,7 +8,6 @@ from app.security import verify_agent_or_frontend_api_key
 
 router = APIRouter()
 
-# Initialize rate limiter for calibration endpoints
 limiter = Limiter(key_func=get_remote_address)
 
 
@@ -29,7 +27,7 @@ class CalibrationPointIn(BaseModel):
 
 
 @router.post("/session/{session_uid}/calibration/point", tags=["calibration"])
-@limiter.limit("60/minute")  # Allow 60 calibration points per minute per IP
+@limiter.limit("60/minute")
 def add_calibration_point(
     request: Request,
     session_uid: str,
@@ -55,7 +53,7 @@ def add_calibration_point(
 
 
 @router.get("/session/{session_uid}/calibration", tags=["calibration"])
-@limiter.limit("60/minute")  # Allow 60 requests per minute per IP
+@limiter.limit("60/minute")
 def get_calibration_points(
     request: Request,
     session_uid: str,

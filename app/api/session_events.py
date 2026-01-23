@@ -9,7 +9,6 @@ from app.security import verify_frontend_api_key
 
 router = APIRouter()
 
-# Initialize rate limiter for session events endpoints
 limiter = Limiter(key_func=get_remote_address)
 
 
@@ -30,21 +29,17 @@ class TaskEventRequest(BaseModel):
 
 
 @router.post("/event")
-@limiter.limit(
-    "1000/minute"
-)  # Allow 1000 events per minute per IP (high volume during tests)
+@limiter.limit("1000/minute")
 def log_event(
     request: Request,
     req: TaskEventRequest,
     db: Session = Depends(get_db),
     api_key: str = Depends(verify_frontend_api_key),
 ):
-    # Verify session exists using only session_uid
     sess = db.query(models.Session).filter_by(session_uid=req.session_uid).first()
     if not sess:
         raise HTTPException(status_code=404, detail="Session not found.")
 
-    # Persist task event
     evt = models.TaskEvent(
         session_id=sess.id,
         timestamp=req.timestamp,

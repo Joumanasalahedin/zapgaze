@@ -15,31 +15,22 @@ from app.security import verify_agent_api_key, verify_frontend_api_key
 
 router = APIRouter()
 
-# Initialize rate limiter for agent endpoints
 limiter = Limiter(key_func=get_remote_address)
 
-# In-memory store for registered agents
-# Key: session_uid or user identifier, Value: last heartbeat timestamp
 registered_agents: Dict[str, datetime] = {}
 
-# Command queue for agents
-# Key: agent_id, Value: list of pending commands
 agent_commands: Dict[str, list] = {}
 
-# Command results
-# Key: command_id, Value: result
 command_results: Dict[str, dict] = {}
 
-# Agents that should stop sending heartbeats (unregistered after session stop)
 stopped_agents: set = set()
 
-# Heartbeat timeout - agent must send heartbeat within this time
 HEARTBEAT_TIMEOUT = timedelta(seconds=30)
 
 
 class AgentRegistration(BaseModel):
     session_uid: Optional[str] = None
-    agent_id: Optional[str] = None  # Optional unique agent identifier
+    agent_id: Optional[str] = None
 
 
 class AgentCommandResult(BaseModel):
@@ -82,14 +73,13 @@ class StartAcquisitionRequest(BaseModel):
 
 
 @router.post("/register")
-@limiter.limit("10/minute")  # Allow 10 registrations per minute per IP
+@limiter.limit("10/minute")
 def register_agent(
     request: Request,
     registration: AgentRegistration,
     api_key: str = Depends(verify_agent_api_key),
 ) -> Dict[str, Any]:
     """Register an agent with the backend (requires API key)"""
-    # Use session_uid or agent_id as the key
     agent_key = registration.session_uid or registration.agent_id or "default"
     registered_agents[agent_key] = datetime.now()
     return {
@@ -100,7 +90,6 @@ def register_agent(
 
 
 @router.post("/heartbeat")
-# Allow 60 heartbeats per minute per IP (1 per second)
 @limiter.limit("60/minute")
 def agent_heartbeat(
     request: Request,
@@ -112,29 +101,23 @@ def agent_heartbeat(
     agent_id = heartbeat.agent_id
     agent_key = session_uid or agent_id or "default"
 
-    # Check if agent was stopped (unregistered after session stop)
-    # Check both session_uid and agent_id in case they're different
     if (
         agent_key in stopped_agents
         or (session_uid and session_uid in stopped_agents)
         or (agent_id and agent_id in stopped_agents)
     ):
-        # Don't re-register, tell agent to stop
         print(f"🛑 Agent {agent_key} is in stopped_agents, telling it to stop")
         return {
             "status": "stopped",
             "message": "Agent unregistered after session stop. Please stop sending heartbeats.",
         }
 
-    # Re-register agent (update timestamp)
-    # Register with both keys if both are provided
     registered_agents[agent_key] = datetime.now()
     if session_uid and session_uid != agent_key:
         registered_agents[session_uid] = datetime.now()
     if agent_id and agent_id != agent_key:
         registered_agents[agent_id] = datetime.now()
 
-    # Store command result if provided
     if heartbeat.command_result:
         result = heartbeat.command_result
         command_id = result.command_id
@@ -145,8 +128,6 @@ def agent_heartbeat(
                 "error": result.error,
             }
 
-    # Return pending commands for this agent
-    # Check all possible keys (agent_key, session_uid, agent_id) to get commands
     pending_commands = []
     keys_to_check = [agent_key]
     if session_uid and session_uid != agent_key:
@@ -154,11 +135,10 @@ def agent_heartbeat(
     if agent_id and agent_id != agent_key:
         keys_to_check.append(agent_id)
 
-    # Collect commands from all keys and clear them
     for key in keys_to_check:
         if key in agent_commands:
             pending_commands.extend(agent_commands[key])
-            agent_commands[key] = []  # Clear after returning
+            agent_commands[key] = []
 
     return {
         "status": "ok",
@@ -168,12 +148,11 @@ def agent_heartbeat(
 
 
 @router.get("/status")
-@limiter.limit("30/minute")  # Allow 30 status checks per minute per IP
+@limiter.limit("30/minute")
 def get_agent_status(
     request: Request, session_uid: Optional[str] = None
 ) -> Dict[str, Any]:
     """Check if an agent is registered and active (public endpoint, no API key required)"""
-    # Clean up stale agents
     now = datetime.now()
     stale_keys = [
         key
@@ -183,7 +162,6 @@ def get_agent_status(
     for key in stale_keys:
         del registered_agents[key]
 
-    # Check for specific session or any active agent
     if session_uid:
         if session_uid in registered_agents:
             last_heartbeat = registered_agents[session_uid]
@@ -194,7 +172,6 @@ def get_agent_status(
                     "last_heartbeat": last_heartbeat.isoformat(),
                 }
     else:
-        # Check if any agent is active
         active_agents = [
             key
             for key, last_heartbeat in registered_agents.items()
@@ -211,7 +188,7 @@ def get_agent_status(
 
 
 @router.delete("/unregister")
-@limiter.limit("10/minute")  # Allow 10 unregistrations per minute per IP
+@limiter.limit("10/minute")
 def unregister_agent(
     request: Request,
     session_uid: Optional[str] = None,
@@ -222,21 +199,18 @@ def unregister_agent(
     agent_key = session_uid or agent_id or "default"
     if agent_key in registered_agents:
         del registered_agents[agent_key]
-        # Clean up commands
         if agent_key in agent_commands:
             del agent_commands[agent_key]
         return {"status": "unregistered", "agent_key": agent_key}
     raise HTTPException(status_code=404, detail="Agent not found")
 
 
-# Calibration proxy endpoints
 @router.post("/calibrate/start")
-@limiter.limit("10/minute")  # Allow 10 calibration starts per minute per IP
+@limiter.limit("10/minute")
 def proxy_calibrate_start(
     request: Request, api_key: str = Depends(verify_frontend_api_key)
 ) -> Dict[str, Any]:
     """Queue calibration start command for agent (requires API key)"""
-    # Get any active agent
     now = datetime.now()
     active_agents = [
         key
@@ -250,7 +224,6 @@ def proxy_calibrate_start(
             detail=f"No active agent found. Registered agents: {list(registered_agents.keys())}",
         )
 
-    # Use the first active agent
     agent_key = active_agents[0]
     command_id = str(uuid.uuid4())
     command = {
@@ -265,10 +238,8 @@ def proxy_calibrate_start(
 
     print(f"📤 Queued command {command_id} for agent {agent_key}")
 
-    # Wait for result (polling)
-    # Wait up to 10 seconds (agent polls every 1-2 seconds)
     print(f"⏳ Waiting for command {command_id} result...")
-    for i in range(100):  # 100 * 0.1s = 10 seconds
+    for i in range(100):
         time.sleep(0.1)
         if command_id in command_results:
             result = command_results.pop(command_id)
@@ -279,7 +250,7 @@ def proxy_calibrate_start(
                 raise HTTPException(
                     status_code=500, detail=result.get("error", "Command failed")
                 )
-        if i % 10 == 0:  # Log every second
+        if i % 10 == 0:
             print(f"⏳ Still waiting... ({i / 10:.1f}s)")
 
     print(f"❌ Timeout waiting for command {command_id}")
@@ -289,7 +260,7 @@ def proxy_calibrate_start(
 
 
 @router.post("/calibrate/point")
-@limiter.limit("60/minute")  # Allow 60 calibration points per minute per IP
+@limiter.limit("60/minute")
 def proxy_calibrate_point(
     request: Request,
     data: CalibrationPointRequest,
@@ -318,9 +289,8 @@ def proxy_calibrate_point(
         agent_commands[agent_key] = []
     agent_commands[agent_key].append(command)
 
-    # Wait for result (calibration point takes ~1-2 seconds to process)
     print(f"⏳ Waiting for command {command_id} result...")
-    for i in range(150):  # 150 * 0.1s = 15 seconds (calibration takes time)
+    for i in range(150):
         time.sleep(0.1)
         if command_id in command_results:
             result = command_results.pop(command_id)
@@ -331,7 +301,7 @@ def proxy_calibrate_point(
                 raise HTTPException(
                     status_code=500, detail=result.get("error", "Command failed")
                 )
-        if i % 10 == 0:  # Log every second
+        if i % 10 == 0:
             print(f"⏳ Still waiting... ({i / 10:.1f}s)")
 
     print(f"❌ Timeout waiting for command {command_id}")
@@ -341,7 +311,7 @@ def proxy_calibrate_point(
 
 
 @router.post("/calibrate/finish")
-@limiter.limit("10/minute")  # Allow 10 calibration finishes per minute per IP
+@limiter.limit("10/minute")
 def proxy_calibrate_finish(
     request: Request, api_key: str = Depends(verify_frontend_api_key)
 ) -> Dict[str, Any]:
@@ -368,7 +338,6 @@ def proxy_calibrate_finish(
         agent_commands[agent_key] = []
     agent_commands[agent_key].append(command)
 
-    # Wait for result
     for _ in range(30):
         time.sleep(0.1)
         if command_id in command_results:
@@ -384,7 +353,7 @@ def proxy_calibrate_finish(
 
 
 @router.post("/start")
-@limiter.limit("10/minute")  # Allow 10 acquisition starts per minute per IP
+@limiter.limit("10/minute")
 def proxy_start_acquisition(
     request: Request,
     data: StartAcquisitionRequest,
@@ -413,9 +382,8 @@ def proxy_start_acquisition(
         agent_commands[agent_key] = []
     agent_commands[agent_key].append(command)
 
-    # Wait for result (acquisition start is quick)
     print(f"⏳ Waiting for command {command_id} result...")
-    for i in range(50):  # 50 * 0.1s = 5 seconds
+    for i in range(50):
         time.sleep(0.1)
         if command_id in command_results:
             result = command_results.pop(command_id)
@@ -426,7 +394,7 @@ def proxy_start_acquisition(
                 raise HTTPException(
                     status_code=500, detail=result.get("error", "Command failed")
                 )
-        if i % 10 == 0:  # Log every second
+        if i % 10 == 0:
             print(f"⏳ Still waiting... ({i / 10:.1f}s)")
 
     print(f"❌ Timeout waiting for command {command_id}")
@@ -436,7 +404,7 @@ def proxy_start_acquisition(
 
 
 @router.post("/stop")
-@limiter.limit("10/minute")  # Allow 10 acquisition stops per minute per IP
+@limiter.limit("10/minute")
 def proxy_stop_acquisition(
     request: Request, api_key: str = Depends(verify_frontend_api_key)
 ) -> Dict[str, Any]:
@@ -451,8 +419,6 @@ def proxy_stop_acquisition(
     if not active_agents:
         raise HTTPException(status_code=503, detail="No active agent found")
 
-    # Queue command for ALL active agent keys to ensure it's received
-    # (agent might be registered with multiple keys: agent_id, session_uid, etc.)
     command_id = str(uuid.uuid4())
     command = {
         "command_id": command_id,
@@ -460,16 +426,14 @@ def proxy_stop_acquisition(
         "params": {},
     }
 
-    # Queue for all active agent keys
     for agent_key in active_agents:
         if agent_key not in agent_commands:
             agent_commands[agent_key] = []
         agent_commands[agent_key].append(command)
         print(f"📤 Queued stop command {command_id} for agent key: {agent_key}")
 
-    # Wait for result (acquisition stop is quick)
     print(f"⏳ Waiting for command {command_id} result...")
-    for i in range(50):  # 50 * 0.1s = 5 seconds
+    for i in range(50):
         time.sleep(0.1)
         if command_id in command_results:
             result = command_results.pop(command_id)
@@ -480,7 +444,7 @@ def proxy_stop_acquisition(
                 raise HTTPException(
                     status_code=500, detail=result.get("error", "Command failed")
                 )
-        if i % 10 == 0:  # Log every second
+        if i % 10 == 0:
             print(f"⏳ Still waiting... ({i / 10:.1f}s)")
 
     print(f"❌ Timeout waiting for command {command_id}")
