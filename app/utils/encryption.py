@@ -8,7 +8,6 @@ import os
 import secrets
 import string
 
-# Get encryption key from environment variable
 ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
 
 if not ENCRYPTION_KEY:
@@ -22,10 +21,8 @@ if not ENCRYPTION_KEY:
         "  ENCRYPTION_KEY=your_generated_key_here"
     )
 
-# Strip whitespace (common issue when copying keys)
 ENCRYPTION_KEY = ENCRYPTION_KEY.strip()
 
-# Validate key format
 if len(ENCRYPTION_KEY) < 32:
     raise ValueError(
         f"ENCRYPTION_KEY is too short ({len(ENCRYPTION_KEY)} characters). "
@@ -74,8 +71,6 @@ def decrypt(encrypted_data: str) -> str:
     try:
         return cipher.decrypt(encrypted_data.encode()).decode()
     except Exception as e:
-        # If decryption fails, might be unencrypted data (for migration)
-        # Return as-is and log warning
         import logging
 
         logging.warning(f"Decryption failed, returning as-is: {e}")

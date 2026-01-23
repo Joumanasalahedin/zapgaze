@@ -86,12 +86,11 @@ def run_acquisition_loop():
                 f"Blink: {result['blink']}, EAR: {result['ear']}, Total: {result['total_blinks']}"
             )
 
-            # Improved key detection with longer wait time
             key = cv2.waitKey(30) & 0xFF
             if key == ord("q") or key == ord("Q"):
                 print("Quit key pressed. Exiting...")
                 break
-            elif key == 27:  # ESC key
+            elif key == 27:
                 print("ESC key pressed. Exiting...")
                 break
 
@@ -105,7 +104,6 @@ def run_acquisition_loop():
         print("Cleaning up...")
         camera.release_camera()
         cv2.destroyAllWindows()
-        # Force close all windows
         for i in range(5):
             cv2.waitKey(1)
 

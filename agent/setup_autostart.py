@@ -18,7 +18,6 @@ def setup_macos_autostart(agent_path):
 
     plist_file = launch_agents_dir / "com.zapgaze.agent.plist"
 
-    # Get absolute path to Python and agent launcher
     python_path = sys.executable
     agent_abs_path = str(Path(agent_path).resolve())
 
@@ -53,7 +52,6 @@ def setup_macos_autostart(agent_path):
 
 def setup_windows_autostart(agent_path):
     """Set up auto-start on Windows using Task Scheduler or Startup folder"""
-    # Method 1: Add to Startup folder (simpler, no admin needed)
     startup_folder = (
         Path(os.getenv("APPDATA"))
         / "Microsoft"
@@ -64,7 +62,6 @@ def setup_windows_autostart(agent_path):
     )
     startup_folder.mkdir(parents=True, exist_ok=True)
 
-    # Create a batch file that runs the agent
     batch_file = startup_folder / "ZapGazeAgent.bat"
     agent_abs_path = str(Path(agent_path).resolve())
     python_path = sys.executable
@@ -81,7 +78,6 @@ def setup_linux_autostart(agent_path):
     """Set up auto-start on Linux using systemd user service or autostart"""
     home = Path.home()
 
-    # Try systemd user service first (more modern)
     systemd_user_dir = home / ".config" / "systemd" / "user"
     systemd_user_dir.mkdir(parents=True, exist_ok=True)
 
@@ -105,7 +101,6 @@ WantedBy=default.target
 
     service_file.write_text(service_content)
 
-    # Also create .desktop file for autostart (fallback)
     autostart_dir = home / ".config" / "autostart"
     autostart_dir.mkdir(parents=True, exist_ok=True)
 
@@ -133,12 +128,9 @@ def main():
     """Main setup function"""
     system = platform.system()
 
-    # Get the path to the launcher
     if getattr(sys, "frozen", False):
-        # Running as compiled executable
         agent_path = sys.executable
     else:
-        # Running as script
         agent_path = Path(__file__).parent / "launcher.py"
 
     print("=" * 50)
@@ -149,7 +141,7 @@ def main():
     print()
 
     try:
-        if system == "Darwin":  # macOS
+        if system == "Darwin":
             setup_macos_autostart(agent_path)
         elif system == "Windows":
             setup_windows_autostart(agent_path)

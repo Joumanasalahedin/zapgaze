@@ -14,23 +14,19 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-# Global variables
 task_proc = None
 task_thread = None
 heartbeat_thread = None
-agent_id = str(uuid.uuid4())  # Unique agent identifier
-current_session_uid = None  # Track the current session UID for heartbeats
-acquisition_stop_flag = threading.Event()  # Flag to signal acquisition to stop
+agent_id = str(uuid.uuid4())
+current_session_uid = None
+acquisition_stop_flag = threading.Event()
 acquisition_camera = None
 
 try:
     from agent.agent_config import AGENT_API_KEY as EMBEDDED_API_KEY
 
-    # Use embedded key, but allow override via environment variable for testing
     AGENT_API_KEY = os.getenv("AGENT_API_KEY", EMBEDDED_API_KEY)
 except ImportError:
-    # agent_config.py doesn't exist (development mode)
-    # Use environment variable or default development key
     AGENT_API_KEY = os.getenv(
         "AGENT_API_KEY", "zapgaze-agent-secret-key-change-in-production"
     )
@@ -41,7 +37,6 @@ def send_heartbeat():
     backend_url = os.getenv("BACKEND_URL", "http://20.74.82.26:8000")
     while True:
         try:
-            # Send both agent_id and session_uid (if available) so backend can match by either
             heartbeat_data = {"agent_id": agent_id}
             if current_session_uid:
                 heartbeat_data["session_uid"] = current_session_uid
@@ -55,21 +50,18 @@ def send_heartbeat():
             if response.status_code == 200:
                 data = response.json()
 
-                # Check if backend told us to stop
                 if data.get("status") == "stopped":
                     print(
                         f"🛑 Backend requested agent to stop: {data.get('message', 'Session stopped')}"
                     )
                     print("   Stopping heartbeat loop...")
-                    break  # Exit the heartbeat loop
+                    break
 
-                # Check for pending commands
                 commands = data.get("commands", [])
                 if commands:
                     print(f"📥 Received {len(commands)} command(s) from backend")
                 for command in commands:
                     print(f"⚙️  Executing command: {command.get('type')}")
-                    # Execute commands in a separate thread so they don't block heartbeat
                     command_thread = threading.Thread(
                         target=execute_command,
                         args=(command, backend_url),
@@ -77,16 +69,14 @@ def send_heartbeat():
                     )
                     command_thread.start()
         except requests.RequestException as e:
-            # Log error for debugging
             print(f"⚠️  Heartbeat error: {e}")
-            pass  # Silently fail - backend might be down
+            pass
         time.sleep(1)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup and shutdown events"""
-    # Register with backend on startup
     backend_url = os.getenv("BACKEND_URL", "http://20.74.82.26:8000")
     try:
         requests.post(
@@ -100,14 +90,12 @@ async def lifespan(app: FastAPI):
         print(f"⚠️  Could not register with backend: {e}")
         print("   Agent will continue running, but frontend may not detect it.")
 
-    # Start heartbeat thread
     global heartbeat_thread
     heartbeat_thread = threading.Thread(target=send_heartbeat, daemon=True)
     heartbeat_thread.start()
 
     yield
 
-    # Unregister on shutdown
     try:
         requests.delete(
             f"{backend_url}/agent/unregister",
@@ -121,7 +109,7 @@ async def lifespan(app: FastAPI):
 
 def execute_command(command: dict, backend_url: str):
     """Execute a command from the backend"""
-    global task_proc, task_thread, acquisition_stop_flag, current_session_uid, acquisition_camera  # Declare all globals at the top
+    global task_proc, task_thread, acquisition_stop_flag, current_session_uid, acquisition_camera
 
     command_id = command.get("command_id")
     command_type = command.get("type")
@@ -151,7 +139,7 @@ def execute_command(command: dict, backend_url: str):
             pts = []
             samples = params.get("samples", 30)
             duration = params.get("duration", 1.0)
-            max_attempts = samples * 2  # Allow up to 2x samples in case of failures
+            max_attempts = samples * 2
             attempt = 0
             successful_samples = 0
 
@@ -160,21 +148,19 @@ def execute_command(command: dict, backend_url: str):
             )
 
             start_time = time.time()
-            timeout = duration + 5  # Add 5 second buffer for processing
+            timeout = duration + 5
 
             while successful_samples < samples and attempt < max_attempts:
-                # Check for timeout
                 if time.time() - start_time > timeout:
                     print(f"⏱️  Calibration point timeout after {timeout}s")
                     break
 
                 try:
-                    # Try to get frame with a timeout check
                     frame = cam.get_frame()
                     if frame is None:
                         print(f"⚠️  Failed to get frame (attempt {attempt + 1})")
                         attempt += 1
-                        time.sleep(0.05)  # Short delay before retry
+                        time.sleep(0.05)
                         continue
 
                     res = adapter.analyze_frame(frame)
@@ -189,18 +175,15 @@ def execute_command(command: dict, backend_url: str):
                                 f"📊 Collected {successful_samples}/{samples} samples"
                             )
                     else:
-                        # No eyes detected, but continue
                         pass
 
-                    # Sleep to maintain timing
                     time.sleep(duration / samples)
                     attempt += 1
 
                 except Exception as e:
                     print(f"⚠️  Error during calibration sample {attempt + 1}: {e}")
                     attempt += 1
-                    time.sleep(0.05)  # Short delay before retry
-                    # Continue trying - don't fail on individual frame errors
+                    time.sleep(0.05)
 
             if not pts:
                 raise Exception(f"No eye data captured after {attempt} attempts")
@@ -220,7 +203,6 @@ def execute_command(command: dict, backend_url: str):
                 f"✅ Calibration point completed: ({params['x']}, {params['y']}) -> ({mean_x:.2f}, {mean_y:.2f})"
             )
 
-            # Also send to backend
             try:
                 requests.post(
                     f"{backend_url}/session/{params.get('session_uid')}/calibration/point",
@@ -257,8 +239,6 @@ def execute_command(command: dict, backend_url: str):
             result = transform
 
         elif command_type == "start_acquisition":
-            # Start acquisition using the same logic as the /start endpoint
-            # Check if already running
             if task_thread and task_thread.is_alive():
                 raise Exception("Acquisition already running")
             if task_proc and task_proc.poll() is None:
@@ -268,15 +248,11 @@ def execute_command(command: dict, backend_url: str):
             api_url = params.get("api_url", f"{backend_url}/acquisition/batch")
             fps = params.get("fps", 20.0)
 
-            # Track the current session UID for heartbeats
             current_session_uid = session_uid
 
-            # Check if we're running as a standalone executable (PyInstaller)
             if getattr(sys, "frozen", False) or not os.path.exists(
                 os.path.join(os.getcwd(), "agent", "acquisition_client.py")
             ):
-                # Running as executable - use thread
-                # Reset stop flag before starting new acquisition
                 acquisition_stop_flag.clear()
 
                 task_thread = threading.Thread(
@@ -287,7 +263,6 @@ def execute_command(command: dict, backend_url: str):
                 task_thread.start()
                 result = {"status": "acquisition_started", "mode": "thread"}
             else:
-                # Running as script - use subprocess
                 cmd = [
                     "python",
                     os.path.join(os.getcwd(), "agent", "acquisition_client.py"),
@@ -309,21 +284,14 @@ def execute_command(command: dict, backend_url: str):
                 }
 
         elif command_type == "stop_acquisition":
-            # Stop acquisition using the same method as calibration_finish - directly release camera
             print(
                 f"🛑 Stop command received. task_thread: {task_thread}, is_alive: {task_thread.is_alive() if task_thread else 'N/A'}"
             )
             print(f"🛑 app.state.acquisition_camera: {app.state.acquisition_camera}")
-            # Stop thread mode - use same approach as calibration: directly release camera
             if task_thread and task_thread.is_alive():
-                # Directly release camera (like calibration_finish does)
-                # This will cause camera.get_frame() to fail, breaking the loop immediately
-                # Set stop flag first (as backup)
                 acquisition_stop_flag.set()
                 print("🛑 Set stop flag")
 
-                # Directly release camera (like calibration_finish does)
-                # This will cause camera.get_frame() to fail, breaking the loop immediately
                 cam = app.state.acquisition_camera
                 if cam:
                     print(
@@ -340,7 +308,6 @@ def execute_command(command: dict, backend_url: str):
                         import traceback
 
                         traceback.print_exc()
-                        # Stop flag already set, so loop will exit on next check
                 else:
                     print(
                         "⚠️  No acquisition_camera in app.state, using stop flag only"
@@ -348,9 +315,6 @@ def execute_command(command: dict, backend_url: str):
 
                 result = {"status": "acquisition_stopped", "mode": "thread"}
 
-                # Note: We don't set task_thread = None here because the thread might still be
-                # finishing up (flushing buffer, releasing camera). The thread will exit on its own.
-            # Stop subprocess mode
             elif task_proc and task_proc.poll() is None:
                 task_proc.terminate()
                 try:
@@ -362,18 +326,15 @@ def execute_command(command: dict, backend_url: str):
                     task_proc = None
                 result = {"status": "acquisition_stopped", "mode": "subprocess"}
             else:
-                # Acquisition already stopped or never started - this is fine, just return success
                 print(
                     "ℹ️  Stop command received but no acquisition is running (already stopped)"
                 )
                 result = {"status": "acquisition_stopped", "mode": "already_stopped"}
 
-            # Clear session UID when acquisition stops
             current_session_uid = None
         else:
             raise Exception(f"Unknown command type: {command_type}")
 
-        # Report success
         print(f"✅ Command {command_id} executed successfully")
         try:
             requests.post(
@@ -393,7 +354,6 @@ def execute_command(command: dict, backend_url: str):
         except Exception as e:
             print(f"❌ Failed to report command result: {e}")
     except Exception as e:
-        # Report error
         try:
             requests.post(
                 f"{backend_url}/agent/heartbeat",
@@ -465,13 +425,9 @@ def run_acquisition_client(session_uid, api_url, fps):
     try:
         from agent.acquisition_client import run_acquisition
 
-        # Reset stop flag before starting
         acquisition_stop_flag.clear()
-        acquisition_camera = None  # Clear any previous reference
+        acquisition_camera = None
 
-        # Pass stop flag to acquisition function, and get camera reference back
-        # We'll modify run_acquisition to store the camera instance globally
-        # List to hold camera reference (mutable, for backup)
         camera_ref_holder = [None]
         run_acquisition(
             session_uid,
@@ -481,9 +437,6 @@ def run_acquisition_client(session_uid, api_url, fps):
             camera_ref_holder=camera_ref_holder,
         )
 
-        # Note: acquisition_camera should be set inside run_acquisition before the loop starts
-        # If it wasn't set, try to get it from camera_ref_holder (though this won't work
-        # since run_acquisition blocks, but it's here for completeness)
     except Exception as e:
         import logging
 
@@ -498,21 +451,16 @@ def start_acquisition(req: StartRequest) -> Dict[str, Any]:
     """Start acquisition for a session"""
     global task_proc, task_thread, acquisition_stop_flag, current_session_uid
 
-    # Check if already running (either subprocess or thread)
     if task_thread and task_thread.is_alive():
         raise HTTPException(status_code=400, detail="Acquisition already running.")
     if task_proc and task_proc.poll() is None:
         raise HTTPException(status_code=400, detail="Acquisition already running.")
 
-    # Track the current session UID for heartbeats
     current_session_uid = req.session_uid
 
-    # Check if we're running as a standalone executable (PyInstaller)
     if getattr(sys, "frozen", False) or not os.path.exists(
         os.path.join(os.getcwd(), "agent", "acquisition_client.py")
     ):
-        # Running as executable - use thread
-        # Reset stop flag before starting new acquisition
         acquisition_stop_flag.clear()
 
         task_thread = threading.Thread(
@@ -523,7 +471,6 @@ def start_acquisition(req: StartRequest) -> Dict[str, Any]:
         task_thread.start()
         return {"status": "acquisition_started", "mode": "thread"}
     else:
-        # Running as script - use subprocess (original method)
         cmd = [
             "python",
             os.path.join(os.getcwd(), "agent", "acquisition_client.py"),
@@ -550,18 +497,14 @@ def stop_acquisition() -> Dict[str, Any]:
     """Stop acquisition"""
     global task_proc, task_thread, acquisition_stop_flag, current_session_uid
 
-    # Stop thread mode
     if task_thread and task_thread.is_alive():
-        # Set stop flag to signal the acquisition loop to exit
         acquisition_stop_flag.set()
         print("🛑 Set stop flag for acquisition thread")
-        # Wait a moment for the thread to see the flag
         time.sleep(0.5)
         task_thread = None
-        current_session_uid = None  # Clear session UID when stopped
+        current_session_uid = None
         return {"status": "acquisition_stopped", "mode": "thread"}
 
-    # Stop subprocess mode
     if task_proc and task_proc.poll() is None:
         task_proc.terminate()
         try:
@@ -571,7 +514,7 @@ def stop_acquisition() -> Dict[str, Any]:
                 task_proc.kill()
         finally:
             task_proc = None
-        current_session_uid = None  # Clear session UID when stopped
+        current_session_uid = None
         return {"status": "acquisition_stopped", "mode": "subprocess"}
 
     raise HTTPException(status_code=400, detail="No acquisition in progress.")
@@ -590,10 +533,8 @@ def root() -> Dict[str, Any]:
 @app.get("/status")
 def status() -> Dict[str, Any]:
     """Status of acquisition task (not agent server)"""
-    # Check thread mode
     if task_thread and task_thread.is_alive():
         return {"status": "running", "mode": "thread"}
-    # Check subprocess mode
     if task_proc and task_proc.poll() is None:
         return {"status": "running", "pid": task_proc.pid, "mode": "subprocess"}
     return {"status": "stopped"}
@@ -604,9 +545,7 @@ def calibrate_start() -> Dict[str, Any]:
     from app.acquisition.camera_manager import CameraManager
     from app.acquisition.mediapipe_adapter import MediaPipeAdapter
 
-    # Initialize calibration state
     app.state.cal_data = []
-    # Start camera for calibration
     cam = CameraManager()
     adapter = MediaPipeAdapter()
     cam.start_camera()

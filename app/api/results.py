@@ -9,7 +9,6 @@ from app.security import verify_frontend_api_key
 
 router = APIRouter()
 
-# Initialize rate limiter for results endpoints
 limiter = Limiter(key_func=get_remote_address)
 
 
@@ -22,7 +21,7 @@ def get_db():
 
 
 @router.get("/{session_uid}")
-@limiter.limit("60/minute")  # Allow 60 requests per minute per IP
+@limiter.limit("60/minute")
 def get_results(
     request: Request,
     session_uid: str,
@@ -45,7 +44,7 @@ def get_results(
 
 
 @router.delete("/{session_uid}")
-@limiter.limit("30/minute")  # Allow 30 deletions per minute per IP
+@limiter.limit("30/minute")
 def delete_results(
     request: Request,
     session_uid: str,

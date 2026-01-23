@@ -18,7 +18,6 @@ from app.security import verify_frontend_api_key
 
 router = APIRouter()
 
-# Initialize rate limiter for GDPR endpoints
 limiter = Limiter(key_func=get_remote_address)
 
 
@@ -34,7 +33,7 @@ class DeleteUserRequest(BaseModel):
     """Request model for user deletion."""
 
     user_id: int
-    birthdate: datetime.date  # Required for verification
+    birthdate: datetime.date
 
 
 class DeleteUserResponse(BaseModel):
@@ -52,7 +51,7 @@ class DeleteUserResponse(BaseModel):
 
 
 @router.delete("/delete-user", summary="Delete all user data (GDPR Right to Deletion)")
-@limiter.limit("10/minute")  # Limit deletion requests to prevent abuse
+@limiter.limit("10/minute")
 def delete_user_data(
     request: Request,
     user_id: int = Query(..., description="User ID to delete"),
@@ -76,20 +75,17 @@ def delete_user_data(
 
     Requires birthdate verification for security.
     """
-    # Verify user exists and birthdate matches
     user = db.query(models.User).filter(models.User.id == user_id).first()
 
     if not user:
         raise HTTPException(status_code=404, detail="User not found.")
 
-    # Verify birthdate matches
     if user.birthdate != birthdate:
         raise HTTPException(
             status_code=403,
             detail="Birthdate does not match. Deletion request denied for security.",
         )
 
-    # Get counts before deletion for response
     sessions = db.query(models.Session).filter(models.Session.user_id == user_id).all()
     session_ids = [s.id for s in sessions]
 
@@ -97,7 +93,6 @@ def delete_user_data(
         db.query(models.Intake).filter(models.Intake.user_id == user_id).count()
     )
 
-    # Count related data
     results_count = 0
     events_count = 0
     calibration_count = 0
@@ -128,49 +123,40 @@ def delete_user_data(
             .count()
         )
 
-    # Delete in order (respecting foreign key constraints)
     try:
-        # 1. Delete session features
         if session_ids:
             db.query(models.SessionFeatures).filter(
                 models.SessionFeatures.session_id.in_(session_ids)
             ).delete(synchronize_session=False)
 
-        # 2. Delete results
         if session_ids:
             db.query(models.Results).filter(
                 models.Results.session_id.in_(session_ids)
             ).delete(synchronize_session=False)
 
-        # 3. Delete task events
         if session_ids:
             db.query(models.TaskEvent).filter(
                 models.TaskEvent.session_id.in_(session_ids)
             ).delete(synchronize_session=False)
 
-        # 4. Delete calibration points
         if session_ids:
             db.query(models.CalibrationPoint).filter(
                 models.CalibrationPoint.session_id.in_(session_ids)
             ).delete(synchronize_session=False)
 
-        # 5. Delete intakes
         db.query(models.Intake).filter(models.Intake.user_id == user_id).delete(
             synchronize_session=False
         )
 
-        # 6. Delete sessions
         if session_ids:
             db.query(models.Session).filter(models.Session.user_id == user_id).delete(
                 synchronize_session=False
             )
 
-        # 7. Delete user
         db.query(models.User).filter(models.User.id == user_id).delete(
             synchronize_session=False
         )
 
-        # Commit all deletions
         db.commit()
 
         return DeleteUserResponse(
