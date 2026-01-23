@@ -112,7 +112,7 @@ const HomePage: FC = () => {
         <div className={styles.heroContent}>
           <h1 className={styles.heroTitle}>{greeting}!</h1>
           <p className={styles.heroSubtitle}>
-            Welcome to zapgaze™ — A revolutionary ADHD detection tool through advanced pupillometry
+            Welcome to zapgaze™ — A revolutionary ADHD evaluation tool through advanced pupillometry
             technology
           </p>
           <div className={styles.heroAction}>
@@ -179,7 +179,7 @@ const HomePage: FC = () => {
           <div className={styles.aboutContent}>
             <h2 className={styles.sectionTitle}>About zapgaze™</h2>
             <p className={styles.sectionText}>
-              zapgaze™ uses cutting-edge pupillometry technology to detect potential ADHD
+              zapgaze™ uses cutting-edge pupillometry technology to evaluate potential ADHD
               indicators through precise eye movement and pupil response analysis. Our non-invasive,
               scientifically-backed approach provides quick and accurate assessments that can help
               identify attention-related challenges early.
