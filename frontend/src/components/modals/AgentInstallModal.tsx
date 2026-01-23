@@ -16,6 +16,7 @@ import {
 } from "@mui/material";
 import DownloadIcon from "@mui/icons-material/Download";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import styles from "./AgentInstallModal.module.css";
 
 interface AgentInstallModalProps {
   open: boolean;
@@ -24,21 +25,6 @@ interface AgentInstallModalProps {
   apiBaseUrl?: string; // Backend API URL to check agent status
   onAgentReady?: () => void;
 }
-
-const steps = [
-  {
-    label: "Download",
-    description: "Download the ZapGaze Agent for your operating system",
-  },
-  {
-    label: "Run",
-    description: "Double-click the downloaded file to start the agent",
-  },
-  {
-    label: "Verify",
-    description: "Wait for the connection to be established",
-  },
-];
 
 const AgentInstallModal: FC<AgentInstallModalProps> = ({
   open,
@@ -146,7 +132,7 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
       <DialogTitle>Install ZapGaze Agent</DialogTitle>
       <DialogContent>
-        <Typography variant="body2" sx={{ mb: 3 }}>
+        <Typography variant="body2" className={styles.mb3}>
           The ZapGaze Agent is required to access your camera for eye-tracking. Follow these steps
           to install and run it:
         </Typography>
@@ -155,11 +141,11 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
           <Step>
             <StepLabel>Download Agent</StepLabel>
             <StepContent>
-              <Typography variant="body2" sx={{ mb: 2 }}>
+              <Typography variant="body2" className={styles.mb2}>
                 Download the agent for {platform === "unknown" ? "your platform" : platform}:
               </Typography>
               {platform === "unknown" ? (
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                <Box className={styles.flexColumnGap1}>
                   <Button
                     variant="outlined"
                     startIcon={<DownloadIcon />}
@@ -208,10 +194,10 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
           <Step>
             <StepLabel>Run the Agent</StepLabel>
             <StepContent>
-              <Typography variant="body2" sx={{ mb: 2 }}>
+              <Typography variant="body2" className={styles.mb2}>
                 After downloading:
               </Typography>
-              <Box component="ul" sx={{ pl: 2 }}>
+              <Box component="ul" className={styles.pl2}>
                 <li>
                   <Typography variant="body2">
                     Locate the downloaded file: <strong>{getFileName()}</strong>
@@ -222,10 +208,10 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
                     <Typography variant="body2">Double-click the .exe file to run it</Typography>
                   ) : platform === "mac" ? (
                     <Box>
-                      <Typography variant="body2" sx={{ mb: 2 }}>
+                      <Typography variant="body2" className={styles.mb2}>
                         <strong>Step 1:</strong> Unzip the downloaded file
                       </Typography>
-                      <Box component="ol" sx={{ marginTop: 1, paddingLeft: 3, mb: 2 }}>
+                      <Box component="ol" className={styles.stepListWrapper}>
                         <li>
                           <Typography variant="body2">
                             Double-click <strong>ZapGazeAgent.zip</strong> to unzip it
@@ -238,16 +224,16 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
                           </Typography>
                         </li>
                       </Box>
-                      <Typography variant="body2" sx={{ mb: 1, fontWeight: "bold" }}>
+                      <Typography variant="body2" className={`${styles.mb1} ${styles.fontWeightBold}`}>
                         <strong>Step 2:</strong> Run the app
                       </Typography>
-                      <Alert severity="warning" sx={{ mb: 2 }}>
-                        <Typography variant="body2" sx={{ mb: 1 }}>
+                      <Alert severity="warning" className={styles.mb2}>
+                        <Typography variant="body2" className={styles.mb1}>
                           <strong>macOS Security Warning:</strong> You'll see a warning saying
                           "ZapGazeAgent" cannot be verified. This is normal for unsigned apps.
                         </Typography>
                       </Alert>
-                      <Box component="ol" sx={{ marginTop: 1, paddingLeft: 3, mb: 2 }}>
+                      <Box component="ol" className={styles.stepListWrapper}>
                         <li>
                           <Typography variant="body2">
                             Right-click (or Control+click) on <strong>ZapGazeAgent.app</strong>
@@ -269,8 +255,8 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
                           </Typography>
                         </li>
                       </Box>
-                      <Alert severity="info" sx={{ mt: 2 }}>
-                        <Typography variant="body2" sx={{ fontSize: "0.875rem" }}>
+                      <Alert severity="info" className={styles.mt2}>
+                        <Typography variant="body2" className={styles.fontSize0875}>
                           <strong>Note:</strong> The app bundle preserves execute permissions and
                           automatically opens Terminal. After the first time, you can double-click
                           ZapGazeAgent.app directly.
@@ -289,7 +275,7 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
                   </Typography>
                 </li>
               </Box>
-              <Button variant="outlined" onClick={() => setActiveStep(2)} sx={{ mt: 2 }}>
+              <Button variant="outlined" onClick={() => setActiveStep(2)} className={styles.mt2}>
                 I've started the agent
               </Button>
             </StepContent>
@@ -306,7 +292,7 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
                 </Alert>
               ) : (
                 <Box>
-                  <Typography variant="body2" sx={{ mb: 2 }}>
+                  <Typography variant="body2" className={styles.mb2}>
                     Waiting for agent to connect...
                   </Typography>
                   <Alert severity="info">
@@ -321,7 +307,7 @@ const AgentInstallModal: FC<AgentInstallModalProps> = ({
         </Stepper>
 
         {agentConnected && (
-          <Alert severity="success" sx={{ mt: 3 }}>
+          <Alert severity="success" className={styles.mt3}>
             <Typography variant="body2">
               Setup complete! The agent is now connected and ready to use.
             </Typography>
