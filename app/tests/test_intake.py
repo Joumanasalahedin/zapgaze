@@ -30,7 +30,9 @@ def test_create_intake_new_user(client: TestClient, db_session: Session):
     assert len(data["answers"]) == 6
 
     # Verify user was created
-    user = db_session.query(models.User).filter_by(name="John Doe").first()
+    # Note: Can't filter by name directly due to encryption, so fetch all and check
+    users = db_session.query(models.User).all()
+    user = next((u for u in users if u.name == "John Doe"), None)
     assert user is not None
     assert user.birthdate == date(1990, 1, 1)
 

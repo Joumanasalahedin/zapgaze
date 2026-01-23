@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+from contextlib import asynccontextmanager
 import os
 from app.api import (
     intake,
@@ -19,7 +20,27 @@ from app.api import (
 from app.db import models
 from app.db.database import engine
 
-app = FastAPI(title="ZapGaze Backend")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Lifespan context manager for startup and shutdown events.
+    Replaces deprecated @app.on_event("startup") pattern.
+    """
+    # Startup: Create database tables
+    try:
+        models.Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        print(f"Warning: Could not create database tables: {e}")
+        print("  Tables may already exist or database connection issue.")
+
+    yield
+
+    # Shutdown: (nothing to do here currently)
+    pass
+
+
+app = FastAPI(title="ZapGaze Backend", lifespan=lifespan)
 
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
@@ -57,21 +78,6 @@ app.include_router(agent.router, prefix="/agent", tags=["agent"])
 
 # GDPR compliance endpoints
 app.include_router(gdpr.router, prefix="/gdpr", tags=["gdpr"])
-
-
-@app.on_event("startup")
-async def create_tables():
-    """
-    Create database tables on application startup.
-
-    This is idempotent - it only creates tables that don't exist.
-    Existing tables and data are preserved. Safe to call on every startup.
-    """
-    try:
-        models.Base.metadata.create_all(bind=engine)
-    except Exception as e:
-        print(f"Warning: Could not create database tables: {e}")
-        print("  Tables may already exist or database connection issue.")
 
 
 @app.get("/")

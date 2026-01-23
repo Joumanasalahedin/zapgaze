@@ -78,15 +78,10 @@ def intake(
     # Handle existing user case
     if data.user_id is not None:
         # Verify existing user exists and birthdate matches
-        user = (
-            db.query(models.User)
-            .filter(
-                models.User.id == data.user_id, models.User.birthdate == data.birthdate
-            )
-            .first()
-        )
+        # Can't filter by encrypted birthdate directly, so fetch user first then verify
+        user = db.query(models.User).filter(models.User.id == data.user_id).first()
 
-        if not user:
+        if not user or user.birthdate != data.birthdate:
             raise HTTPException(
                 status_code=404,
                 detail="User not found or birthdate does not match. Please check your user ID and birthdate.",
