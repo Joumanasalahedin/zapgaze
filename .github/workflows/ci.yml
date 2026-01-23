@@ -48,7 +48,6 @@ jobs:
 
       - name: Run tests
         run: yarn test --passWithNoTests || echo "No tests found or test command not configured"
-        continue-on-error: true
 
       - name: Run e2e tests
         uses: cypress-io/github-action@v6
@@ -59,7 +58,6 @@ jobs:
           wait-on: http://localhost:5173
           wait-on-timeout: 120000
           command: yarn cypress:run
-        continue-on-error: true
 
   backend:
     name: Backend
@@ -116,7 +114,6 @@ jobs:
       - name: Run tests
         run: |
           pytest app/tests/ -v --tb=short || echo "No tests found or test execution failed"
-        continue-on-error: true
 
   agent:
     name: Agent
@@ -156,4 +153,3 @@ jobs:
       - name: Run tests
         run: |
           PYTHONPATH=. pytest agent/tests/ -v --tb=short || echo "No tests found or test execution failed"
-        continue-on-error: true
